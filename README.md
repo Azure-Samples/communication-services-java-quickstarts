@@ -1,57 +1,16 @@
-# Project Name
+# Azure Communication Services Web (Java) SDK
 
-(short, 1-3 sentenced, description of the project)
+Azure Communication Services enable developers to add communication capabilities to their applications. 
 
-## Features
+## Prerequisites
 
-This project framework provides the following features:
+- An Azure account with an active subscription. [Create an account for free](https://azure.microsoft.com/en-us/free/?WT.mc_id=A261C142F).
+- [Java Development Kit (JDK)](https://docs.microsoft.com/en-us/azure/developer/java/fundamentals/java-jdk-install) version 8 or above.
+- [Apache Maven.](https://maven.apache.org/download.cgi)
+- A deployed Communication Services resource and connection string. [Create an Azure Communication Resource](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/create-communication-resource).
 
-* Feature 1
-* Feature 2
-* ...
+## Quickstarts
 
-## Getting Started
+1. [Create and manage access tokens](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/access-tokens?pivots=programming-language-java)
 
-### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
-
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+2. [Add Chat to your app](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/chat/get-started?pivots=programming-language-java)

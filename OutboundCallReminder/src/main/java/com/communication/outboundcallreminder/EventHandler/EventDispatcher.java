@@ -1,8 +1,8 @@
 package com.communication.outboundcallreminder.EventHandler;
 
 import com.azure.communication.callingserver.models.events.*;
+import com.azure.core.models.CloudEvent;
 import com.azure.core.util.BinaryData;
-import com.azure.messaging.eventgrid.EventGridEvent;
 import java.util.*;
 
 public class EventDispatcher {
@@ -57,11 +57,11 @@ public class EventDispatcher {
     }
 
     public String GetEventKey(CallingServerEventBase callEventBase) {
-        if (callEventBase.getClass() == CallLegStateChangedEvent.class) {
-            String callLegId = ((CallLegStateChangedEvent) callEventBase).getCallLegId();
-            return BuildEventKey(CallingServerEventType.CALL_LEG_STATE_CHANGED_EVENT.toString(), callLegId);
+        if (callEventBase.getClass() == CallConnectionStateChangedEvent.class) {
+            String callLegId = ((CallConnectionStateChangedEvent) callEventBase).getCallConnectionId();
+            return BuildEventKey(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
         } else if (callEventBase.getClass() == ToneReceivedEvent.class) {
-            String callLegId = ((ToneReceivedEvent) callEventBase).getCallLegId();
+            String callLegId = ((ToneReceivedEvent) callEventBase).getCallConnectionId();
             return BuildEventKey(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
         } else if (callEventBase.getClass() == PlayAudioResultEvent.class) {
             String operationContext = ((PlayAudioResultEvent) callEventBase).getOperationContext();
@@ -76,17 +76,17 @@ public class EventDispatcher {
 
     public CallingServerEventBase ExtractEvent(String content) {
         try {
-            List<EventGridEvent> eventGridEvents = EventGridEvent.fromString(content);
-            EventGridEvent eventGridEvent = eventGridEvents.get(0);
-            BinaryData eventData = eventGridEvent.getData();
+            List<CloudEvent> cloudEvents = CloudEvent.fromString(content);
+            CloudEvent cloudEvent = cloudEvents.get(0);
+            BinaryData eventData = cloudEvent.getData();
 
-            if (eventGridEvent.getEventType().equals(CallingServerEventType.CALL_LEG_STATE_CHANGED_EVENT.toString())) {
-                return CallLegStateChangedEvent.deserialize(eventData);
-            } else if (eventGridEvent.getEventType().equals(CallingServerEventType.TONE_RECEIVED_EVENT.toString())) {
+            if (cloudEvent.getType().equals(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString())) {
+                return CallConnectionStateChangedEvent.deserialize(eventData);
+            } else if (cloudEvent.getType().equals(CallingServerEventType.TONE_RECEIVED_EVENT.toString())) {
                 return ToneReceivedEvent.deserialize(eventData);
-            } else if (eventGridEvent.getEventType().equals(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString())) {
+            } else if (cloudEvent.getType().equals(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString())) {
                 return PlayAudioResultEvent.deserialize(eventData);
-            } else if (eventGridEvent.getEventType().equals(CallingServerEventType.INVITE_PARTICIPANT_RESULT_EVENT.toString())) {
+            } else if (cloudEvent.getType().equals(CallingServerEventType.INVITE_PARTICIPANT_RESULT_EVENT.toString())) {
                 return InviteParticipantResultEvent.deserialize(eventData);
             }
         } catch (Exception ex) {

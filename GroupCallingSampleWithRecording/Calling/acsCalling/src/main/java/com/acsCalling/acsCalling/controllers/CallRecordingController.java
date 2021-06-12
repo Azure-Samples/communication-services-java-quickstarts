@@ -3,7 +3,7 @@ package com.acsCalling.acsCalling.controllers;
 import com.acsCalling.acsCalling.ConfigurationManager;
 import com.acsCalling.acsCalling.RecordingChunk;
 import com.acsCalling.acsCalling.StorageData;
-import com.azure.communication.callingserver.ConversationClientBuilder;
+import com.azure.communication.callingserver.CallingServerClientBuilder;
 import com.azure.communication.callingserver.models.CallRecordingStateResponse;
 import com.azure.communication.callingserver.models.StartCallRecordingResponse;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
@@ -67,16 +67,16 @@ public class CallRecordingController  {
         blobStorageConnectionString = configurationManager.GetAppSettings("BlobStorageConnectionString");
 
         NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
-        ConversationClientBuilder builder = new ConversationClientBuilder().httpClient(httpClientBuilder.build())
+        CallingServerClientBuilder builder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
                 .connectionString(connectionString);
-        conversationClient = builder.buildClient();
+        callingServerClient = builder.buildClient();
     }
 
-    private com.azure.communication.callingserver.ConversationClient conversationClient = null;
+    private com.azure.communication.callingserver.CallingServerClient callingServerClient = null;
 
     @GetMapping("/getrecordingstatus")
     public CallRecordingStateResponse  getRecordingState(String serverCallId, String recordingId) {
-        CallRecordingStateResponse recordingStateResult = this.conversationClient.getRecordingState(serverCallId, recordingId);
+        CallRecordingStateResponse recordingStateResult = this.callingServerClient.initializeServerCall(serverCallId).getRecordingState(recordingId);
         return recordingStateResult;
     }
 
@@ -85,7 +85,7 @@ public class CallRecordingController  {
         URI recordingStateCallbackUri = null;
         try {
             recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
-            Response<StartCallRecordingResponse> response = this.conversationClient.startRecordingWithResponse(serverCallId, String.valueOf(recordingStateCallbackUri),null);
+            Response<StartCallRecordingResponse> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri),null);
             var output = response.getValue();
             if(!recordingData.containsKey(serverCallId)){
                 recordingData.put(serverCallId, "");
@@ -112,7 +112,7 @@ public class CallRecordingController  {
                     recordingData.put(serverCallId, recordingId);
                 }
             }
-            this.conversationClient.pauseRecordingWithResponse(serverCallId, recordingId, null);
+            this.callingServerClient.initializeServerCall(serverCallId).pauseRecordingWithResponse(recordingId, null);
         }
     }
     @GetMapping("/resumeRecording")
@@ -129,7 +129,7 @@ public class CallRecordingController  {
                     recordingData.put(serverCallId, recordingId);
                 }
             }
-            this.conversationClient.resumeRecordingWithResponse(serverCallId, serverCallId, null);
+            this.callingServerClient.initializeServerCall(serverCallId).resumeRecordingWithResponse(serverCallId, null);
         }
     }
     @GetMapping("/stopRecording")
@@ -146,7 +146,7 @@ public class CallRecordingController  {
                     recordingData.put(serverCallId, recordingId);
                 }
             }
-            this.conversationClient.stopRecordingWithResponse(serverCallId, recordingId, null);
+            this.callingServerClient.initializeServerCall(serverCallId).stopRecordingWithResponse(recordingId, null);
             if (recordingData.containsKey(serverCallId))
             {
                 recordingData.remove(serverCallId);
@@ -182,6 +182,7 @@ public class CallRecordingController  {
                 ObjectMapper mapper = new ObjectMapper();
                 mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
                 try {
+                    logger.log(Level.INFO, "JSON response ----- \n" + json);
                     StorageData storageData = mapper.readValue(json, StorageData.class);
 
                     logger.log(Level.INFO, "Start downloading recorded media -- >");
@@ -242,7 +243,9 @@ public class CallRecordingController  {
     }
 
     public HttpResponse Download(List<RecordingChunk> recordingchunks, String accessKey, String downloadUri, String apiVersion) throws Exception {
+        Logger logger = Logger.getLogger(CallRecordingController.class.getName());
         String url = downloadUri + recordingchunks.stream().findFirst().get().documentId + "?apiVersion=" + apiVersion;
+        logger.log(Level.INFO, "Download Url -- >  " + url);
         String serializedPayload = "";
         String contentHashed = CreateContentHash(serializedPayload);
         HttpGet request = new HttpGet(URI.create(url));
@@ -251,7 +254,12 @@ public class CallRecordingController  {
         client.setDefaultHeaders(headers);
         HttpResponse response = client.build().execute(request);
         int responseCode = response.getStatusLine().getStatusCode();
-        Logger.getLogger(CallRecordingController.class.getName()).log(Level.INFO, "Download media api response code -- > " + responseCode);
+
+        logger.log(Level.INFO, "Download media api response code -- > " + responseCode);
+        logger.log(Level.INFO, "Response Headers as follows -->");
+        for(Header header: response.getAllHeaders())
+            logger.log(Level.INFO, header.getName() + " -- " + header.getValue());
+
         return response;
     }
 
@@ -283,6 +291,11 @@ public class CallRecordingController  {
         byte[] hmac = mac.doFinal(bytes);
         var signature =  Hex.encodeHexString(hmac);
         String authorization = "HMAC-SHA256 SignedHeaders=date;host;x-ms-content-sha256&Signature=" + signature;
+
+        Logger logger = Logger.getLogger(CallRecordingController.class.getName());
+        logger.log(Level.INFO, "Request Headers: x-ms-content-sha256 --> " + contentHash);
+        logger.log(Level.INFO, "Request Headers: Date --> " + utcNowString);
+        logger.log(Level.INFO, "Request Headers: Authorization --> " + authorization);
 
         Header header1 = new BasicHeader("x-ms-content-sha256", contentHash);
         Header header2 = new BasicHeader("Date", utcNowString);

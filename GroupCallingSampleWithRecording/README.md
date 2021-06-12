@@ -45,6 +45,87 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 - ./Calling/acsCalling/pom.xml : XML file which contains project and package configurations
 - ./Calling/acsCalling/src/main/resources/config.properties : config file which contains user level configurations
 
+## Call recording management from client app
+
+[!NOTE] This API is provided as a preview for developers and may change based on feedback that we receive. Do not use this API in a production environment. To use this api please use 'beta' release of ACS Calling Web SDK
+
+Call recording is an extended feature of the core Call API. You first need to obtain the recording feature API object:
+
+```JavaScript
+const callRecordingApi = call.api(Features.Recording);
+```
+Then, to check if the call is being recorded, inspect the `isRecordingActive` property of `callRecordingApi`, it returns Boolean.
+
+```JavaScript
+const isRecordingActive = callRecordingApi.isRecordingActive;
+```
+You can also subscribe to recording changes:
+
+```JavaScript
+const isRecordingActiveChangedHandler = () => {
+  console.log(callRecordingApi.isRecordingActive);
+};
+
+callRecordingApi.on('isRecordingActiveChanged', isRecordingActiveChangedHandler);
+```
+
+Get server call id which can be used to start or stop a recording sessions:
+
+Once the call is connected use the `getServerCallId` method to get the server call id.
+
+```JavaScript
+callAgent.on('callsUpdated', (e: { added: Call[]; removed: Call[] }): void => {
+    e.added.forEach((addedCall) => {
+        addedCall.on('stateChanged', (): void => {
+            if (addedCall.state === 'Connected') {
+                addedCall.info.getServerCallId().then(result => {
+                    dispatch(setServerCallId(result));
+                }).catch(err => {
+                    console.log(err);
+                });
+            }
+        });
+    });
+});
+```
+
+## Create a calling server client
+
+To create a calling server client, you'll use your Communication Services connection string and pass to `CallingServerClientBuilder` class.
+
+```java
+NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
+CallingServerClientBuilder builder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
+		.connectionString(connectionString);
+CallingServerClient callingServerClient = builder.buildClient();
+```
+
+## Initialize server call
+
+To initialize `ServerCall` object, you will use `CallingServerClient` object and `serverCallId` received in response of method `getServerCallId` on client side.
+
+```java
+this.serverCall = this.callingServerClient.initializeServerCall(serverCallId);
+```
+
+## Start recording session using 'startRecordingWithResponse' server API
+
+Use the  server call id received in response of method `getServerCallId`.
+
+```java
+recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+ Response<StartCallRecordingResponse> response = this.serverCall.startRecordingWithResponse(String.valueOf(recordingStateCallbackUri),null);
+```
+The `startRecordingWithResponse` API response contains the recording id of the recording session.
+
+## Stop recording session using 'stopRecordingWithResponse' server API
+
+Use the  recording id received in response of  `startRecordingWithResponse`.
+
+```java
+ this.serverCall.stopRecordingWithResponse(recordingId, null);
+```
+
 ## Before running the sample for the first time
 1. Open an instance of PowerShell, Windows Terminal, Command Prompt or equivalent and navigate to the directory that you'd like to clone the sample to.
 2. `git clone https://github.com/Azure-Samples/communication-services-web-calling-hero.git`

@@ -19,7 +19,6 @@ import com.google.gson.Gson;
 import com.microsoft.azure.eventgrid.models.EventGridEvent;
 import com.microsoft.azure.eventgrid.models.SubscriptionValidationEventData;
 import com.microsoft.azure.eventgrid.models.SubscriptionValidationResponse;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -41,8 +40,10 @@ import java.io.FileWriter;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
+import java.security.MessageDigest;
 import java.util.*;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -56,6 +57,7 @@ public class CallRecordingController  {
     String container = "";
     String blobStorageConnectionString = "";
     String recordingStateCallbackUrl = "";
+    Logger logger = null;
     CallRecordingController() {
         ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
         String connectionString = configurationManager.GetAppSettings("Connectionstring");
@@ -70,6 +72,7 @@ public class CallRecordingController  {
         CallingServerClientBuilder builder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
                 .connectionString(connectionString);
         callingServerClient = builder.buildClient();
+        logger =  Logger.getLogger(CallRecordingController.class.getName());
     }
 
     private com.azure.communication.callingserver.CallingServerClient callingServerClient = null;
@@ -159,7 +162,6 @@ public class CallRecordingController  {
         EventGridEvent event = null;
         SubscriptionValidationResponse responseData = null;
         if(obj.stream().count() > 0){
-          Logger logger =  Logger.getLogger(CallRecordingController.class.getName());
             event = obj.get(0);
             logger.log(Level.INFO,  "Event type is -- > " + event.eventType());
 
@@ -243,8 +245,7 @@ public class CallRecordingController  {
     }
 
     public HttpResponse Download(List<RecordingChunk> recordingchunks, String accessKey, String downloadUri, String apiVersion) throws Exception {
-        Logger logger = Logger.getLogger(CallRecordingController.class.getName());
-        String url = downloadUri + recordingchunks.stream().findFirst().get().documentId + "?apiVersion=" + apiVersion;
+        String url = downloadUri + recordingchunks.stream().findFirst().get().documentId + "?" + apiVersion;
         logger.log(Level.INFO, "Download Url -- >  " + url);
         String serializedPayload = "";
         String contentHashed = CreateContentHash(serializedPayload);
@@ -264,24 +265,22 @@ public class CallRecordingController  {
     }
 
     public String CreateContentHash(String content) throws Exception {
-        String secretAccessKey = accessKey;
-        byte[] secretKey = secretAccessKey.getBytes();
-        SecretKeySpec signingKey = new SecretKeySpec(secretKey, "HmacSHA256");
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(signingKey);
-        byte[] bytes = content.getBytes();
-        byte[] rawHmac = mac.doFinal(bytes);
-        String output = java.util.Base64.getEncoder().encodeToString(rawHmac);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        digest.reset();
+        digest.update(content.getBytes("utf8"));
+        var byteForm = digest.digest();
+        String output = java.util.Base64.getEncoder().encodeToString(byteForm);
         System.out.println(output);
         return output;
     }
 
 
-    public static List<Header> AddHmacHeaders(URI requestUri, String contentHash, String accessKey) throws Exception {
-        String utcNowString = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss").format(new Date());
+    public List<Header> AddHmacHeaders(URI requestUri, String contentHash, String accessKey) throws Exception {
+        DateTimeFormatter hTimeFormatter = DateTimeFormatter.ofPattern("E, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
+        String utcNowString = OffsetDateTime.now().format(hTimeFormatter);
         String host = requestUri.getHost();
-        String pathAndQuery = requestUri.toURL().getFile(); //+ requestUri.getQuery();
-        String stringToSign = "GET" + "\n" + pathAndQuery + "\n" + utcNowString + ";" + host + contentHash;
+        String pathAndQuery = requestUri.toURL().getFile();
+        String stringToSign = "GET" + "\n" + pathAndQuery + "\n" + utcNowString + ";" + host  + ";" + contentHash;
 
         byte[] secretKey = DatatypeConverter.parseBase64Binary(accessKey);
         SecretKeySpec signingKey = new SecretKeySpec(secretKey, "HmacSHA256");
@@ -289,10 +288,9 @@ public class CallRecordingController  {
         mac.init(signingKey);
         byte[] bytes = stringToSign.getBytes();
         byte[] hmac = mac.doFinal(bytes);
-        var signature =  Hex.encodeHexString(hmac);
-        String authorization = "HMAC-SHA256 SignedHeaders=date;host;x-ms-content-sha256&Signature=" + signature;
+        String signature = Base64.getEncoder().encodeToString(hmac);
 
-        Logger logger = Logger.getLogger(CallRecordingController.class.getName());
+        String authorization = "HMAC-SHA256 SignedHeaders=date;host;x-ms-content-sha256&Signature=" + signature;
         logger.log(Level.INFO, "Request Headers: x-ms-content-sha256 --> " + contentHash);
         logger.log(Level.INFO, "Request Headers: Date --> " + utcNowString);
         logger.log(Level.INFO, "Request Headers: Authorization --> " + authorization);

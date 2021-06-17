@@ -25,9 +25,9 @@ public class ConfigurationManager {
             appSettings.load(reader);
             reader.close();
         } catch (FileNotFoundException ex) {
-            System.out.print("\n Loading app settings failed with error - " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.INFORMATION,"Loading app settings failed with error -- > " + ex.getMessage());
         } catch (IOException ex) {
-            System.out.print("\n Loading app settings failed with error - " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR,"Loading app settings failed with error -- > " + ex.getMessage());
         }
     }
 

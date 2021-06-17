@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.FileInputStream;
+import com.communication.outboundcallreminder.Logger;
 import com.communication.outboundcallreminder.EventHandler.EventAuthHandler;
 import com.communication.outboundcallreminder.EventHandler.EventDispatcher;
 
@@ -22,7 +23,7 @@ public class OutboundCallController {
 		if (eventhandler.Authorize(secretKey)) {
 			(EventDispatcher.GetInstance()).ProcessNotification(data);
 		} else {
-			System.out.println("Unauthorized Request");
+			Logger.LogMessage(Logger.MessageType.ERROR, "Unauthorized Request");
 		}
 
 		return "OK";

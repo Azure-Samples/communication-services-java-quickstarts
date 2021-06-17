@@ -28,7 +28,7 @@ public class App {
         application.setDefaultProperties(Collections.singletonMap("server.port", serverPort));
         application.run(args);
 
-        System.out.println("Starting ACS Sample App \n");
+        Logger.LogMessage(Logger.MessageType.INFORMATION, "Starting ACS Sample App ");
 
         // Get configuration properties
         ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
@@ -38,19 +38,19 @@ public class App {
         String ngrokUrl = StartNgrokService();
         try {
             if (ngrokUrl != null && !ngrokUrl.isEmpty()) {
-                System.out.println("Server started at:" + url);
+                Logger.LogMessage(Logger.MessageType.INFORMATION,"Server started at -- > " + url);
                 Thread runSample = new Thread(() -> {
                     RunSample(ngrokUrl);
                 });
                 runSample.start();
                 runSample.join();
             } else {
-                System.out.println("Failed to start Ngrok service");
+                Logger.LogMessage(Logger.MessageType.INFORMATION,"Failed to start Ngrok service");
             }
         } catch (Exception ex) {
-            System.out.println("Failed to start Ngrok service : " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR,"Failed to start Ngrok service -- > " + ex.getMessage());
         }
-        System.out.println("Press 'Ctrl + C' to exit the sample");
+        Logger.LogMessage(Logger.MessageType.INFORMATION, "Press 'Ctrl + C' to exit the sample");
         ngrokService.Dispose();
     }
 
@@ -60,20 +60,20 @@ public class App {
             String ngrokPath = configurationManager.GetAppSettings("NgrokExePath");
 
             if (ngrokPath.isEmpty()) {
-                System.out.println("Ngrok path not provided");
+                Logger.LogMessage(Logger.MessageType.INFORMATION, "Ngrok path not provided");
                 return null;
             }
 
-            System.out.println("Starting Ngrok");
+            Logger.LogMessage(Logger.MessageType.INFORMATION,"Starting Ngrok");
             ngrokService = new NgrokService(ngrokPath, null);
 
-            System.out.println("Fetching Ngrok Url");
+            Logger.LogMessage(Logger.MessageType.INFORMATION,"Fetching Ngrok Url");
             String ngrokUrl = ngrokService.GetNgrokUrl();
 
-            System.out.println("Ngrok Started with url: " + ngrokUrl);
+            Logger.LogMessage(Logger.MessageType.INFORMATION,"Ngrok Started with url -- > " + ngrokUrl);
             return ngrokUrl;
         } catch (Exception ex) {
-            System.out.println("Ngrok service got failed : " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.INFORMATION,"Ngrok service got failed -- > " + ex.getMessage());
             return null;
         }
     }
@@ -102,7 +102,7 @@ public class App {
                 executorService.shutdown();
             }
         } catch (Exception ex) {
-            System.out.printf("Failed to initiate the outbound call Exception: " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to initiate the outbound call Exception -- > " + ex.getMessage());
         }
         DeleteUser(callConfiguration.ConnectionString, callConfiguration.SourceIdentity);
     }
@@ -145,8 +145,7 @@ public class App {
             }
             return "sample-message.wav";
         } catch (Exception ex) {
-            System.out.println("Exception while generating text to speech, falling back to sample audio. Exception: "
-                    + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
             return "sample-message.wav";
         }
     }

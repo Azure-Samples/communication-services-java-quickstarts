@@ -10,6 +10,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.impl.client.HttpClients;
+import com.communication.outboundcallreminder.Logger;
 
 public class NgrokConnector {
 
@@ -37,7 +38,7 @@ public class NgrokConnector {
                 tunnelList = (JSONArray) tunnelObject.get("tunnels");
             }
         } catch (Exception ex) {
-            System.out.println("Failed to get Ngrok URL : " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to get Ngrok URL -- > " + ex.getMessage());
         }
         return tunnelList;
     }

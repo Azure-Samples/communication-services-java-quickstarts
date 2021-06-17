@@ -3,6 +3,7 @@ package com.communication.outboundcallreminder.Ngrok;
 import org.json.simple.JSONArray;
 import java.io.*;
 import java.util.*;
+import com.communication.outboundcallreminder.Logger;
 
 public class NgrokService {
     /// The NGROK process
@@ -32,15 +33,14 @@ public class NgrokService {
             while ((line = input.readLine()) != null) {
                 // It means ngrok.exe running
                 if (line.contains(ngrokProcess)) {
-                    System.out.println(
-                            "Looks like NGROK is still running. Please kill it before running the provider again.");
+                    Logger.LogMessage(Logger.MessageType.INFORMATION, "Looks like NGROK is still running. Please kill it before running the provider again.");
                     System.exit(0);
                 }
             }
             process.destroy();
             input.close();
         } catch (Exception ex) {
-            System.out.println("Not able to find the process: " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR ,"Not able to find the process -- > " + ex.getMessage());
         }
     }
 
@@ -70,7 +70,7 @@ public class NgrokService {
 
             this.ngrokProcess = Runtime.getRuntime().exec(command);
         } catch (Exception ex) {
-            System.out.println("Failed to start Ngrok.exe : " + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR,"Failed to start Ngrok.exe -- > " + ex.getMessage());
         }
     }
 
@@ -100,7 +100,7 @@ public class NgrokService {
                 }
             } while (--totalAttempts > 0);
         } catch (Exception ex) {
-            System.out.println("Failed to get Ngrok url" + ex.getMessage());
+            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to get Ngrok url -- > " + ex.getMessage());
         }
         return ngrokUrl;
     }

@@ -66,9 +66,9 @@ public class EventDispatcher {
         } else if (callEventBase.getClass() == PlayAudioResultEvent.class) {
             String operationContext = ((PlayAudioResultEvent) callEventBase).getOperationContext();
             return BuildEventKey(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(), operationContext);
-        } else if (callEventBase.getClass() == InviteParticipantResultEvent.class) {
-            String operationContext = ((InviteParticipantResultEvent) callEventBase).getOperationContext();
-            return BuildEventKey(CallingServerEventType.INVITE_PARTICIPANT_RESULT_EVENT.toString(), operationContext);
+        } else if (callEventBase.getClass() == AddParticipantResultEvent.class) {
+            String operationContext = ((AddParticipantResultEvent) callEventBase).getOperationContext();
+            return BuildEventKey(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(), operationContext);
         }
         
         return null;
@@ -86,8 +86,8 @@ public class EventDispatcher {
                 return ToneReceivedEvent.deserialize(eventData);
             } else if (cloudEvent.getType().equals(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString())) {
                 return PlayAudioResultEvent.deserialize(eventData);
-            } else if (cloudEvent.getType().equals(CallingServerEventType.INVITE_PARTICIPANT_RESULT_EVENT.toString())) {
-                return InviteParticipantResultEvent.deserialize(eventData);
+            } else if (cloudEvent.getType().equals(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString())) {
+                return AddParticipantResultEvent.deserialize(eventData);
             }
         } catch (Exception ex) {
             System.out.println("Failed to parse request content Exception: " + ex.getMessage());

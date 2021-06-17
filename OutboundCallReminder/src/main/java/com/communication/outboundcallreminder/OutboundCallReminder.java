@@ -118,10 +118,10 @@ public class OutboundCallReminder {
 
             Logger.LogMessage(Logger.MessageType.INFORMATION,"Call State changed to -- > " + callStateChanged.getCallConnectionState());
 
-            if (callStateChanged.getCallConnectionState().toString().equalsIgnoreCase(CallConnectionState.CONNECTED.toString())) {
+            if (callStateChanged.getCallConnectionState().equals(CallConnectionState.CONNECTED)) {
                 Logger.LogMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
                 callConnectedTask.complete(true);
-            } else if (callStateChanged.getCallConnectionState().toString().equalsIgnoreCase(CallConnectionState.DISCONNECTED.toString())) {
+            } else if (callStateChanged.getCallConnectionState().equals(CallConnectionState.DISCONNECTED)) {
                 EventDispatcher.GetInstance()
                         .Unsubscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
                 reportCancellationTokenSource.cancel();
@@ -143,7 +143,7 @@ public class OutboundCallReminder {
 
             Logger.LogMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
 
-            if (toneInfo.getTone().toString().equalsIgnoreCase(ToneValue.TONE1.toString())) {
+            if (toneInfo.getTone().equals(ToneValue.TONE1)) {
                 toneReceivedCompleteTask.complete(true);
             } else {
                 toneReceivedCompleteTask.complete(false);
@@ -200,7 +200,7 @@ public class OutboundCallReminder {
             ", Id: " + response.getOperationId() + ", OperationContext: " + response.getOperationContext() + ", OperationStatus: " +
             response.getStatus().toString());
 
-            if (response.getStatus().toString().equalsIgnoreCase(OperationStatus.RUNNING.toString())) {
+            if (response.getStatus().equals(OperationStatus.RUNNING)) {
                 Logger.LogMessage(Logger.MessageType.INFORMATION, "Play Audio state -- > " + OperationStatus.RUNNING);
 
                 // listen to play audio events
@@ -248,12 +248,11 @@ public class OutboundCallReminder {
             PlayAudioResultEvent playAudioResultEvent = (PlayAudioResultEvent) callEvent;
             Logger.LogMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());
 
-            if (playAudioResultEvent.getStatus().toString().equalsIgnoreCase(OperationStatus.COMPLETED.toString())) {
+            if (playAudioResultEvent.getStatus().equals(OperationStatus.COMPLETED)) {
                 EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
                         operationContext);
                 playAudioCompletedTask.complete(true);
-            } else if (playAudioResultEvent.getStatus().toString()
-                    .equalsIgnoreCase(OperationStatus.FAILED.toString())) {
+            } else if (playAudioResultEvent.getStatus().equals(OperationStatus.FAILED)) {
                 playAudioCompletedTask.complete(false);
             }
         });
@@ -320,11 +319,11 @@ public class OutboundCallReminder {
 
         NotificationCallback addParticipantReceivedEvent = ((callEvent) -> {
             AddParticipantResultEvent addParticipantsUpdatedEvent = (AddParticipantResultEvent) callEvent;
-            String status = addParticipantsUpdatedEvent.getStatus().toString();
-            if (status.equalsIgnoreCase(OperationStatus.COMPLETED.toString())) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Add participant status -- > " + status);
+            OperationStatus operationStatus = addParticipantsUpdatedEvent.getStatus();
+            if (operationStatus.equals(OperationStatus.COMPLETED)) {
+                Logger.LogMessage(Logger.MessageType.INFORMATION, "Add participant status -- > " + operationStatus);
                 addParticipantCompleteTask.complete(true);
-            } else if (status.equalsIgnoreCase(OperationStatus.FAILED.toString())) {
+            } else if (operationStatus.equals(OperationStatus.FAILED)) {
                 addParticipantCompleteTask.complete(false);
             }
             EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(),

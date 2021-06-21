@@ -15,14 +15,10 @@ This is a sample application to show how the Azure Communication Services server
 
 Its a Java web application powered by Spring boot to connect this application with Azure Communication Services.
 
-A separate branch with public preview capabilities is [available](https://github.com/Azure-Samples/communication-services-web-calling-hero/tree/public-preview/README.md). Public preview uses beta SDKs that are not meant for production use. Please use the main branch sample for any production scenarios.
-
-Additional documentation for this sample can be found on [Microsoft Docs](https://docs.microsoft.com/azure/communication-services/samples/calling-hero-sample).
-
 ## Prerequisites
 
 - Create an Azure account with an active subscription. For details, see [Create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F)
-- [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/en-us/azure/developer/java/fundamentals/java-jdk-install)
+- [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install)
 - [Apache Maven](https://maven.apache.org/download.cgi)
 - [Visual Studio code (2019 and above)](https://code.visualstudio.com/download)
 - [Spring boot framework v- 2.5.0](https://spring.io/projects/spring-boot)
@@ -65,7 +61,7 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 
 2. Run app locally using : mvn spring-boot:run
 
-3. Create container registry - follow steps in link - https://docs.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux
+3. Create container registry - follow steps in link - https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux
 
 4. Login to Azure :
 
@@ -85,10 +81,7 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 
 8. Push docker image to ACR  using : docker push  <registryName>.azurecr.io/<projectNameAndVersion>
 
-9.Create web app by following steps in link : https://docs.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux
-
-
-**Note**: While you may use http://localhost for local testing, the sample when deployed will only work when served over https. The SDK [does not support http](https://docs.microsoft.com/en-us/azure/communication-services/concepts/voice-video-calling/calling-sdk-features#user-webrtc-over-https).
+9.Create web app by following steps in link : https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux
 
 ## Additional Reading
 

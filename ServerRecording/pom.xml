@@ -60,23 +60,17 @@
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-communication-callingserver</artifactId>
-			<version>1.0.0-beta.1</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/communication-callingserver-sdk/azure-communication-callingserver-1.0.0-beta.1.jar</systemPath>
+			<version>1.0.0-alpha.20210622.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-communication-common</artifactId>
-			<version>1.1.0-beta.1</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/communication-callingserver-sdk/azure-communication-common-1.1.0-beta.1.jar</systemPath>
+			<version>1.1.0-alpha.20210622.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-core</artifactId>
 			<version>1.17.0</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/1.17.0/azure-core-1.17.0.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.microsoft.cognitiveservices.speech</groupId>
@@ -84,14 +78,9 @@
 			<version>1.12.1</version>
 		</dependency>
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-eventgrid</artifactId>
-			<version>1.3.0</version>
-		</dependency>
-		<dependency>
 			<groupId>com.azure</groupId>
-			<artifactId>azure-core-serializer-json-gson</artifactId>
-			<version>1.1.1</version>
+			<artifactId>azure-messaging-eventgrid</artifactId>
+			<version>4.4.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
@@ -127,6 +116,16 @@
 			<id>maven-cognitiveservices-speech</id>
 			<name>communication-callingserver-sdk</name>
 			<url>https://csspeechstorage.blob.core.windows.net/maven/</url>
+		</repository>
+		<repository>
+			<id>azure-sdk-for-java@Local</id>
+			<url>https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-java%40Local/maven/v1</url>
+			<releases>
+			  <enabled>true</enabled>
+			</releases>
+			<snapshots>
+			  <enabled>true</enabled>
+			</snapshots>
 		</repository>
 	</repositories>
 	<build>
@@ -196,34 +195,6 @@
 				<artifactId>maven-install-plugin</artifactId>
 				<version>2.5.2</version>
 				<executions>
-					<execution>
-						<id>1</id>
-						<phase>initialize</phase>
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-						<configuration>
-							<groupId>com.azure</groupId>
-							<artifactId>azure-communication-callingserver</artifactId>
-							<version>1.0.0-beta.1</version>
-							<packaging>jar</packaging>
-							<file>${basedir}/communication-callingserver-sdk/azure-communication-callingserver-1.0.0-beta.1.jar</file>
-						</configuration>
-					</execution>
-					<execution>
-						<id>2</id>
-						<phase>initialize</phase>
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-						<configuration>
-							<groupId>com.azure</groupId>
-							<artifactId>azure-communication-common</artifactId>
-							<version>1.1.0-beta.1</version>
-							<packaging>jar</packaging>
-							<file>${basedir}/communication-callingserver-sdk/azure-communication-common-1.1.0-beta.1.jar</file>
-						</configuration>
-					</execution>
 				</executions>
 			</plugin>
 			<plugin>

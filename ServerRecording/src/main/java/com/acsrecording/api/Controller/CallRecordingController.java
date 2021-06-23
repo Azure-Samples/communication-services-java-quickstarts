@@ -1,8 +1,6 @@
 package com.acsrecording.api.Controller;
 
 import com.acsrecording.api.ConfigurationManager;
-import com.acsrecording.api.RecordingChunk;
-import com.acsrecording.api.RecordingStorage;
 import com.azure.communication.callingserver.CallingServerClientBuilder;
 import com.azure.communication.callingserver.models.CallRecordingProperties;
 import com.azure.communication.callingserver.models.CallRecordingState;
@@ -10,17 +8,19 @@ import com.azure.core.http.HttpHeader;
 import com.azure.communication.callingserver.models.StartCallRecordingResult;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.core.http.rest.Response;
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
-import com.microsoft.azure.eventgrid.models.EventGridEvent;
-import com.microsoft.azure.eventgrid.models.SubscriptionValidationEventData;
-import com.microsoft.azure.eventgrid.models.SubscriptionValidationResponse;
+import com.azure.messaging.eventgrid.EventGridEvent;
+import com.azure.messaging.eventgrid.SystemEventNames;
+import com.azure.messaging.eventgrid.systemevents.AcsRecordingChunkInfoProperties;
+import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
+import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
+import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -174,23 +174,25 @@ public class CallRecordingController  {
     }
 
     @PostMapping(value = "/getRecordingFile", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> getRecordingFile (@RequestBody List<EventGridEvent> obj){
-        EventGridEvent event = null;
-        SubscriptionValidationResponse responseData = null;
+    public ResponseEntity<?> getRecordingFile (@RequestBody List<EventGridEvent> eventGridEvents){
+        
         logger.log(Level.INFO,  "Entered getRecordingFile API");
-        if(obj.stream().count() > 0){
-            event = obj.get(0);
-            logger.log(Level.INFO,  "Event type is --> " + event.eventType());
 
-            if (event.eventType().equals("Microsoft.EventGrid.SubscriptionValidationEvent")) {
-                String json = new Gson().toJson(event.data());
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-                logger.log(Level.INFO, "SubscriptionValidationEvent response --> \n" + json);
+        if(eventGridEvents.stream().count() > 0)
+        {
+            EventGridEvent eventGridEvent = eventGridEvents.get(0);
+            logger.log(Level.INFO,  "Event type is --> " + eventGridEvent.getEventType());
+
+            BinaryData eventData = eventGridEvent.getData();
+            logger.log(Level.INFO, "SubscriptionValidationEvent response --> \n" + eventData.toString());
+
+            if (eventGridEvent.getEventType() == SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION) 
+            {
                 try {
-                    SubscriptionValidationEventData subscriptionValidationEvent = mapper.readValue(json, SubscriptionValidationEventData.class);
-                    responseData = new SubscriptionValidationResponse();
-                    responseData.withValidationResponse(subscriptionValidationEvent.validationCode());
+                    SubscriptionValidationEventData subscriptionValidationEvent = eventData.toObject(SubscriptionValidationEventData.class);
+                    SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();
+                    responseData.setValidationResponse(subscriptionValidationEvent.getValidationCode());
+
                     return new ResponseEntity<>(responseData, HttpStatus.OK);
                 } catch (Exception e){
                     e.printStackTrace();
@@ -198,21 +200,18 @@ public class CallRecordingController  {
                 }
             }
 
-            if(event.eventType().equals("Microsoft.Communication.RecordingFileStatusUpdated")){
-                String json = new Gson().toJson(event.data());
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
+            if(eventGridEvent.getEventType() == SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED){
                 try {
-                    logger.log(Level.INFO, "RecordingFileStatusUpdated JSON response --> \n" + json);
-                    RecordingStorage recordingData = mapper.readValue(json, RecordingStorage.class);
-                    RecordingChunk recordingChunk = recordingData.recordingStorageInfo.recordingChunks.get(0);
+                    AcsRecordingFileStatusUpdatedEventData acsRecordingFileStatusUpdatedEventData =  eventData.toObject(AcsRecordingFileStatusUpdatedEventData.class);
+                    AcsRecordingChunkInfoProperties recordingChunk = acsRecordingFileStatusUpdatedEventData
+                                                    .getRecordingStorageInfo()
+                                                    .getRecordingChunks().get(0);
 
                     logger.log(Level.INFO, "Processing recording file --> \n");
                     
                     processFile(
-                        recordingChunk.contentLocation,
-                        recordingChunk.documentId,
+                        recordingChunk.getContentLocation(),
+                        recordingChunk.getDocumentId(),
                         "mp4",
                         "recording"
                     );
@@ -220,8 +219,8 @@ public class CallRecordingController  {
                     logger.log(Level.INFO, "Processing metadata file --> \n");
                     
                     processFile(
-                        recordingChunk.metadataLocation,
-                        recordingChunk.documentId,
+                        recordingChunk.getMetadataLocation(),
+                        recordingChunk.getDocumentId(),
                         "json",
                         "metadata"
                     );
@@ -234,7 +233,7 @@ public class CallRecordingController  {
                 }
             }
             else{
-                return new ResponseEntity<>(event.eventType() + " is not handled.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(eventGridEvent.getEventType() + " is not handled.", HttpStatus.BAD_REQUEST);
             }
         }
 

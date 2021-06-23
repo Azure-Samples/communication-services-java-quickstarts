@@ -15,12 +15,12 @@ import com.communication.outboundcallreminder.Logger;
 public class NgrokConnector {
 
     /// The HTTP client.
-    private CloseableHttpClient httpClient = null;
-    private HttpGet request = null;
-    private final String ngrokTunnelUrl = "http://127.0.0.1:4040/api/tunnels";
+    private final CloseableHttpClient httpClient;
+    private final HttpGet request;
 
     NgrokConnector() {
         httpClient = HttpClients.createDefault();
+        String ngrokTunnelUrl = "http://127.0.0.1:4040/api/tunnels";
         request = new HttpGet(ngrokTunnelUrl);
         // add request headers
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");

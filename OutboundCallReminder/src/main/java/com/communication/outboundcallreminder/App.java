@@ -39,9 +39,7 @@ public class App {
         try {
             if (ngrokUrl != null && !ngrokUrl.isEmpty()) {
                 Logger.logMessage(Logger.MessageType.INFORMATION,"Server started at -- > " + url);
-                Thread runSample = new Thread(() -> {
-                    runSample(ngrokUrl);
-                });
+                Thread runSample = new Thread(() -> runSample(ngrokUrl));
                 runSample.start();
                 runSample.join();
             } else {
@@ -87,15 +85,13 @@ public class App {
             if (outboundCallPairs != null && !outboundCallPairs.isEmpty()) {
                 String[] identities = outboundCallPairs.split(";");
                 ExecutorService executorService = Executors.newCachedThreadPool();
-                Set<Callable<Boolean>> tasks = new HashSet<Callable<Boolean>>();
+                Set<Callable<Boolean>> tasks = new HashSet<>();
 
                 for (String identity : identities) {
                     String[] pair = identity.split(",");
-                    tasks.add(new Callable<Boolean>() {
-                        public Boolean call() {
-                            new OutboundCallReminder(callConfiguration).report(pair[0].trim(), pair[1].trim());
-                            return true;
-                        }
+                    tasks.add(() -> {
+                        new OutboundCallReminder(callConfiguration).report(pair[0].trim(), pair[1].trim());
+                        return true;
                     });
                 }
                 executorService.invokeAll(tasks);
@@ -104,7 +100,7 @@ public class App {
         } catch (Exception ex) {
             Logger.logMessage(Logger.MessageType.ERROR, "Failed to initiate the outbound call Exception -- > " + ex.getMessage());
         }
-        deleteUser(callConfiguration.ConnectionString, callConfiguration.SourceIdentity);
+        deleteUser(callConfiguration.connectionString, callConfiguration.sourceIdentity);
     }
 
     /// <summary>

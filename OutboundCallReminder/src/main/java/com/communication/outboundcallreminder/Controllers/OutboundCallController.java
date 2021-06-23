@@ -4,18 +4,22 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.FileInputStream;
 import com.communication.outboundcallreminder.Logger;
 import com.communication.outboundcallreminder.EventHandler.EventAuthHandler;
 import com.communication.outboundcallreminder.EventHandler.EventDispatcher;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class OutboundCallController {
 
 	@RequestMapping("/api/outboundcall/callback")
-	public static String OnIncomingRequestAsync(@RequestBody(required = false) String data,
+	public static String onIncomingRequestAsync(@RequestBody(required = false) String data,
 			@RequestParam(value = "secret", required = false) String secretKey) {
 		EventAuthHandler eventhandler = EventAuthHandler.getInstance();
 
@@ -44,9 +48,8 @@ public class OutboundCallController {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Cache-Control", "no-cache, no-store, must-revalidate");
 		headers.add("Pragma", "no-cache");
-		ResponseEntity<Object> responseEntity = ResponseEntity.ok().headers(headers).contentLength(file.length())
-				.contentType(MediaType.parseMediaType("audio/x-wav")).body(resource);
 
-		return responseEntity;
+		return ResponseEntity.ok().headers(headers).contentLength(file.length())
+				.contentType(MediaType.parseMediaType("audio/x-wav")).body(resource);
 	}
 }

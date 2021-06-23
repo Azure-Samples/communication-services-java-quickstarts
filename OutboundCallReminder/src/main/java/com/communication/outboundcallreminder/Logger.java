@@ -15,7 +15,7 @@ public class Logger {
     /// <param name="message">Message string</param>
     public static void logMessage(MessageType messageType, String message)
     {
-        String logMessage = null;
+        String logMessage;
         logMessage = messageType + " " + message;
        System.out.println(logMessage);
     }

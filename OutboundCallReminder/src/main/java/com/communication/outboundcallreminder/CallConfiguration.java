@@ -3,24 +3,24 @@ package com.communication.outboundcallreminder;
 import com.communication.outboundcallreminder.EventHandler.EventAuthHandler;
 
 public class CallConfiguration {
-    public String ConnectionString;
-    public String SourceIdentity;
-    public String SourcePhoneNumber;
-    public String AppBaseUrl;
-    public String AudioFileName;
-    public String AppCallbackUrl;
-    public String AudioFileUrl;
+    public String connectionString;
+    public String sourceIdentity;
+    public String sourcePhoneNumber;
+    public String appBaseUrl;
+    public String audioFileName;
+    public String appCallbackUrl;
+    public String audioFileUrl;
 
     public CallConfiguration(String connectionString, String sourceIdentity, String sourcePhoneNumber,
             String appBaseUrl, String audioFileName) {
-        this.ConnectionString = connectionString;
-        this.SourceIdentity = sourceIdentity;
-        this.SourcePhoneNumber = sourcePhoneNumber;
-        this.AppBaseUrl = appBaseUrl;
-        this.AudioFileName = audioFileName;
+        this.connectionString = connectionString;
+        this.sourceIdentity = sourceIdentity;
+        this.sourcePhoneNumber = sourcePhoneNumber;
+        this.appBaseUrl = appBaseUrl;
+        this.audioFileName = audioFileName;
         EventAuthHandler eventhandler = EventAuthHandler.getInstance();
-        this.AppCallbackUrl = AppBaseUrl + "/api/outboundcall/callback?" + eventhandler.getSecretQuerystring();
-        AudioFileUrl = AppBaseUrl + "/audio/" + AudioFileName;
+        this.appCallbackUrl = appBaseUrl + "/api/outboundcall/callback?" + eventhandler.getSecretQuerystring();
+        audioFileUrl = appBaseUrl + "/audio/" + audioFileName;
     }
 
 }

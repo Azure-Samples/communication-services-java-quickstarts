@@ -1,23 +1,49 @@
 package com.communication.outboundcallreminder;
 
+import com.azure.communication.callingserver.CallConnection;
+import com.azure.communication.callingserver.CallingServerClient;
+import com.azure.communication.callingserver.CallingServerClientBuilder;
+import com.azure.communication.callingserver.models.AddParticipantResult;
+import com.azure.communication.callingserver.models.CallConnectionState;
+import com.azure.communication.callingserver.models.CancelAllMediaOperationsResult;
+import com.azure.communication.callingserver.models.CreateCallOptions;
+import com.azure.communication.callingserver.models.EventSubscriptionType;
+import com.azure.communication.callingserver.models.MediaType;
+import com.azure.communication.callingserver.models.OperationStatus;
+import com.azure.communication.callingserver.models.PlayAudioOptions;
+import com.azure.communication.callingserver.models.PlayAudioResult;
+import com.azure.communication.callingserver.models.ToneInfo;
+import com.azure.communication.callingserver.models.ToneValue;
+import com.azure.communication.callingserver.models.events.AddParticipantResultEvent;
+import com.azure.communication.callingserver.models.events.CallConnectionStateChangedEvent;
+import com.azure.communication.callingserver.models.events.CallingServerEventType;
+import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
+import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
+import com.azure.communication.common.CommunicationIdentifier;
+import com.azure.communication.common.CommunicationUserIdentifier;
+import com.azure.communication.common.PhoneNumberIdentifier;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+
+import com.azure.cosmos.implementation.changefeed.CancellationToken;
+import com.azure.cosmos.implementation.changefeed.CancellationTokenSource;
 import com.communication.outboundcallreminder.EventHandler.EventDispatcher;
 import com.communication.outboundcallreminder.EventHandler.NotificationCallback;
-import com.azure.communication.callingserver.*;
-import com.azure.communication.callingserver.models.*;
-import com.azure.communication.callingserver.models.events.*;
-import com.azure.communication.common.*;
 import com.azure.core.http.HttpHeader;
-import com.azure.core.http.netty.*;
 import com.azure.core.http.rest.Response;
-import com.azure.cosmos.implementation.changefeed.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.regex.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
 
 public class OutboundCallReminder {
 
-    private CallConfiguration callConfiguration = null;
-    private CallingServerClient callingServerClient = null;
+    private final CallConfiguration callConfiguration;
+    private final CallingServerClient callingServerClient;
     private CallConnection callConnection = null;
     private CancellationTokenSource reportCancellationTokenSource;
     private CancellationToken reportCancellationToken;
@@ -26,7 +52,7 @@ public class OutboundCallReminder {
     private CompletableFuture<Boolean> callTerminatedTask;
     private CompletableFuture<Boolean> toneReceivedCompleteTask;
     private CompletableFuture<Boolean> addParticipantCompleteTask;
-    private Integer maxRetryAttemptCount = Integer
+    private final Integer maxRetryAttemptCount = Integer
             .parseInt(ConfigurationManager.getInstance().getAppSettings("MaxRetryCount"));
 
     public OutboundCallReminder(CallConfiguration callConfiguration) {
@@ -34,7 +60,7 @@ public class OutboundCallReminder {
 
         NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
         CallingServerClientBuilder callClientBuilder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
-                .connectionString(this.callConfiguration.ConnectionString);
+                .connectionString(this.callConfiguration.connectionString);
 
         this.callingServerClient = callClientBuilder.buildClient();
     }
@@ -47,24 +73,24 @@ public class OutboundCallReminder {
             createCallAsync(targetPhoneNumber);
             registerToDtmfResultEvent(callConnection.getCallConnectionId());
 
-            playAudioAsync(callConnection.getCallConnectionId());
+            playAudioAsync();
             Boolean playAudioCompleted = playAudioCompletedTask.get();
 
             if (!playAudioCompleted) {
-                hangupAsync(callConnection.getCallConnectionId());
+                hangupAsync();
             } else {
                 Boolean toneReceivedComplete = toneReceivedCompleteTask.get();
                 if (toneReceivedComplete) {
                     Logger.logMessage(Logger.MessageType.INFORMATION,"Initiating add participant from number --> " + targetPhoneNumber + " and participant identifier is -- > " + participant);
 
-                    Boolean addParticipantCompleted = addParticipant(callConnection.getCallConnectionId(), participant);
+                    Boolean addParticipantCompleted = addParticipant(participant);
                     if (!addParticipantCompleted) {
-                        retryAddParticipantAsync(callConnection.getCallConnectionId(), participant);
+                        retryAddParticipantAsync(participant);
                     }
 
-                    hangupAsync(callConnection.getCallConnectionId());
+                    hangupAsync();
                 } else {
-                    hangupAsync(callConnection.getCallConnectionId());
+                    hangupAsync();
                 }
             }
 
@@ -77,23 +103,35 @@ public class OutboundCallReminder {
 
     private void createCallAsync(String targetPhoneNumber) {
         try {
-            // Preparting request data
-            CommunicationUserIdentifier source = new CommunicationUserIdentifier(this.callConfiguration.SourceIdentity);
+            // Preparing request data
+            CommunicationUserIdentifier source = new CommunicationUserIdentifier(this.callConfiguration.sourceIdentity);
             PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
 
-            List<MediaType> callModality = new ArrayList<MediaType>() { {add(MediaType.AUDIO);} };
+            List<MediaType> callModality = new ArrayList<>() {
+                {
+                    add(MediaType.AUDIO);
+                }
+            };
 
-            List<EventSubscriptionType> eventSubscriptionType = new ArrayList<EventSubscriptionType>() {
-                    {add(EventSubscriptionType.PARTICIPANTS_UPDATED); add(EventSubscriptionType.DTMF_RECEIVED);}};
+            List<EventSubscriptionType> eventSubscriptionType = new ArrayList<>() {
+                {
+                    add(EventSubscriptionType.PARTICIPANTS_UPDATED);
+                    add(EventSubscriptionType.DTMF_RECEIVED);
+                }
+            };
 
-            CreateCallOptions createCallOption = new CreateCallOptions(this.callConfiguration.AppCallbackUrl,
+            CreateCallOptions createCallOption = new CreateCallOptions(this.callConfiguration.appCallbackUrl,
                     callModality, eventSubscriptionType);
 
-            createCallOption.setAlternateCallerId(new PhoneNumberIdentifier(this.callConfiguration.SourcePhoneNumber));
+            createCallOption.setAlternateCallerId(new PhoneNumberIdentifier(this.callConfiguration.sourcePhoneNumber));
 
             Logger.logMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
 
-            List<CommunicationIdentifier> targets = new ArrayList<CommunicationIdentifier>() { {add(target);} };
+            List<CommunicationIdentifier> targets = new ArrayList<>() {
+                {
+                    add(target);
+                }
+            };
 
             Response<CallConnection> response = this.callingServerClient.createCallConnectionWithResponse(source, targets, createCallOption, null);
             callConnection = response.getValue(); 
@@ -110,8 +148,8 @@ public class OutboundCallReminder {
     }
 
     private void registerToCallStateChangeEvent(String callLegId) {
-        callTerminatedTask = new CompletableFuture<Boolean>();
-        callConnectedTask = new CompletableFuture<Boolean>();
+        callTerminatedTask = new CompletableFuture<>();
+        callConnectedTask = new CompletableFuture<>();
         // Set the callback method
         NotificationCallback callStateChangeNotificaiton = ((callEvent) -> {
             CallConnectionStateChangedEvent callStateChanged = (CallConnectionStateChangedEvent) callEvent;
@@ -135,7 +173,7 @@ public class OutboundCallReminder {
     }
 
     private void registerToDtmfResultEvent(String callLegId) {
-        toneReceivedCompleteTask = new CompletableFuture<Boolean>();
+        toneReceivedCompleteTask = new CompletableFuture<>();
 
         NotificationCallback dtmfReceivedEvent = ((callEvent) -> {
             ToneReceivedEvent toneReceivedEvent = (ToneReceivedEvent) callEvent;
@@ -150,14 +188,14 @@ public class OutboundCallReminder {
             }
             EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
             // cancel playing audio
-            cancelMediaProcessing(callLegId);
+            cancelMediaProcessing();
         });
         // Subscribe to event
         EventDispatcher.getInstance().subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,
                 dtmfReceivedEvent);
     }
 
-    private void cancelMediaProcessing(String callLegId) {
+    private void cancelMediaProcessing() {
         if (reportCancellationToken.isCancellationRequested()) {
             Logger.logMessage(Logger.MessageType.INFORMATION,"Cancellation request, CancelMediaProcessing will not be performed");
             return;
@@ -174,7 +212,7 @@ public class OutboundCallReminder {
         response.getStatus().toString());
     }
 
-    private void playAudioAsync(String callLegId) {
+    private void playAudioAsync() {
         if (reportCancellationToken.isCancellationRequested()) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Cancellation request, PlayAudio will not be performed");
             return;
@@ -182,7 +220,7 @@ public class OutboundCallReminder {
 
         try {
             // Preparing data for request
-            String audioFileUri = callConfiguration.AudioFileUrl;
+            String audioFileUri = callConfiguration.audioFileUrl;
             Boolean loop = true;
             String operationContext = UUID.randomUUID().toString();
             String audioFileId = UUID.randomUUID().toString();
@@ -231,7 +269,7 @@ public class OutboundCallReminder {
         }
     }
 
-    private void hangupAsync(String callLegId) {
+    private void hangupAsync() {
         if (reportCancellationToken.isCancellationRequested()) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Cancellation request, Hangup will not be performed");
             return;
@@ -243,7 +281,7 @@ public class OutboundCallReminder {
     }
 
     private void registerToPlayAudioResultEvent(String operationContext) {
-        playAudioCompletedTask = new CompletableFuture<Boolean>();
+        playAudioCompletedTask = new CompletableFuture<>();
         NotificationCallback playPromptResponseNotification = ((callEvent) -> {
             PlayAudioResultEvent playAudioResultEvent = (PlayAudioResultEvent) callEvent;
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());
@@ -262,11 +300,11 @@ public class OutboundCallReminder {
                 operationContext, playPromptResponseNotification);
     }
 
-    private void retryAddParticipantAsync(String callLegId, String addedParticipant) {
+    private void retryAddParticipantAsync(String addedParticipant) {
         int retryAttemptCount = 1;
         while (retryAttemptCount <= maxRetryAttemptCount) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Retrying add participant attempt -- > " + retryAttemptCount + " is in progress");
-            Boolean addParticipantResult = addParticipant(callLegId, addedParticipant);
+            Boolean addParticipantResult = addParticipant(addedParticipant);
 
             if (addParticipantResult) {
                 return;
@@ -277,7 +315,7 @@ public class OutboundCallReminder {
         }
     }
 
-    private Boolean addParticipant(String callLegId, String addedParticipant) {
+    private Boolean addParticipant(String addedParticipant) {
         CommunicationIdentifierKind identifierKind = getIdentifierKind(addedParticipant);
 
         if (identifierKind == CommunicationIdentifierKind.UnknownIdentity) {
@@ -315,7 +353,7 @@ public class OutboundCallReminder {
     }
 
     private void registerToAddParticipantsResultEvent(String operationContext) {
-        addParticipantCompleteTask = new CompletableFuture<Boolean>();
+        addParticipantCompleteTask = new CompletableFuture<>();
 
         NotificationCallback addParticipantReceivedEvent = ((callEvent) -> {
             AddParticipantResultEvent addParticipantsUpdatedEvent = (AddParticipantResultEvent) callEvent;
@@ -347,16 +385,13 @@ public class OutboundCallReminder {
 
     public String getResponse(Response<?> response)
     {
-        String responseString = null;
-        responseString = "StatusCode: " + response.getStatusCode() + ", Headers: { ";
-        Iterator<HttpHeader> headers = response.getHeaders().iterator();
+        StringBuilder responseString;
+        responseString = new StringBuilder("StatusCode: " + response.getStatusCode() + ", Headers: { ");
 
-        while(headers.hasNext())
-        {
-            HttpHeader header = headers.next();
-            responseString += header.getName()+ ":" + header.getValue().toString() + ", ";
+        for (HttpHeader header : response.getHeaders()) {
+            responseString.append(header.getName()).append(":").append(header.getValue()).append(", ");
         }
-        responseString += "} ";
-        return responseString;
+        responseString.append("} ");
+        return responseString.toString();
     }
 }

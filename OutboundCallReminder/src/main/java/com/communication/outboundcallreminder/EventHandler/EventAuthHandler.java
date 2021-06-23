@@ -17,21 +17,21 @@ public class EventAuthHandler {
         }
     }
 
-    public static EventAuthHandler GetInstance() {
+    public static EventAuthHandler getInstance() {
         if (eventAuthHandler == null) {
             eventAuthHandler = new EventAuthHandler();
         }
         return eventAuthHandler;
     }
 
-    public Boolean Authorize(String requestSecretValue) {
+    public Boolean authorize(String requestSecretValue) {
         if (requestSecretValue != null && requestSecretValue.equals(SecretValue)) {
             return true;
         }
         return false;
     }
 
-    public String GetSecretQuerystring() {
+    public String getSecretQuerystring() {
         return (this.SecretKey + "=" + SecretValue);
     }
 }

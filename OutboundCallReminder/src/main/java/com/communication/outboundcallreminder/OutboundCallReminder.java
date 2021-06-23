@@ -122,15 +122,15 @@ public class OutboundCallReminder {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
                 callConnectedTask.complete(true);
             } else if (callStateChanged.getCallConnectionState().equals(CallConnectionState.DISCONNECTED)) {
-                EventDispatcher.GetInstance()
-                        .Unsubscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
+                EventDispatcher.getInstance()
+                        .unsubscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
                 reportCancellationTokenSource.cancel();
                 callTerminatedTask.complete(true);
             }
         });
 
         // Subscribe to the event
-        EventDispatcher.GetInstance().Subscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(),
+        EventDispatcher.getInstance().subscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(),
                 callLegId, callStateChangeNotificaiton);
     }
 
@@ -148,12 +148,12 @@ public class OutboundCallReminder {
             } else {
                 toneReceivedCompleteTask.complete(false);
             }
-            EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
+            EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
             // cancel playing audio
             cancelMediaProcessing(callLegId);
         });
         // Subscribe to event
-        EventDispatcher.GetInstance().Subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,
+        EventDispatcher.getInstance().subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,
                 dtmfReceivedEvent);
     }
 
@@ -249,7 +249,7 @@ public class OutboundCallReminder {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());
 
             if (playAudioResultEvent.getStatus().equals(OperationStatus.COMPLETED)) {
-                EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
+                EventDispatcher.getInstance().unsubscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
                         operationContext);
                 playAudioCompletedTask.complete(true);
             } else if (playAudioResultEvent.getStatus().equals(OperationStatus.FAILED)) {
@@ -258,7 +258,7 @@ public class OutboundCallReminder {
         });
 
         // Subscribe to event
-        EventDispatcher.GetInstance().Subscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
+        EventDispatcher.getInstance().subscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
                 operationContext, playPromptResponseNotification);
     }
 
@@ -326,12 +326,12 @@ public class OutboundCallReminder {
             } else if (operationStatus.equals(OperationStatus.FAILED)) {
                 addParticipantCompleteTask.complete(false);
             }
-            EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(),
+            EventDispatcher.getInstance().unsubscribe(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(),
                     operationContext);
         });
 
         // Subscribe to event
-        EventDispatcher.GetInstance().Subscribe(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(),
+        EventDispatcher.getInstance().subscribe(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(),
                 operationContext, addParticipantReceivedEvent);
     }
 

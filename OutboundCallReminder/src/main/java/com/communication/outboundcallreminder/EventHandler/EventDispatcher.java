@@ -16,65 +16,65 @@ public class EventDispatcher {
     /// <summary>
     /// Get instace of EventDispatcher
     /// </summary>
-    public static EventDispatcher GetInstance() {
+    public static EventDispatcher getInstance() {
         if (instance == null) {
             instance = new EventDispatcher();
         }
         return instance;
     }
 
-    public Boolean Subscribe(String eventType, String eventKey, NotificationCallback notificationCallback) {
-        String eventId = BuildEventKey(eventType, eventKey);
+    public Boolean subscribe(String eventType, String eventKey, NotificationCallback notificationCallback) {
+        String eventId = buildEventKey(eventType, eventKey);
         synchronized (this) {
             return (notificationCallbacks.put(eventId, notificationCallback) == null);
         }
     }
 
-    public void Unsubscribe(String eventType, String eventKey) {
-        String eventId = BuildEventKey(eventType, eventKey);
+    public void unsubscribe(String eventType, String eventKey) {
+        String eventId = buildEventKey(eventType, eventKey);
         synchronized (this) {
             notificationCallbacks.remove(eventId);
         }
     }
 
-    public String BuildEventKey(String eventType, String eventKey) {
+    public String buildEventKey(String eventType, String eventKey) {
         return (eventType + "-" + eventKey);
     }
 
-    public void ProcessNotification(String request) {
-        CallingServerEventBase callEvent = this.ExtractEvent(request);
+    public void processNotification(String request) {
+        CallingServerEventBase callEvent = this.extractEvent(request);
 
         if (callEvent != null) {
             synchronized (this) {
-                final NotificationCallback notificationCallback = notificationCallbacks.get(GetEventKey(callEvent));
+                final NotificationCallback notificationCallback = notificationCallbacks.get(getEventKey(callEvent));
                 if (notificationCallback != null) {
                     new Thread(() -> {
-                        notificationCallback.Callback(callEvent);
+                        notificationCallback.callback(callEvent);
                     }).start();
                 }
             }
         }
     }
 
-    public String GetEventKey(CallingServerEventBase callEventBase) {
+    public String getEventKey(CallingServerEventBase callEventBase) {
         if (callEventBase.getClass() == CallConnectionStateChangedEvent.class) {
             String callLegId = ((CallConnectionStateChangedEvent) callEventBase).getCallConnectionId();
-            return BuildEventKey(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
+            return buildEventKey(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
         } else if (callEventBase.getClass() == ToneReceivedEvent.class) {
             String callLegId = ((ToneReceivedEvent) callEventBase).getCallConnectionId();
-            return BuildEventKey(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
+            return buildEventKey(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
         } else if (callEventBase.getClass() == PlayAudioResultEvent.class) {
             String operationContext = ((PlayAudioResultEvent) callEventBase).getOperationContext();
-            return BuildEventKey(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(), operationContext);
+            return buildEventKey(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(), operationContext);
         } else if (callEventBase.getClass() == AddParticipantResultEvent.class) {
             String operationContext = ((AddParticipantResultEvent) callEventBase).getOperationContext();
-            return BuildEventKey(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(), operationContext);
+            return buildEventKey(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(), operationContext);
         }
         
         return null;
     }
 
-    public CallingServerEventBase ExtractEvent(String content) {
+    public CallingServerEventBase extractEvent(String content) {
         try {
             List<CloudEvent> cloudEvents = CloudEvent.fromString(content);
             CloudEvent cloudEvent = cloudEvents.get(0);

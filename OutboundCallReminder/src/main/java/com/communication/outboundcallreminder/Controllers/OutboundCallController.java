@@ -17,11 +17,11 @@ public class OutboundCallController {
 	@RequestMapping("/api/outboundcall/callback")
 	public static String OnIncomingRequestAsync(@RequestBody(required = false) String data,
 			@RequestParam(value = "secret", required = false) String secretKey) {
-		EventAuthHandler eventhandler = EventAuthHandler.GetInstance();
+		EventAuthHandler eventhandler = EventAuthHandler.getInstance();
 
 		/// Validating the incoming request by using secret set in app.settings
-		if (eventhandler.Authorize(secretKey)) {
-			(EventDispatcher.GetInstance()).ProcessNotification(data);
+		if (eventhandler.authorize(secretKey)) {
+			(EventDispatcher.getInstance()).processNotification(data);
 		} else {
 			Logger.logMessage(Logger.MessageType.ERROR, "Unauthorized Request");
 		}

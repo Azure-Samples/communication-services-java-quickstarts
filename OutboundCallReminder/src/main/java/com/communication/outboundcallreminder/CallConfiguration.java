@@ -18,8 +18,8 @@ public class CallConfiguration {
         this.SourcePhoneNumber = sourcePhoneNumber;
         this.AppBaseUrl = appBaseUrl;
         this.AudioFileName = audioFileName;
-        EventAuthHandler eventhandler = EventAuthHandler.GetInstance();
-        this.AppCallbackUrl = AppBaseUrl + "/api/outboundcall/callback?" + eventhandler.GetSecretQuerystring();
+        EventAuthHandler eventhandler = EventAuthHandler.getInstance();
+        this.AppCallbackUrl = AppBaseUrl + "/api/outboundcall/callback?" + eventhandler.getSecretQuerystring();
         AudioFileUrl = AppBaseUrl + "/audio/" + AudioFileName;
     }
 

@@ -1,16 +1,21 @@
 package com.communication.outboundcallreminder.EventHandler;
 
-import com.azure.communication.callingserver.models.events.*;
+import com.azure.communication.callingserver.models.events.AddParticipantResultEvent;
+import com.azure.communication.callingserver.models.events.CallConnectionStateChangedEvent;
+import com.azure.communication.callingserver.models.events.CallingServerEventBase;
+import com.azure.communication.callingserver.models.events.CallingServerEventType;
+import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
+import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
 import com.azure.core.models.CloudEvent;
 import com.azure.core.util.BinaryData;
 import java.util.*;
 
 public class EventDispatcher {
     private static EventDispatcher instance = null;
-    private Hashtable<String, NotificationCallback> notificationCallbacks;
+    private final Hashtable<String, NotificationCallback> notificationCallbacks;
 
     EventDispatcher() {
-        notificationCallbacks = new Hashtable<String, NotificationCallback>();
+        notificationCallbacks = new Hashtable<>();
     }
 
     /// <summary>
@@ -23,7 +28,7 @@ public class EventDispatcher {
         return instance;
     }
 
-    public Boolean subscribe(String eventType, String eventKey, NotificationCallback notificationCallback) {
+    public boolean subscribe(String eventType, String eventKey, NotificationCallback notificationCallback) {
         String eventId = buildEventKey(eventType, eventKey);
         synchronized (this) {
             return (notificationCallbacks.put(eventId, notificationCallback) == null);
@@ -48,9 +53,7 @@ public class EventDispatcher {
             synchronized (this) {
                 final NotificationCallback notificationCallback = notificationCallbacks.get(getEventKey(callEvent));
                 if (notificationCallback != null) {
-                    new Thread(() -> {
-                        notificationCallback.callback(callEvent);
-                    }).start();
+                    new Thread(() -> notificationCallback.callback(callEvent)).start();
                 }
             }
         }

@@ -3,17 +3,16 @@ package com.communication.outboundcallreminder.EventHandler;
 import com.communication.outboundcallreminder.ConfigurationManager;
 
 public class EventAuthHandler {
-    private String SecretKey = "secret";
-    private String SecretValue;
+    private String secretValue;
     public static EventAuthHandler eventAuthHandler = null;
 
     public EventAuthHandler() {
         ConfigurationManager configuration = ConfigurationManager.getInstance();
-        SecretValue = configuration.getAppSettings("SecretPlaceholder");
+        secretValue = configuration.getAppSettings("SecretPlaceholder");
 
-        if (SecretValue == null) {
+        if (secretValue == null) {
             System.out.println("SecretPlaceholder is null");
-            SecretValue = "h3llowW0rld";
+            secretValue = "h3llowW0rld";
         }
     }
 
@@ -25,13 +24,11 @@ public class EventAuthHandler {
     }
 
     public Boolean authorize(String requestSecretValue) {
-        if (requestSecretValue != null && requestSecretValue.equals(SecretValue)) {
-            return true;
-        }
-        return false;
+        return requestSecretValue != null && requestSecretValue.equals(secretValue);
     }
 
     public String getSecretQuerystring() {
-        return (this.SecretKey + "=" + SecretValue);
+        String secretKey = "secret";
+        return (secretKey + "=" + secretValue);
     }
 }

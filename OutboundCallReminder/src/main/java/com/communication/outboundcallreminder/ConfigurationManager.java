@@ -1,11 +1,14 @@
 package com.communication.outboundcallreminder;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Properties;
 
 public class ConfigurationManager {
     private static ConfigurationManager configurationManager = null;
-    private Properties appSettings = new Properties();
+    private final Properties appSettings = new Properties();
 
     private ConfigurationManager() {
     }

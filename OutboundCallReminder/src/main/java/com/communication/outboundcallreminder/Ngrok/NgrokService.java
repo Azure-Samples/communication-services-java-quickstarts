@@ -1,15 +1,17 @@
 package com.communication.outboundcallreminder.Ngrok;
 
 import net.minidev.json.JSONArray;
-import java.io.*;
-import java.util.*;
 import com.communication.outboundcallreminder.Logger;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Map;
 
 public class NgrokService {
     /// The NGROK process
     private Process ngrokProcess;
     // NgrokConnector connector;
-    private NgrokConnector connector = null;
+    private final NgrokConnector connector;
 
     public NgrokService(String ngrokPath, String authToken) {
         connector = new NgrokConnector();
@@ -21,7 +23,7 @@ public class NgrokService {
     /// Ensures that NGROK is not running.
     /// </summary>
     private void ensureNgrokNotRunning() {
-        BufferedReader input = null;
+        BufferedReader input;
         String ngrokProcess = "ngrok.exe";
         String processFilter = "/nh /fi \"Imagename eq " + ngrokProcess + "\"";
         String tasksCmd = System.getenv("windir") + "/system32/tasklist.exe " + processFilter;
@@ -29,7 +31,7 @@ public class NgrokService {
             Process process = Runtime.getRuntime().exec(tasksCmd);
             input = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-            String line = null;
+            String line;
             while ((line = input.readLine()) != null) {
                 // It means ngrok.exe running
                 if (line.contains(ngrokProcess)) {
@@ -88,12 +90,10 @@ public class NgrokService {
 
                 if (tunnelList.iterator().hasNext()) {
                     Map<?, ?> tunnel = (Map<?, ?>) tunnelList.iterator().next();
-                    Iterator<?> tunneIterator = tunnel.entrySet().iterator();
 
-                    while (tunneIterator.hasNext()) {
-                        Map.Entry<?, ?> keyVal = (Map.Entry<?, ?>) tunneIterator.next();
-                        if ((keyVal.getKey()).equals("public_url")) {
-                            ngrokUrl = (String) keyVal.getValue();
+                    for (Map.Entry<?, ?> entry : tunnel.entrySet()) {
+                        if ((entry.getKey()).equals("public_url")) {
+                            ngrokUrl = (String) entry.getValue();
                             return ngrokUrl;
                         }
                     }

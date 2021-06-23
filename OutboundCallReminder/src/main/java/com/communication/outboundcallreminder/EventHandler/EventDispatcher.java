@@ -7,14 +7,14 @@ import java.util.*;
 
 public class EventDispatcher {
     private static EventDispatcher instance = null;
-    private Hashtable<String, NotificationCallback> NotificationCallback;
+    private Hashtable<String, NotificationCallback> notificationCallbacks;
 
     EventDispatcher() {
-        NotificationCallback = new Hashtable<String, NotificationCallback>();
+        notificationCallbacks = new Hashtable<String, NotificationCallback>();
     }
 
     /// <summary>
-    /// Get istace of EventDispatcher
+    /// Get instace of EventDispatcher
     /// </summary>
     public static EventDispatcher GetInstance() {
         if (instance == null) {
@@ -26,14 +26,14 @@ public class EventDispatcher {
     public Boolean Subscribe(String eventType, String eventKey, NotificationCallback notificationCallback) {
         String eventId = BuildEventKey(eventType, eventKey);
         synchronized (this) {
-            return (NotificationCallback.put(eventId, notificationCallback) == null);
+            return (notificationCallbacks.put(eventId, notificationCallback) == null);
         }
     }
 
     public void Unsubscribe(String eventType, String eventKey) {
         String eventId = BuildEventKey(eventType, eventKey);
         synchronized (this) {
-            NotificationCallback.remove(eventId);
+            notificationCallbacks.remove(eventId);
         }
     }
 
@@ -46,7 +46,7 @@ public class EventDispatcher {
 
         if (callEvent != null) {
             synchronized (this) {
-                final NotificationCallback notificationCallback = NotificationCallback.get(GetEventKey(callEvent));
+                final NotificationCallback notificationCallback = notificationCallbacks.get(GetEventKey(callEvent));
                 if (notificationCallback != null) {
                     new Thread(() -> {
                         notificationCallback.Callback(callEvent);

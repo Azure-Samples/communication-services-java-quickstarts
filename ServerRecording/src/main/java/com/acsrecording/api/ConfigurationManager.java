@@ -11,15 +11,15 @@ public class ConfigurationManager {
     }
 
     // static method to create instance of ConfigurationManager class
-    public static ConfigurationManager GetInstance() {
+    public static ConfigurationManager getInstance() {
         if (configurationManager == null) {
             configurationManager = new ConfigurationManager();
-            configurationManager.LoadAppSettings();
+            configurationManager.loadAppSettings();
         }
         return configurationManager;
     }
 
-    public void LoadAppSettings() {
+    public void loadAppSettings() {
         try {
             ClassLoader classLoader = getClass().getClassLoader();
             InputStream inputStream = classLoader.getResourceAsStream("config.properties");
@@ -33,7 +33,7 @@ public class ConfigurationManager {
         }
     }
 
-    public String GetAppSettings(String key) {
+    public String getAppSettings(String key) {
         if (!key.isEmpty()) {
             return appSettings.getProperty(key);
         }

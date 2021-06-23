@@ -47,11 +47,11 @@ public class CallRecordingController  {
     private com.azure.communication.callingserver.CallingServerClient callingServerClient = null;
 
     CallRecordingController() {
-        ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
-        String connectionString = configurationManager.GetAppSettings("Connectionstring");
-        container = configurationManager.GetAppSettings("ContainerName");
-        recordingStateCallbackUrl = configurationManager.GetAppSettings("CallbackUri");
-        blobStorageConnectionString = configurationManager.GetAppSettings("BlobStorageConnectionString");
+        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
+        String connectionString = configurationManager.getAppSettings("Connectionstring");
+        container = configurationManager.getAppSettings("ContainerName");
+        recordingStateCallbackUrl = configurationManager.getAppSettings("CallbackUri");
+        blobStorageConnectionString = configurationManager.getAppSettings("BlobStorageConnectionString");
 
         NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
         CallingServerClientBuilder builder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
@@ -69,7 +69,7 @@ public class CallRecordingController  {
             Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri),null);
             var output = response.getValue();
 
-            logger.log(Level.INFO, "Start Recording response --> " + GetResponse(response) + "\n recording ID: " + response.getValue().getRecordingId());
+            logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: " + response.getValue().getRecordingId());
             if(!recordingDataMap.containsKey(serverCallId)){
                 recordingDataMap.put(serverCallId, "");
             }
@@ -98,7 +98,7 @@ public class CallRecordingController  {
             }
 
             Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).pauseRecordingWithResponse(recordingId, null);
-            logger.log(Level.INFO, "Pause Recording response --> " + GetResponse(response));
+            logger.log(Level.INFO, "Pause Recording response --> " + getResponse(response));
         }
     }
 
@@ -118,7 +118,7 @@ public class CallRecordingController  {
             }
 
             Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).resumeRecordingWithResponse(serverCallId, null);
-            logger.log(Level.INFO, "Resume Recording response --> " + GetResponse(response));
+            logger.log(Level.INFO, "Resume Recording response --> " + getResponse(response));
         }
     }
 
@@ -138,7 +138,7 @@ public class CallRecordingController  {
             }
 
             Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).stopRecordingWithResponse(recordingId, null);
-            logger.log(Level.INFO, "Stop Recording response --> " + GetResponse(response));
+            logger.log(Level.INFO, "Stop Recording response --> " + getResponse(response));
 
             if (recordingDataMap.containsKey(serverCallId))
             {
@@ -251,7 +251,7 @@ public class CallRecordingController  {
         logger.log(Level.INFO, String.format("Local file Path url -- > %s", filePath));
 
         var downloadResponse = callingServerClient.downloadToWithResponse(url, path, null, true, null);
-        logger.log(Level.INFO, String.format("Download media response --> %s", GetResponse(downloadResponse)));
+        logger.log(Level.INFO, String.format("Download media response --> %s", getResponse(downloadResponse)));
 
         logger.log(Level.INFO, String.format("Uploading %s file to blob -- >", downloadType));
         uploadFileToStorage(fileName, filePath);
@@ -270,7 +270,7 @@ public class CallRecordingController  {
         Files.delete(Paths.get(filePath));
     }
 
-    private String GetResponse(Response<?> response)
+    private String getResponse(Response<?> response)
     {
         String responseString = null;
         responseString = "StatusCode: " + response.getStatusCode() + "\nHeaders: { ";

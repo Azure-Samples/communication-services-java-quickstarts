@@ -23,7 +23,7 @@ public class OutboundCallController {
 		if (eventhandler.Authorize(secretKey)) {
 			(EventDispatcher.GetInstance()).ProcessNotification(data);
 		} else {
-			Logger.LogMessage(Logger.MessageType.ERROR, "Unauthorized Request");
+			Logger.logMessage(Logger.MessageType.ERROR, "Unauthorized Request");
 		}
 
 		return "OK";

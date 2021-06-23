@@ -11,27 +11,27 @@ public class ConfigurationManager {
     }
 
     // static method to create instance of ConfigurationManager class
-    public static ConfigurationManager GetInstance() {
+    public static ConfigurationManager getInstance() {
         if (configurationManager == null) {
             configurationManager = new ConfigurationManager();
         }
         return configurationManager;
     }
 
-    public void LoadAppSettings() {
+    public void loadAppSettings() {
         try {
             File configFile = new File("src/main/java/com/communication/outboundcallreminder/config.properties");
             FileReader reader = new FileReader(configFile);
             appSettings.load(reader);
             reader.close();
         } catch (FileNotFoundException ex) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Loading app settings failed with error -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Loading app settings failed with error -- > " + ex.getMessage());
         } catch (IOException ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR,"Loading app settings failed with error -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR,"Loading app settings failed with error -- > " + ex.getMessage());
         }
     }
 
-    public String GetAppSettings(String key) {
+    public String getAppSettings(String key) {
         if (!key.isEmpty()) {
             return appSettings.getProperty(key);
         }

@@ -27,7 +27,7 @@ public class OutboundCallReminder {
     private CompletableFuture<Boolean> toneReceivedCompleteTask;
     private CompletableFuture<Boolean> addParticipantCompleteTask;
     private Integer maxRetryAttemptCount = Integer
-            .parseInt(ConfigurationManager.GetInstance().GetAppSettings("MaxRetryCount"));
+            .parseInt(ConfigurationManager.getInstance().getAppSettings("MaxRetryCount"));
 
     public OutboundCallReminder(CallConfiguration callConfiguration) {
         this.callConfiguration = callConfiguration;
@@ -39,43 +39,43 @@ public class OutboundCallReminder {
         this.callingServerClient = callClientBuilder.buildClient();
     }
 
-    public void Report(String targetPhoneNumber, String participant) {
+    public void report(String targetPhoneNumber, String participant) {
         reportCancellationTokenSource = new CancellationTokenSource();
         reportCancellationToken = reportCancellationTokenSource.getToken();
 
         try {
-            CreateCallAsync(targetPhoneNumber);
-            RegisterToDtmfResultEvent(callConnection.getCallConnectionId());
+            createCallAsync(targetPhoneNumber);
+            registerToDtmfResultEvent(callConnection.getCallConnectionId());
 
-            PlayAudioAsync(callConnection.getCallConnectionId());
+            playAudioAsync(callConnection.getCallConnectionId());
             Boolean playAudioCompleted = playAudioCompletedTask.get();
 
             if (!playAudioCompleted) {
-                HangupAsync(callConnection.getCallConnectionId());
+                hangupAsync(callConnection.getCallConnectionId());
             } else {
                 Boolean toneReceivedComplete = toneReceivedCompleteTask.get();
                 if (toneReceivedComplete) {
-                    Logger.LogMessage(Logger.MessageType.INFORMATION,"Initiating add participant from number --> " + targetPhoneNumber + " and participant identifier is -- > " + participant);
+                    Logger.logMessage(Logger.MessageType.INFORMATION,"Initiating add participant from number --> " + targetPhoneNumber + " and participant identifier is -- > " + participant);
 
-                    Boolean addParticipantCompleted = AddParticipant(callConnection.getCallConnectionId(), participant);
+                    Boolean addParticipantCompleted = addParticipant(callConnection.getCallConnectionId(), participant);
                     if (!addParticipantCompleted) {
-                        RetryAddParticipantAsync(callConnection.getCallConnectionId(), participant);
+                        retryAddParticipantAsync(callConnection.getCallConnectionId(), participant);
                     }
 
-                    HangupAsync(callConnection.getCallConnectionId());
+                    hangupAsync(callConnection.getCallConnectionId());
                 } else {
-                    HangupAsync(callConnection.getCallConnectionId());
+                    hangupAsync(callConnection.getCallConnectionId());
                 }
             }
 
             // Wait for the call to terminate
             callTerminatedTask.get();
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR, "Call ended unexpectedly, reason -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Call ended unexpectedly, reason -- > " + ex.getMessage());
         }
     }
 
-    private void CreateCallAsync(String targetPhoneNumber) {
+    private void createCallAsync(String targetPhoneNumber) {
         try {
             // Preparting request data
             CommunicationUserIdentifier source = new CommunicationUserIdentifier(this.callConfiguration.SourceIdentity);
@@ -91,35 +91,35 @@ public class OutboundCallReminder {
 
             createCallOption.setAlternateCallerId(new PhoneNumberIdentifier(this.callConfiguration.SourcePhoneNumber));
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
 
             List<CommunicationIdentifier> targets = new ArrayList<CommunicationIdentifier>() { {add(target);} };
 
             Response<CallConnection> response = this.callingServerClient.createCallConnectionWithResponse(source, targets, createCallOption, null);
             callConnection = response.getValue(); 
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "createCallConnectionWithResponse -- > " + GetResponse(response) + ", Call connection ID: " + callConnection.getCallConnectionId());
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Call initiated with Call Leg id -- >" + callConnection.getCallConnectionId());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "createCallConnectionWithResponse -- > " + getResponse(response) + ", Call connection ID: " + callConnection.getCallConnectionId());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Call initiated with Call Leg id -- >" + callConnection.getCallConnectionId());
 
-            RegisterToCallStateChangeEvent(callConnection.getCallConnectionId());
+            registerToCallStateChangeEvent(callConnection.getCallConnectionId());
             callConnectedTask.get();
 
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR, "Failure occured while creating/establishing the call. Exception -- >" + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failure occured while creating/establishing the call. Exception -- >" + ex.getMessage());
         }
     }
 
-    private void RegisterToCallStateChangeEvent(String callLegId) {
+    private void registerToCallStateChangeEvent(String callLegId) {
         callTerminatedTask = new CompletableFuture<Boolean>();
         callConnectedTask = new CompletableFuture<Boolean>();
         // Set the callback method
         NotificationCallback callStateChangeNotificaiton = ((callEvent) -> {
             CallConnectionStateChangedEvent callStateChanged = (CallConnectionStateChangedEvent) callEvent;
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Call State changed to -- > " + callStateChanged.getCallConnectionState());
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Call State changed to -- > " + callStateChanged.getCallConnectionState());
 
             if (callStateChanged.getCallConnectionState().equals(CallConnectionState.CONNECTED)) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
                 callConnectedTask.complete(true);
             } else if (callStateChanged.getCallConnectionState().equals(CallConnectionState.DISCONNECTED)) {
                 EventDispatcher.GetInstance()
@@ -134,14 +134,14 @@ public class OutboundCallReminder {
                 callLegId, callStateChangeNotificaiton);
     }
 
-    private void RegisterToDtmfResultEvent(String callLegId) {
+    private void registerToDtmfResultEvent(String callLegId) {
         toneReceivedCompleteTask = new CompletableFuture<Boolean>();
 
         NotificationCallback dtmfReceivedEvent = ((callEvent) -> {
             ToneReceivedEvent toneReceivedEvent = (ToneReceivedEvent) callEvent;
             ToneInfo toneInfo = toneReceivedEvent.getToneInfo();
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
 
             if (toneInfo.getTone().equals(ToneValue.TONE1)) {
                 toneReceivedCompleteTask.complete(true);
@@ -150,33 +150,33 @@ public class OutboundCallReminder {
             }
             EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
             // cancel playing audio
-            CancelMediaProcessing(callLegId);
+            cancelMediaProcessing(callLegId);
         });
         // Subscribe to event
         EventDispatcher.GetInstance().Subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,
                 dtmfReceivedEvent);
     }
 
-    private void CancelMediaProcessing(String callLegId) {
+    private void cancelMediaProcessing(String callLegId) {
         if (reportCancellationToken.isCancellationRequested()) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Cancellation request, CancelMediaProcessing will not be performed");
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Cancellation request, CancelMediaProcessing will not be performed");
             return;
         }
 
-        Logger.LogMessage(Logger.MessageType.INFORMATION, "Performing cancel media processing operation to stop playing audio");
+        Logger.logMessage(Logger.MessageType.INFORMATION, "Performing cancel media processing operation to stop playing audio");
 
         String operationContext = UUID.randomUUID().toString();
         Response<CancelAllMediaOperationsResult> cancelmediaresponse = this.callConnection.cancelAllMediaOperationsWithResponse(operationContext, null);
         CancelAllMediaOperationsResult response = cancelmediaresponse.getValue();
 
-        Logger.LogMessage(Logger.MessageType.INFORMATION, "cancelAllMediaOperationsWithResponse -- > " + GetResponse(cancelmediaresponse) + 
+        Logger.logMessage(Logger.MessageType.INFORMATION, "cancelAllMediaOperationsWithResponse -- > " + getResponse(cancelmediaresponse) + 
         ", Id: " + response.getOperationId() + ", OperationContext: " + response.getOperationContext() + ", OperationStatus: " +
         response.getStatus().toString());
     }
 
-    private void PlayAudioAsync(String callLegId) {
+    private void playAudioAsync(String callLegId) {
         if (reportCancellationToken.isCancellationRequested()) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Cancellation request, PlayAudio will not be performed");
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Cancellation request, PlayAudio will not be performed");
             return;
         }
 
@@ -191,62 +191,62 @@ public class OutboundCallReminder {
             playAudioOptions.setAudioFileId(audioFileId);
             playAudioOptions.setOperationContext(operationContext);
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
             Response<PlayAudioResult> playAudioResponse = this.callConnection.playAudioWithResponse(audioFileUri, playAudioOptions, null);
             
             PlayAudioResult response = playAudioResponse.getValue();
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "playAudioWithResponse -- > " + GetResponse(playAudioResponse) + 
+            Logger.logMessage(Logger.MessageType.INFORMATION, "playAudioWithResponse -- > " + getResponse(playAudioResponse) + 
             ", Id: " + response.getOperationId() + ", OperationContext: " + response.getOperationContext() + ", OperationStatus: " +
             response.getStatus().toString());
 
             if (response.getStatus().equals(OperationStatus.RUNNING)) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Play Audio state -- > " + OperationStatus.RUNNING);
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Play Audio state -- > " + OperationStatus.RUNNING);
 
                 // listen to play audio events
-                RegisterToPlayAudioResultEvent(response.getOperationContext());
+                registerToPlayAudioResultEvent(response.getOperationContext());
 
                 CompletableFuture<Boolean> maxWait = CompletableFuture.supplyAsync(() -> {
                     try {
                         TimeUnit.SECONDS.sleep(30);
                     } catch (InterruptedException ex) {
-                        Logger.LogMessage(Logger.MessageType.ERROR, " -- > " + ex.getMessage());
+                        Logger.logMessage(Logger.MessageType.ERROR, " -- > " + ex.getMessage());
                     }
                     return false;
                 });
 
                 CompletableFuture<Object> completedTask = CompletableFuture.anyOf(playAudioCompletedTask, maxWait);
                 if (completedTask.get() != playAudioCompletedTask.get()) {
-                    Logger.LogMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
+                    Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
                     playAudioCompletedTask.complete(false);
                     toneReceivedCompleteTask.complete(false);
                 }
             }
         } catch (Exception ex) {
             if (playAudioCompletedTask.isCancelled()) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Play audio operation cancelled");
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio operation cancelled");
             } else {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Failure occured while playing audio on the call. Exception: " + ex.getMessage());
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occured while playing audio on the call. Exception: " + ex.getMessage());
             }
         }
     }
 
-    private void HangupAsync(String callLegId) {
+    private void hangupAsync(String callLegId) {
         if (reportCancellationToken.isCancellationRequested()) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Cancellation request, Hangup will not be performed");
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Cancellation request, Hangup will not be performed");
             return;
         }
 
-        Logger.LogMessage(Logger.MessageType.INFORMATION, "Performing Hangup operation");
+        Logger.logMessage(Logger.MessageType.INFORMATION, "Performing Hangup operation");
         Response<Void> response = this.callConnection.hangupWithResponse(null);
-        Logger.LogMessage(Logger.MessageType.INFORMATION, "hangupWithResponse -- > " + GetResponse(response));
+        Logger.logMessage(Logger.MessageType.INFORMATION, "hangupWithResponse -- > " + getResponse(response));
     }
 
-    private void RegisterToPlayAudioResultEvent(String operationContext) {
+    private void registerToPlayAudioResultEvent(String operationContext) {
         playAudioCompletedTask = new CompletableFuture<Boolean>();
         NotificationCallback playPromptResponseNotification = ((callEvent) -> {
             PlayAudioResultEvent playAudioResultEvent = (PlayAudioResultEvent) callEvent;
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());
 
             if (playAudioResultEvent.getStatus().equals(OperationStatus.COMPLETED)) {
                 EventDispatcher.GetInstance().Unsubscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
@@ -262,32 +262,32 @@ public class OutboundCallReminder {
                 operationContext, playPromptResponseNotification);
     }
 
-    private void RetryAddParticipantAsync(String callLegId, String addedParticipant) {
+    private void retryAddParticipantAsync(String callLegId, String addedParticipant) {
         int retryAttemptCount = 1;
         while (retryAttemptCount <= maxRetryAttemptCount) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Retrying add participant attempt -- > " + retryAttemptCount + " is in progress");
-            Boolean addParticipantResult = AddParticipant(callLegId, addedParticipant);
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Retrying add participant attempt -- > " + retryAttemptCount + " is in progress");
+            Boolean addParticipantResult = addParticipant(callLegId, addedParticipant);
 
             if (addParticipantResult) {
                 return;
             } else {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Retry add participant attempt -- > " + retryAttemptCount + " has failed");
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Retry add participant attempt -- > " + retryAttemptCount + " has failed");
                 retryAttemptCount++;
             }
         }
     }
 
-    private Boolean AddParticipant(String callLegId, String addedParticipant) {
-        CommunicationIdentifierKind identifierKind = GetIdentifierKind(addedParticipant);
+    private Boolean addParticipant(String callLegId, String addedParticipant) {
+        CommunicationIdentifierKind identifierKind = getIdentifierKind(addedParticipant);
 
         if (identifierKind == CommunicationIdentifierKind.UnknownIdentity) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "Unknown identity provided. Enter valid phone number or communication user id");
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Unknown identity provided. Enter valid phone number or communication user id");
             return true;
         } else {
             CommunicationIdentifier participant = null;
             String operationContext = UUID.randomUUID().toString();
 
-            RegisterToAddParticipantsResultEvent(operationContext);
+            registerToAddParticipantsResultEvent(operationContext);
 
             if (identifierKind == CommunicationIdentifierKind.UserIdentity) {
                 participant = new CommunicationUserIdentifier(addedParticipant);
@@ -297,31 +297,31 @@ public class OutboundCallReminder {
             }
 
             String alternateCallerId = new PhoneNumberIdentifier(
-                    ConfigurationManager.GetInstance().GetAppSettings("SourcePhone")).toString();
+                    ConfigurationManager.getInstance().getAppSettings("SourcePhone")).toString();
             Response<AddParticipantResult> response = callConnection.addParticipantWithResponse(participant, alternateCallerId, operationContext, null);
-            Logger.LogMessage(Logger.MessageType.INFORMATION, "addParticipantWithResponse -- > " + GetResponse(response));
+            Logger.logMessage(Logger.MessageType.INFORMATION, "addParticipantWithResponse -- > " + getResponse(response));
         }
 
         Boolean addParticipantCompleted = false;
         try {
             addParticipantCompleted = addParticipantCompleteTask.get();
         } catch (InterruptedException ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to add participant InterruptedException -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failed to add participant InterruptedException -- > " + ex.getMessage());
         } catch (ExecutionException ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR,"Failed to add participant ExecutionException -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR,"Failed to add participant ExecutionException -- > " + ex.getMessage());
         }
 
         return addParticipantCompleted;
     }
 
-    private void RegisterToAddParticipantsResultEvent(String operationContext) {
+    private void registerToAddParticipantsResultEvent(String operationContext) {
         addParticipantCompleteTask = new CompletableFuture<Boolean>();
 
         NotificationCallback addParticipantReceivedEvent = ((callEvent) -> {
             AddParticipantResultEvent addParticipantsUpdatedEvent = (AddParticipantResultEvent) callEvent;
             OperationStatus operationStatus = addParticipantsUpdatedEvent.getStatus();
             if (operationStatus.equals(OperationStatus.COMPLETED)) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Add participant status -- > " + operationStatus);
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Add participant status -- > " + operationStatus);
                 addParticipantCompleteTask.complete(true);
             } else if (operationStatus.equals(OperationStatus.FAILED)) {
                 addParticipantCompleteTask.complete(false);
@@ -338,14 +338,14 @@ public class OutboundCallReminder {
     public final String userIdentityRegex = "8:acs:[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}_[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}";
     public final String phoneIdentityRegex = "^\\+\\d{10,14}$";
 
-    private CommunicationIdentifierKind GetIdentifierKind(String participantnumber) {
+    private CommunicationIdentifierKind getIdentifierKind(String participantnumber) {
         // checks the identity type returns as string
         return ((Pattern.matches(userIdentityRegex, participantnumber)) ? CommunicationIdentifierKind.UserIdentity
                 : (Pattern.matches(phoneIdentityRegex, participantnumber)) ? CommunicationIdentifierKind.PhoneIdentity
                         : CommunicationIdentifierKind.UnknownIdentity);
     }
 
-    public String GetResponse(Response<?> response)
+    public String getResponse(Response<?> response)
     {
         String responseString = null;
         responseString = "StatusCode: " + response.getStatusCode() + ", Headers: { ";

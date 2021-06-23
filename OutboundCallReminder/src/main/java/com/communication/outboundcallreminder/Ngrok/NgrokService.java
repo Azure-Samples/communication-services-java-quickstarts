@@ -1,6 +1,6 @@
 package com.communication.outboundcallreminder.Ngrok;
 
-import org.json.simple.JSONArray;
+import net.minidev.json.JSONArray;
 import java.io.*;
 import java.util.*;
 import com.communication.outboundcallreminder.Logger;
@@ -13,14 +13,14 @@ public class NgrokService {
 
     public NgrokService(String ngrokPath, String authToken) {
         connector = new NgrokConnector();
-        this.EnsureNgrokNotRunning();
-        this.CreateNgrokProcess(ngrokPath, authToken);
+        this.ensureNgrokNotRunning();
+        this.createNgrokProcess(ngrokPath, authToken);
     }
 
     /// <summary>
     /// Ensures that NGROK is not running.
     /// </summary>
-    private void EnsureNgrokNotRunning() {
+    private void ensureNgrokNotRunning() {
         BufferedReader input = null;
         String ngrokProcess = "ngrok.exe";
         String processFilter = "/nh /fi \"Imagename eq " + ngrokProcess + "\"";
@@ -33,21 +33,21 @@ public class NgrokService {
             while ((line = input.readLine()) != null) {
                 // It means ngrok.exe running
                 if (line.contains(ngrokProcess)) {
-                    Logger.LogMessage(Logger.MessageType.INFORMATION, "Looks like NGROK is still running. Please kill it before running the provider again.");
+                    Logger.logMessage(Logger.MessageType.INFORMATION, "Looks like NGROK is still running. Please kill it before running the provider again.");
                     System.exit(0);
                 }
             }
             process.destroy();
             input.close();
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR ,"Not able to find the process -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR ,"Not able to find the process -- > " + ex.getMessage());
         }
     }
 
     /// <summary>
     /// Kill ngrok.exe process
     /// </summary>
-    public void Dispose() {
+    public void dispose() {
         if (this.ngrokProcess != null) {
             this.ngrokProcess.destroy();
         }
@@ -56,11 +56,11 @@ public class NgrokService {
     /// <summary>
     /// Creates the NGROK process.
     /// </summary>
-    private void CreateNgrokProcess(String ngrokPath, String authToken) {
+    private void createNgrokProcess(String ngrokPath, String authToken) {
         try {
             String authTokenArgs = "";
             if (authToken != null && !authToken.isEmpty()) {
-                authTokenArgs = "--authtoken " + authToken;
+                authTokenArgs = " --authtoken " + authToken;
             }
 
             String openCmd = "cmd /c start cmd.exe /k ";
@@ -70,21 +70,21 @@ public class NgrokService {
 
             this.ngrokProcess = Runtime.getRuntime().exec(command);
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR,"Failed to start Ngrok.exe -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR,"Failed to start Ngrok.exe -- > " + ex.getMessage());
         }
     }
 
     /// <summary>
     /// Get Ngrok URL
     /// </summary>
-    public String GetNgrokUrl() {
+    public String getNgrokUrl() {
         String ngrokUrl = null;
         int totalAttempts = 3;
         try {
             do {
                 // Wait for fetching the ngrok url as ngrok process might not be started yet.
                 Thread.sleep(2000);
-                JSONArray tunnelList = this.connector.GetAllTunnelsAsync();
+                JSONArray tunnelList = this.connector.getAllTunnelsAsync();
 
                 if (tunnelList.iterator().hasNext()) {
                     Map<?, ?> tunnel = (Map<?, ?>) tunnelList.iterator().next();
@@ -100,7 +100,7 @@ public class NgrokService {
                 }
             } while (--totalAttempts > 0);
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to get Ngrok url -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failed to get Ngrok url -- > " + ex.getMessage());
         }
         return ngrokUrl;
     }

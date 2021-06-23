@@ -8,8 +8,8 @@ public class EventAuthHandler {
     public static EventAuthHandler eventAuthHandler = null;
 
     public EventAuthHandler() {
-        ConfigurationManager configuration = ConfigurationManager.GetInstance();
-        SecretValue = configuration.GetAppSettings("SecretPlaceholder");
+        ConfigurationManager configuration = ConfigurationManager.getInstance();
+        SecretValue = configuration.getAppSettings("SecretPlaceholder");
 
         if (SecretValue == null) {
             System.out.println("SecretPlaceholder is null");

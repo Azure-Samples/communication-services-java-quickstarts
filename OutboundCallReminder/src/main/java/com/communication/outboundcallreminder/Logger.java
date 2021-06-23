@@ -13,7 +13,7 @@ public class Logger {
     /// </summary>
     /// <param name="messageType">Type of the message: Information or Error</param>
     /// <param name="message">Message string</param>
-    public static void LogMessage(MessageType messageType, String message)
+    public static void logMessage(MessageType messageType, String message)
     {
         String logMessage = null;
         logMessage = messageType + " " + message;

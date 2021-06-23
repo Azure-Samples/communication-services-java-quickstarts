@@ -47,14 +47,9 @@
       <version>4.5.13</version>
     </dependency>
     <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>1.1.1</version>
-    </dependency>
-    <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-core</artifactId>
-      <version>1.16.0</version>
+      <version>1.17.0</version>
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>
@@ -69,9 +64,7 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-communication-callingserver</artifactId>
-      <version>1.0.0-beta.1</version>
-      <scope>system</scope>
-      <systemPath>${basedir}/communication-callingserver-sdk/azure-communication-callingserver-1.0.0-beta.1.jar</systemPath>
+      <version>1.0.0-alpha.20210622.2</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.cognitiveservices.speech</groupId>
@@ -95,6 +88,16 @@
       <id>maven-cognitiveservices-speech</id>
       <name>Microsoft Cognitive Services Speech Maven Repository</name>
       <url>https://csspeechstorage.blob.core.windows.net/maven/</url>
+    </repository>
+    <repository>
+      <id>azure-sdk-for-java@Local</id>
+      <url>https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-java%40Local/maven/v1</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
   </repositories>
 
@@ -148,26 +151,6 @@
             <mainClass>com.communication.outboundcallreminder.App</mainClass>
           </configuration>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>2.5.2</version>
-          <executions>
-              <execution>
-                  <phase>initialize</phase>
-                  <goals>
-                      <goal>install-file</goal>
-                  </goals>
-                  <configuration>
-                      <groupId>com.azure</groupId>
-                      <artifactId>azure-communication-callingserver</artifactId>
-                      <version>1.0.0-beta.1</version>
-                      <packaging>jar</packaging>
-                      <file>${basedir}/communication-callingserver-sdk/azure-communication-callingserver-1.0.0-beta.1.jar</file>
-                  </configuration>
-              </execution>
-          </executions>
-      </plugin>
       </plugins>
     </pluginManagement>
   </build>

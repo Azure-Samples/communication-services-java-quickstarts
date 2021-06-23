@@ -1,8 +1,8 @@
 package com.communication.outboundcallreminder.Ngrok;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.*;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
+import net.minidev.json.parser.JSONParser;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -26,7 +26,7 @@ public class NgrokConnector {
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     }
 
-    public JSONArray GetAllTunnelsAsync() {
+    public JSONArray getAllTunnelsAsync() {
         JSONArray tunnelList = null;
         try {
             CloseableHttpResponse response = httpClient.execute(request);
@@ -34,11 +34,11 @@ public class NgrokConnector {
 
             if (entity != null) {
                 String tunnel = EntityUtils.toString(entity);
-                JSONObject tunnelObject = (JSONObject) (new JSONParser().parse(tunnel));
+                JSONObject tunnelObject = (JSONObject) (new JSONParser(JSONParser.DEFAULT_PERMISSIVE_MODE).parse(tunnel));
                 tunnelList = (JSONArray) tunnelObject.get("tunnels");
             }
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to get Ngrok URL -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failed to get Ngrok URL -- > " + ex.getMessage());
         }
         return tunnelList;
     }

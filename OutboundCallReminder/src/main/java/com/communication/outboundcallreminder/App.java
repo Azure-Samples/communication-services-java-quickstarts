@@ -28,60 +28,60 @@ public class App {
         application.setDefaultProperties(Collections.singletonMap("server.port", serverPort));
         application.run(args);
 
-        Logger.LogMessage(Logger.MessageType.INFORMATION, "Starting ACS Sample App ");
+        Logger.logMessage(Logger.MessageType.INFORMATION, "Starting ACS Sample App ");
 
         // Get configuration properties
-        ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
-        configurationManager.LoadAppSettings();
+        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
+        configurationManager.loadAppSettings();
 
         // Start Ngrok service
-        String ngrokUrl = StartNgrokService();
+        String ngrokUrl = startNgrokService();
         try {
             if (ngrokUrl != null && !ngrokUrl.isEmpty()) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION,"Server started at -- > " + url);
+                Logger.logMessage(Logger.MessageType.INFORMATION,"Server started at -- > " + url);
                 Thread runSample = new Thread(() -> {
-                    RunSample(ngrokUrl);
+                    runSample(ngrokUrl);
                 });
                 runSample.start();
                 runSample.join();
             } else {
-                Logger.LogMessage(Logger.MessageType.INFORMATION,"Failed to start Ngrok service");
+                Logger.logMessage(Logger.MessageType.INFORMATION,"Failed to start Ngrok service");
             }
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR,"Failed to start Ngrok service -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR,"Failed to start Ngrok service -- > " + ex.getMessage());
         }
-        Logger.LogMessage(Logger.MessageType.INFORMATION, "Press 'Ctrl + C' to exit the sample");
-        ngrokService.Dispose();
+        Logger.logMessage(Logger.MessageType.INFORMATION, "Press 'Ctrl + C' to exit the sample");
+        ngrokService.dispose();
     }
 
-    private static String StartNgrokService() {
+    private static String startNgrokService() {
         try {
-            ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
-            String ngrokPath = configurationManager.GetAppSettings("NgrokExePath");
+            ConfigurationManager configurationManager = ConfigurationManager.getInstance();
+            String ngrokPath = configurationManager.getAppSettings("NgrokExePath");
 
             if (ngrokPath.isEmpty()) {
-                Logger.LogMessage(Logger.MessageType.INFORMATION, "Ngrok path not provided");
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Ngrok path not provided");
                 return null;
             }
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Starting Ngrok");
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Starting Ngrok");
             ngrokService = new NgrokService(ngrokPath, null);
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Fetching Ngrok Url");
-            String ngrokUrl = ngrokService.GetNgrokUrl();
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Fetching Ngrok Url");
+            String ngrokUrl = ngrokService.getNgrokUrl();
 
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Ngrok Started with url -- > " + ngrokUrl);
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Ngrok Started with url -- > " + ngrokUrl);
             return ngrokUrl;
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.INFORMATION,"Ngrok service got failed -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Ngrok service got failed -- > " + ex.getMessage());
             return null;
         }
     }
 
-    private static void RunSample(String appBaseUrl) {
-        CallConfiguration callConfiguration = InitiateConfiguration(appBaseUrl);
-        ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
-        String outboundCallPairs = configurationManager.GetAppSettings("DestinationIdentities");
+    private static void runSample(String appBaseUrl) {
+        CallConfiguration callConfiguration = initiateConfiguration(appBaseUrl);
+        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
+        String outboundCallPairs = configurationManager.getAppSettings("DestinationIdentities");
 
         try {
             if (outboundCallPairs != null && !outboundCallPairs.isEmpty()) {
@@ -93,7 +93,7 @@ public class App {
                     String[] pair = identity.split(",");
                     tasks.add(new Callable<Boolean>() {
                         public Boolean call() {
-                            new OutboundCallReminder(callConfiguration).Report(pair[0].trim(), pair[1].trim());
+                            new OutboundCallReminder(callConfiguration).report(pair[0].trim(), pair[1].trim());
                             return true;
                         }
                     });
@@ -102,9 +102,9 @@ public class App {
                 executorService.shutdown();
             }
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR, "Failed to initiate the outbound call Exception -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failed to initiate the outbound call Exception -- > " + ex.getMessage());
         }
-        DeleteUser(callConfiguration.ConnectionString, callConfiguration.SourceIdentity);
+        deleteUser(callConfiguration.ConnectionString, callConfiguration.SourceIdentity);
     }
 
     /// <summary>
@@ -112,23 +112,23 @@ public class App {
     /// </summary>
     /// <param name="appBaseUrl">The base url of the app.</param>
     /// <returns>The <c CallConfiguration object.</returns>
-    private static CallConfiguration InitiateConfiguration(String appBaseUrl) {
-        ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
-        String connectionString = configurationManager.GetAppSettings("Connectionstring");
-        String sourcePhoneNumber = configurationManager.GetAppSettings("SourcePhone");
-        String sourceIdentity = CreateUser(connectionString);
-        String audioFileName = GenerateCustomAudioMessage();
+    private static CallConfiguration initiateConfiguration(String appBaseUrl) {
+        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
+        String connectionString = configurationManager.getAppSettings("Connectionstring");
+        String sourcePhoneNumber = configurationManager.getAppSettings("SourcePhone");
+        String sourceIdentity = createUser(connectionString);
+        String audioFileName = generateCustomAudioMessage();
         return new CallConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, appBaseUrl, audioFileName);
     }
 
     /// <summary>
     /// Get .wav Audio file
     /// </summary>
-    private static String GenerateCustomAudioMessage() {
-        ConfigurationManager configurationManager = ConfigurationManager.GetInstance();
-        String key = configurationManager.GetAppSettings("CognitiveServiceKey");
-        String region = configurationManager.GetAppSettings("CognitiveServiceRegion");
-        String customMessage = configurationManager.GetAppSettings("CustomMessage");
+    private static String generateCustomAudioMessage() {
+        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
+        String key = configurationManager.getAppSettings("CognitiveServiceKey");
+        String region = configurationManager.getAppSettings("CognitiveServiceRegion");
+        String customMessage = configurationManager.getAppSettings("CustomMessage");
 
         try {
             if (key != null && !key.isEmpty() && region != null && !region.isEmpty() && customMessage != null
@@ -145,7 +145,7 @@ public class App {
             }
             return "sample-message.wav";
         } catch (Exception ex) {
-            Logger.LogMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
             return "sample-message.wav";
         }
     }
@@ -153,7 +153,7 @@ public class App {
     /// <summary>
     /// Create new user
     /// </summary>
-    private static String CreateUser(String connectionString) {
+    private static String createUser(String connectionString) {
         CommunicationIdentityClient client = new CommunicationIdentityClientBuilder().connectionString(connectionString)
                 .buildClient();
         CommunicationUserIdentifier user = client.createUser();
@@ -163,7 +163,7 @@ public class App {
     /// <summary>
     /// Delete the user
     /// </summary>
-    private static void DeleteUser(String connectionString, String source) {
+    private static void deleteUser(String connectionString, String source) {
         CommunicationIdentityClient client = new CommunicationIdentityClientBuilder().connectionString(connectionString)
                 .buildClient();
         client.deleteUser(new CommunicationUserIdentifier(source));

@@ -52,8 +52,6 @@ public class OutboundCallReminder {
     private CompletableFuture<Boolean> callTerminatedTask;
     private CompletableFuture<Boolean> toneReceivedCompleteTask;
     private CompletableFuture<Boolean> addParticipantCompleteTask;
-    private final Integer maxRetryAttemptCount = Integer
-            .parseInt(ConfigurationManager.getInstance().getAppSettings("MaxRetryCount"));
 
     public OutboundCallReminder(CallConfiguration callConfiguration) {
         this.callConfiguration = callConfiguration;
@@ -302,7 +300,7 @@ public class OutboundCallReminder {
 
     private void retryAddParticipantAsync(String addedParticipant) {
         int retryAttemptCount = 1;
-        while (retryAttemptCount <= maxRetryAttemptCount) {
+        while (retryAttemptCount <= this.callConfiguration.maxRetryAttemptCount) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Retrying add participant attempt -- > " + retryAttemptCount + " is in progress");
             Boolean addParticipantResult = addParticipant(addedParticipant);
 
@@ -334,9 +332,7 @@ public class OutboundCallReminder {
                 participant = new PhoneNumberIdentifier(addedParticipant);
             }
 
-            String alternateCallerId = new PhoneNumberIdentifier(
-                    ConfigurationManager.getInstance().getAppSettings("SourcePhone")).toString();
-            Response<AddParticipantResult> response = callConnection.addParticipantWithResponse(participant, alternateCallerId, operationContext, null);
+            Response<AddParticipantResult> response = callConnection.addParticipantWithResponse(participant, this.callConfiguration.sourcePhoneNumber, operationContext, null);
             Logger.logMessage(Logger.MessageType.INFORMATION, "addParticipantWithResponse -- > " + getResponse(response));
         }
 

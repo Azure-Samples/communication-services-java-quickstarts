@@ -89,10 +89,14 @@ public class App {
 
                 for (String identity : identities) {
                     String[] pair = identity.split(",");
-                    tasks.add(() -> {
-                        new OutboundCallReminder(callConfiguration).report(pair[0].trim(), pair[1].trim());
-                        return true;
-                    });
+                    if(pair.length == 2 && !pair[0].isEmpty() && !pair[1].isEmpty()) {
+                        tasks.add(() -> {
+                            new OutboundCallReminder(callConfiguration).report(pair[0].trim(), pair[1].trim());
+                            return true;
+                        });
+                    } else {
+                        Logger.logMessage(Logger.MessageType.ERROR, "Malformed destination identitity --> " + identity);            
+                    }
                 }
                 executorService.invokeAll(tasks);
                 executorService.shutdown();
@@ -112,9 +116,10 @@ public class App {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
         String connectionString = configurationManager.getAppSettings("Connectionstring");
         String sourcePhoneNumber = configurationManager.getAppSettings("SourcePhone");
+        String maxRetryAttemptCount = configurationManager.getAppSettings("MaxRetryCount");
         String sourceIdentity = createUser(connectionString);
         String audioFileName = generateCustomAudioMessage();
-        return new CallConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, appBaseUrl, audioFileName);
+        return new CallConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, appBaseUrl, audioFileName, maxRetryAttemptCount);
     }
 
     /// <summary>

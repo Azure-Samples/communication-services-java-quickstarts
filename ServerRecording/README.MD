@@ -43,7 +43,7 @@ Its a Java web application powered by Spring boot to connect this application wi
 
 1. Build java code : mvn clean install  
 
-2. Run app locally : mvn spring-boot:run; 
+2. Run app locally : mvn spring-boot:run
 
 3. Use postman or any debugging tool and open url - http://localhost:8080 
 

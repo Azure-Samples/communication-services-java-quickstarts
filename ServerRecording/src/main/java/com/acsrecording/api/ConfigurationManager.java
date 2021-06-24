@@ -1,11 +1,16 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package com.acsrecording.api;
 
-import java.io.*;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Properties;
 
 public class ConfigurationManager {
     private static ConfigurationManager configurationManager = null;
-    private Properties appSettings = new Properties();
+    private final Properties appSettings = new Properties();
 
     private ConfigurationManager() {
     }
@@ -23,12 +28,11 @@ public class ConfigurationManager {
         try {
             ClassLoader classLoader = getClass().getClassLoader();
             InputStream inputStream = classLoader.getResourceAsStream("config.properties");
+            assert inputStream != null;
             Reader reader = new InputStreamReader(inputStream);
             appSettings.load(reader);
             reader.close();
-        } catch (FileNotFoundException ex) {
-            System.out.print("\n Loading app settings failed with error - " + ex.getMessage());
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             System.out.print("\n Loading app settings failed with error - " + ex.getMessage());
         }
     }

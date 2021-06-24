@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package com.acsrecording.api.Controller;
 
 import com.acsrecording.api.ConfigurationManager;
@@ -39,12 +42,12 @@ import java.util.logging.Logger;
 
 @RestController
 public class CallRecordingController  {
-    Map<String,String> recordingDataMap = null;
-    String container = "";
-    String blobStorageConnectionString = "";
-    String recordingStateCallbackUrl = "";
-    Logger logger = null;
-    private com.azure.communication.callingserver.CallingServerClient callingServerClient = null;
+    Map<String,String> recordingDataMap;
+    String container;
+    String blobStorageConnectionString;
+    String recordingStateCallbackUrl;
+    Logger logger;
+    private final com.azure.communication.callingserver.CallingServerClient callingServerClient;
 
     CallRecordingController() {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
@@ -63,7 +66,7 @@ public class CallRecordingController  {
 
     @GetMapping("/startRecording")
     public StartCallRecordingResult startRecording(String serverCallId) {
-        URI recordingStateCallbackUri = null;
+        URI recordingStateCallbackUri;
         try {
             recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
             Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri),null);
@@ -117,7 +120,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).resumeRecordingWithResponse(serverCallId, null);
+            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).resumeRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Resume Recording response --> " + getResponse(response));
         }
     }
@@ -140,10 +143,7 @@ public class CallRecordingController  {
             Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).stopRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Stop Recording response --> " + getResponse(response));
 
-            if (recordingDataMap.containsKey(serverCallId))
-            {
-                recordingDataMap.remove(serverCallId);
-            }
+            recordingDataMap.remove(serverCallId);
         }
     }
 
@@ -186,7 +186,7 @@ public class CallRecordingController  {
             BinaryData eventData = eventGridEvent.getData();
             logger.log(Level.INFO, "SubscriptionValidationEvent response --> \n" + eventData.toString());
 
-            if (eventGridEvent.getEventType() == SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION) 
+            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION))
             {
                 try {
                     SubscriptionValidationEventData subscriptionValidationEvent = eventData.toObject(SubscriptionValidationEventData.class);
@@ -200,7 +200,7 @@ public class CallRecordingController  {
                 }
             }
 
-            if(eventGridEvent.getEventType() == SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED){
+            if(eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED)){
                 try {
                     AcsRecordingFileStatusUpdatedEventData acsRecordingFileStatusUpdatedEventData =  eventData.toObject(AcsRecordingFileStatusUpdatedEventData.class);
                     AcsRecordingChunkInfoProperties recordingChunk = acsRecordingFileStatusUpdatedEventData
@@ -272,16 +272,13 @@ public class CallRecordingController  {
 
     private String getResponse(Response<?> response)
     {
-        String responseString = null;
-        responseString = "StatusCode: " + response.getStatusCode() + "\nHeaders: { ";
-        Iterator<HttpHeader> headers = response.getHeaders().iterator();
+        StringBuilder responseString;
+        responseString = new StringBuilder("StatusCode: " + response.getStatusCode() + "\nHeaders: { ");
 
-        while(headers.hasNext())
-        {
-            HttpHeader header = headers.next();
-            responseString += header.getName()+ ": " + header.getValue().toString() + ", ";
+        for (HttpHeader header : response.getHeaders()) {
+            responseString.append(header.getName()).append(": ").append(header.getValue()).append(", ");
         }
-        responseString += "} ";
-        return responseString;
+        responseString.append("} ");
+        return responseString.toString();
     }
 }

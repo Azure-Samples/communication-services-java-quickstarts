@@ -174,9 +174,11 @@ public class CallRecordingController  {
     }
 
     @PostMapping(value = "/getRecordingFile", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> getRecordingFile (@RequestBody List<EventGridEvent> eventGridEvents){
+    public ResponseEntity<?> getRecordingFile (@RequestBody String eventGridEventJsonData){
         
         logger.log(Level.INFO,  "Entered getRecordingFile API");
+
+        List<EventGridEvent> eventGridEvents = EventGridEvent.fromString(eventGridEventJsonData);
 
         if(eventGridEvents.stream().count() > 0)
         {

@@ -357,7 +357,6 @@ public class OutboundCallReminder {
             if (operationStatus.equals(OperationStatus.COMPLETED)) {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Add participant status -- > " + operationStatus);
                 
-                //Remove this sleep logic once the call disconnection issue when two PSTN participants present in the call and app exited
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Sleeping for 60 seconds before proceeding further");
                 try {
                     Thread.sleep(60 * 1000);

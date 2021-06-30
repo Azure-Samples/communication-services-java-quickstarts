@@ -51,7 +51,7 @@ public class CallRecordingController  {
 
     CallRecordingController() {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
-        String connectionString = configurationManager.getAppSettings("Connectionstring");
+        String connectionString = configurationManager.getAppSettings("ACSConnectionString");
         container = configurationManager.getAppSettings("ContainerName");
         recordingStateCallbackUrl = configurationManager.getAppSettings("CallbackUri");
         blobStorageConnectionString = configurationManager.getAppSettings("BlobStorageConnectionString");
@@ -73,7 +73,7 @@ public class CallRecordingController  {
             var output = response.getValue();
 
             logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: " + response.getValue().getRecordingId());
-            if(!recordingDataMap.containsKey(serverCallId)){
+            if (!recordingDataMap.containsKey(serverCallId)) {
                 recordingDataMap.put(serverCallId, "");
             }
             recordingDataMap.replace(serverCallId, output.getRecordingId());
@@ -86,8 +86,8 @@ public class CallRecordingController  {
     }
 
     @GetMapping("/pauseRecording")
-    public void pauseRecording(String serverCallId, String  recordingId){
-        if(!Strings.isNullOrEmpty(serverCallId)){
+    public void pauseRecording(String serverCallId, String  recordingId) {
+        if (!Strings.isNullOrEmpty(serverCallId)) {
             if (Strings.isNullOrEmpty(recordingId))
             {
                 recordingId = recordingDataMap.get(serverCallId);
@@ -106,8 +106,8 @@ public class CallRecordingController  {
     }
 
     @GetMapping("/resumeRecording")
-    public void resumeRecording(String serverCallId, String  recordingId){
-        if(!Strings.isNullOrEmpty(serverCallId)){
+    public void resumeRecording(String serverCallId, String  recordingId) {
+        if (!Strings.isNullOrEmpty(serverCallId)) {
             if (Strings.isNullOrEmpty(recordingId))
             {
                 recordingId = recordingDataMap.get(serverCallId);
@@ -126,8 +126,8 @@ public class CallRecordingController  {
     }
 
     @GetMapping("/stopRecording")
-    public void stopRecording(String serverCallId, String  recordingId){
-        if(!Strings.isNullOrEmpty(serverCallId)){
+    public void stopRecording(String serverCallId, String  recordingId) {
+        if (!Strings.isNullOrEmpty(serverCallId)) {
             if (Strings.isNullOrEmpty(recordingId))
             {
                 recordingId = recordingDataMap.get(serverCallId);
@@ -174,13 +174,13 @@ public class CallRecordingController  {
     }
 
     @PostMapping(value = "/getRecordingFile", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> getRecordingFile (@RequestBody String eventGridEventJsonData){
+    public ResponseEntity<?> getRecordingFile (@RequestBody String eventGridEventJsonData) {
         
         logger.log(Level.INFO,  "Entered getRecordingFile API");
 
         List<EventGridEvent> eventGridEvents = EventGridEvent.fromString(eventGridEventJsonData);
 
-        if(eventGridEvents.stream().count() > 0)
+        if (eventGridEvents.stream().count() > 0)
         {
             EventGridEvent eventGridEvent = eventGridEvents.get(0);
             logger.log(Level.INFO,  "Event type is --> " + eventGridEvent.getEventType());
@@ -196,13 +196,13 @@ public class CallRecordingController  {
                     responseData.setValidationResponse(subscriptionValidationEvent.getValidationCode());
 
                     return new ResponseEntity<>(responseData, HttpStatus.OK);
-                } catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
 
-            if(eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED)){
+            if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED)) {
                 try {
                     AcsRecordingFileStatusUpdatedEventData acsRecordingFileStatusUpdatedEventData =  eventData.toObject(AcsRecordingFileStatusUpdatedEventData.class);
                     AcsRecordingChunkInfoProperties recordingChunk = acsRecordingFileStatusUpdatedEventData
@@ -228,13 +228,14 @@ public class CallRecordingController  {
                     );
 
                     return new ResponseEntity<>(true, HttpStatus.OK);
-                } catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                     logger.log(Level.SEVERE, e.getMessage());
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
-            else{
+            else
+            {
                 return new ResponseEntity<>(eventGridEvent.getEventType() + " is not handled.", HttpStatus.BAD_REQUEST);
             }
         }

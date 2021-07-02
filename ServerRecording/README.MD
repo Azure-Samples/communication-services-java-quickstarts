@@ -120,9 +120,9 @@ It's a Java web application powered by Spring Boot to connect this application w
 		```
   	- Add [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin) to the <plugins> collection in the pom.xml file. This example uses version 2.5.2.
 
-		Specify the base image in ```<image>``` tag under ```<from>```, here ```mcr.microsoft.com/java/jre:11-zulu-alpine```. Specify the name of the final image to be built from the base in ```<image>``` under ```<to>```.
+		Specify the base image at ```<from>/<image>```, here ```mcr.microsoft.com/java/jre:11-zulu-alpine```. Specify the name of the final image to be built from the base in ```<to>/<image>```.
 
-		Authentication {docker.image.prefix} is the Login server of Azure Container Registry. The {project.artifactId} is the name and version number of the JAR file from the first Maven build of the project.
+		The {docker.image.prefix} is the Login server of Azure Container Registry. The {project.artifactId} is the name and version number of the JAR file from the first Maven build of the project.
 
 		```xml
 		<plugin>

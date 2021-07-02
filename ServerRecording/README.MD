@@ -7,82 +7,173 @@ products:
 - azure-communication-services
 ---
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fcommunication-services-web-calling-hero%2Fmain%2Fdeploy%2Fazuredeploy.json)
-
 # Recording APIs Sample
 
 This is a sample application to show how the Azure Communication Services server calling SDK can be used to build a call recording feature.
 
-Its a Java web application powered by Spring boot to connect this application with Azure Communication Services.
+It's a Java web application powered by Spring Boot to connect this application with Azure Communication Services.
 
 ## Prerequisites
 
-- Create an Azure account with an active subscription. For details, see [Create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F)
+- [Visual Studio Code](https://code.visualstudio.com/download)
 - [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install)
 - [Apache Maven](https://maven.apache.org/download.cgi)
-- [Visual Studio code (2019 and above)](https://code.visualstudio.com/download)
-- [Spring boot framework v- 2.5.0](https://spring.io/projects/spring-boot)
-- Create an Azure Communication Services resource. For details, see [Create an Azure Communication Resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource). You'll need to record your resource **connection string** for this quickstart.
-- Create a webhook and subscribe to the recording events [Create webhook](https://docs.microsoft.com/azure/communication-services/quickstarts/voice-video-calling/download-recording-file-sample)
+- [Spring Boot framework v- 2.5.0](https://spring.io/projects/spring-boot)
+- [Docker desktop](https://www.docker.com/products/docker-desktop)
+- An Azure account with an active subscription. For details, see here to [create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F).
+- [Create container registry](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry)
+- [Create an Azure Communication Resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource). You'll need to record your resource\'s **connection string** for this quickstart.
+- [Create a webhook](https://docs.microsoft.com/azure/communication-services/quickstarts/voice-video-calling/download-recording-file-sample) and subscribe to the recording events.
+
 
 ## Code structure
 
-- ./ServerRecording/src/main/java/com/acsrecording/api/controllers : Server app core logics to make Api calls that connects with the Azure Communication Services Web Calling SDK
-- ./ServerRecording/pom.xml : XML file which contains project and package configurations
-- ./ServerRecording/src/main/resources/config.properties : config file which contains user level configurations
+- ./src/main/java/com/acsrecording/api/Controller : Server app core logic to make Api calls that connect with the Azure Communication Services Web Calling SDK
+- ./pom.xml : XML file which contains project and package configurations
+- ./src/main/resources/config.properties : config file which contains user level configurations
 
 ## Before running the sample for the first time
-1. Get the `Connection String` from the Azure portal. For more information on connection strings, see [Create an Azure Communication Resources](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource)
-2. Once you get the config keys add the keys to the **resources/config.properties** file found under the ./ServerRecording/src/main/resources folder.
-	- Input your connection string in the variable: `Connectionstring`
-	- Input your blob storage connectionString string in the variable: `BlobStorageConnectionString`
+1. Get the `Connection String` from the Azure portal. For more information on connection strings, see [Create an Azure Communication Resources](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource).
+2. Once you get the config keys, add the keys to the **resources/config.properties** file found under the ./src/main/resources folder.
+	- Input your ACS connection string in the variable: `ACSConnectionString`
+	- Input your blob storage connection string in the variable: `BlobStorageConnectionString`
 	- Input blob container name for recorded media in the variable `ContainerName`
 	- Input recording callback url for start recording api in the variable `CallbackUri`
 
 ## Locally deploying the sample app
 
-1. Build java code : mvn clean install  
+1. Build java code.
 
-2. Run app locally : mvn spring-boot:run
+	```bash
+	mvn clean install  
+	```
 
-3. Use postman or any debugging tool and open url - http://localhost:8080 
+1. Run app locally.
+
+	```bash
+	mvn spring-boot:run
+	```
+
+1. Use [Postman](https://www.postman.com/) or any debugging tool to test the recording APIs
+
+	- Start a recording :
+
+	http://localhost:8080/startRecording?serverCallId=XXXX
+
+	- Stop a recording :
+
+	http://localhost:8080/stopRecording?serverCallId=XXXX
+
+	To get the `serverCallId`, you first need to build a client application. Using the client application initiate a call. Once the call is connected use the getServerCallId method to get the server call id.
+
+	```JavaScript
+	callAgent.on('callsUpdated', (e: { added: Call[]; removed: Call[] }): void => {
+	    e.added.forEach((addedCall) => {
+	        addedCall.on('stateChanged', (): void => {
+	            if (addedCall.state === 'Connected') {
+	                addedCall.info.getServerCallId().then(result => {
+	                    dispatch(setServerCallId(result));
+	                }).catch(err => {
+	                    console.log(err);
+	                });
+	            }
+	        });
+	    });
+	});
+	```
+
+ For complete details on how to build a client application using ACS calling SDK, refer to https://docs.microsoft.com/azure/communication-services/samples/calling-hero-sample?pivots=platform-web
 
 ### Troubleshooting
 
-1. Solution doesn\'t build, it throws errors during NPM installation/build
+1. Solution doesn\'t build / It throws errors during MVN installation/build
 
-	- Check if all the config keys are present
+	-  Check if all the config keys are present, and rebuild with `mvn package`, then `mvn clean install`
 
-	- Run mvn package, then mvn clean install
+	- After installing the JDK and building, if you see "invalid target release: 11", verify that your JAVA_HOME variable does in fact point to your Java 11 installation (as opposed to a previous installation).
 
 ## Publish to Azure
 
-1. Build java code using : mvn clean install  
+1. Build java code :
 
-2. Run app locally using : mvn spring-boot:run
-
-3. Create container registry - follow steps in link - https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux
-
-4. Login to Azure :
-
-	```azurecli
-	using az login
+	```bash
+	mvn clean install  
 	```
 
-5. Login to Azure Container Registry :
+1. Run app locally using :
+
+	```bash
+	mvn spring-boot:run
+ 	```
+
+1. Configure Maven to build image to your Azure Container Registry.
+
+ 	- Navigate to the completed project directory for your Spring Boot application and open the pom.xml file with a text editor.
+ 	- Update the <properties> collection in the pom.xml file with the latest version of [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin), login server value, and access settings for your Azure Container Registry created using [Create container registry](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry). For example:
+
+		```xml
+		<properties>
+			<jib-maven-plugin.version>2.5.2</jib-maven-plugin.version>
+			<docker.image.prefix>{docker.image.prefix}</docker.image.prefix>
+			<java.version>1.8</java.version>
+		</properties>
+		```
+  	- Add [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin) to the <plugins> collection in the pom.xml file. This example uses version 2.5.2.
+
+		Specify the base image in ```<image>``` tag under ```<from>```, here ```mcr.microsoft.com/java/jre:11-zulu-alpine```. Specify the name of the final image to be built from the base in ```<image>``` under ```<to>```.
+
+		Authentication {docker.image.prefix} is the Login server of Azure Container Registry. The {project.artifactId} is the name and version number of the JAR file from the first Maven build of the project.
+
+		```xml
+		<plugin>
+		<artifactId>jib-maven-plugin</artifactId>
+		<groupId>com.google.cloud.tools</groupId>
+		<version>${jib-maven-plugin.version}</version>
+		<configuration>
+			<from>
+				<image>mcr.microsoft.com/java/jre:11-zulu-alpine</image>
+			</from>
+			<to>
+				<image>${docker.image.prefix}/${project.artifactId}</image>
+			</to>
+		</configuration>
+		</plugin>
+
+		```
+
+
+1. Login to Azure.
+
+	```azurecli
+	az login
+	```
+
+1. Login to Azure Container Registry.
 
 	```azurecli
 	az acr login --name <registryName>
 	```
 
-6. Build docker image using : mvn compile jib:dockerBuild  
+1. Build docker image.
 
-7. Run image locally to validate using : docker run -it --rm -p 8080:8080   <registryName>.azurecr.io/<projectNameAndVersion>
+	```bash
+	mvn compile jib:dockerBuild  
+	```
 
-8. Push docker image to ACR  using : docker push  <registryName>.azurecr.io/<projectNameAndVersion>
+1. Run image locally to validate.
 
-9.Create web app by following steps in link : https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux
+	```bash
+	docker run -it --rm -p 8080:8080   <registryName>.azurecr.io/<dockerImageName>
+	```
+
+1. Push docker image to Azure Container Registry.
+
+	```bash
+	docker push <registryName>.azurecr.io/<dockerImageName>
+	```
+
+1. Create web app by following steps in link : [Create Web App](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-a-web-app-on-linux-on-azure-app-service-using-your-container-image)
 
 ## Additional Reading
 
-- [Azure Communication Calling SDK](https://docs.microsoft.com/azure/communication-services/concepts/voice-video-calling/calling-sdk-features) - To learn more about the calling web sdk
+- [Azure Communication Calling SDK](https://docs.microsoft.com/azure/communication-services/concepts/voice-video-calling/calling-sdk-features) - To learn more about the calling web sdk.

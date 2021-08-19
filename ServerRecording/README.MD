@@ -15,6 +15,7 @@ It's a Java web application powered by Spring Boot to connect this application w
 
 ## Prerequisites
 
+- [Create an Azure Communication Resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource). You'll need to record your resource\'s **connection string** for this quickstart.
 - [Visual Studio Code](https://code.visualstudio.com/download)
 - [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install)
 - [Apache Maven](https://maven.apache.org/download.cgi)
@@ -22,7 +23,6 @@ It's a Java web application powered by Spring Boot to connect this application w
 - [Docker desktop](https://www.docker.com/products/docker-desktop)
 - An Azure account with an active subscription. For details, see here to [create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F).
 - [Create container registry](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry)
-- [Create an Azure Communication Resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource). You'll need to record your resource\'s **connection string** for this quickstart.
 - [Create a webhook](https://docs.microsoft.com/azure/communication-services/quickstarts/voice-video-calling/download-recording-file-sample) and subscribe to the recording events.
 
 

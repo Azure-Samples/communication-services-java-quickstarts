@@ -21,7 +21,7 @@ public class App
 						//.buildClient();
 
 		// You can find your connection string from your resource in the Azure portal
-		String connectionString = "https://<resource-name>.communication.azure.com/;<access-key>";
+		String connectionString = "ACS_Connection_String";
 
 		SmsClient smsClient = new SmsClientBuilder()
 					.connectionString(connectionString)

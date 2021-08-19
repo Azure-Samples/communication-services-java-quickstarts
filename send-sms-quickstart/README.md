@@ -29,8 +29,8 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 
 1. Open an instance of PowerShell, Windows Terminal, Command Prompt or equivalent and navigate to the directory that you'd like to clone the sample to.
 2. `git clone https://github.com/Azure-Samples/communication-services-java-quickstarts.git`
-3.  With the Communication Services procured in pre-requisites, add connection string with the access key in the code at line no 24
-    ```String connectionString = "https://<resource-name>.communication.azure.com/;<access-key>";```.
+3. With the Communication Services procured in pre-requisites, add connection string in the code at line no 24
+    ```String connectionString = "ACS_Connection_String";```.
 4.  With the SMS enabled telephone number procured in pre-requisites, add it to the **App.java** file. Assign your ACS telephone number and sender numbers at line 46 and 47.
 
 ## Run the code

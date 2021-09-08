@@ -35,26 +35,26 @@ public class App
         System.out.println("\nIssued an access token with 'voip' scope that expires at: " + expiresAt + ": " + token);
                
         //Create an identity and issue token in one call
-        List<CommunicationTokenScope> scopes = Arrays.asList(CommunicationTokenScope.CHAT);
-        CommunicationUserIdentifierAndToken result = communicationIdentityClient.createUserAndToken(scopes);
-        CommunicationUserIdentifier user = result.getUser();
-        System.out.println("\nCreated a user identity with ID: " + user.getId());
-        AccessToken accessToken = result.getUserToken();
-        OffsetDateTime expiresAt = accessToken.getExpiresAt();
-        String token = accessToken.getToken();
-        System.out.println("\nIssued an access token with 'chat' scope that expires at: " + expiresAt + ": " + token);
+        List<CommunicationTokenScope> scope = Arrays.asList(CommunicationTokenScope.CHAT);
+        CommunicationUserIdentifierAndToken result = communicationIdentityClient.createUserAndToken(scope);
+        CommunicationUserIdentifier userIdentifier = result.getUser();
+        System.out.println("\nCreated a user identity with ID: " + userIdentifier.getId());
+        AccessToken userTokenResult = result.getUserToken();
+        OffsetDateTime expiresTime = userTokenResult.getExpiresAt();
+        String userToken = userTokenResult.getToken();
+        System.out.println("\nIssued an access token with 'chat' scope that expires at: " + expiresTime + ": " + userToken);
 
         // Refresh access tokens - existingIdentity represents identity of Azure Communication Services stored during identity creation
-        CommunicationUserIdentifier identity = new CommunicationUserIdentifier(user.getId());
-        AccessToken response = communicationIdentityClient.getToken(identity, scopes);
+        CommunicationUserIdentifier identity = new CommunicationUserIdentifier(userIdentifier.getId());
+        AccessToken response = communicationIdentityClient.getToken(identity, scope);
 
         // Revoke access tokens
-        communicationIdentityClient.revokeTokens(user);
-        System.out.println("\nSuccessfully revoked all access tokens for user identity with ID: " + user.getId());
+        communicationIdentityClient.revokeTokens(userIdentifier);
+        System.out.println("\nSuccessfully revoked all access tokens for user identity with ID: " + userIdentifier.getId());
 
         // Delete an identity
-        communicationIdentityClient.deleteUser(user);
-        System.out.println("\nDeleted the user identity with ID: " + user.getId());
+        communicationIdentityClient.deleteUser(userIdentifier);
+        System.out.println("\nDeleted the user identity with ID: " + userIdentifier.getId());
 
     }
 }

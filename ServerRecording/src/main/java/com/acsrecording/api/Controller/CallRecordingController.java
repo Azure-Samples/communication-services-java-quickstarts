@@ -3,20 +3,28 @@
 
 package com.acsrecording.api.Controller;
 
+import com.acsrecording.api.Models.Root;
 import com.acsrecording.api.ConfigurationManager;
+import com.acsrecording.api.Models.FileDownloadType;
+import com.acsrecording.api.Models.FileFormat;
+import com.acsrecording.api.Models.Mapper;
 import com.azure.communication.callingserver.CallingServerClientBuilder;
 import com.azure.communication.callingserver.models.CallRecordingProperties;
 import com.azure.communication.callingserver.models.CallRecordingState;
+import com.azure.communication.callingserver.models.RecordingChannel;
+import com.azure.communication.callingserver.models.RecordingContent;
+import com.azure.communication.callingserver.models.RecordingFormat;
 import com.azure.core.http.HttpHeader;
 import com.azure.communication.callingserver.models.StartCallRecordingResult;
+import com.azure.communication.callingserver.models.StartRecordingOptions;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
+import com.azure.cosmos.implementation.Strings;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.google.common.base.Strings;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
 import com.azure.messaging.eventgrid.systemevents.AcsRecordingChunkInfoProperties;
@@ -31,6 +39,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -47,6 +56,7 @@ public class CallRecordingController  {
     String blobStorageConnectionString;
     String recordingStateCallbackUrl;
     Logger logger;
+    String recordingFileFormat;
     private final com.azure.communication.callingserver.CallingServerClient callingServerClient;
 
     CallRecordingController() {
@@ -69,7 +79,20 @@ public class CallRecordingController  {
         URI recordingStateCallbackUri;
         try {
             recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
-            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri),null);
+
+            /*
+             * Usage of StartRecordingOptions
+             * 
+             * RecordingContent is used to set recording in specific format AUDIO/AUDIO_VIDEO.
+             * RecordingChannel is used to set the channel type MIXED/UNMIXED.
+             * RecordingFormat is used to set the format of the recording MP4/MP3/WAV.
+             * 
+             * StartRecordingOptions recordingOptions = new StartRecordingOptions();
+             * recordingOptions.setRecordingContent(RecordingContent.AUDIO_VIDEO);
+             * recordingOptions.setRecordingChannel(RecordingChannel.MIXED);
+             * recordingOptions.setRecordingFormat(RecordingFormat.MP4);
+             */
+            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri), null, null);
             var output = response.getValue();
 
             logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: " + response.getValue().getRecordingId());
@@ -82,6 +105,50 @@ public class CallRecordingController  {
         } catch (URISyntaxException e) {
             e.printStackTrace();
             return  null;
+        }
+    }
+
+    /*****
+     * Replace above startRecording API with this if you want to start recording
+     * with additional arguments.
+     *****************/
+
+    // @GetMapping("/startRecording")
+    public StartCallRecordingResult startRecordingWithArgs(String serverCallId, String recordingContent,
+            String recordingChannel, String recordingFormat) {
+        URI recordingStateCallbackUri;
+        try {
+            recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+
+            StartRecordingOptions recordingOptions = new StartRecordingOptions();
+            recordingOptions.setRecordingChannel(Mapper.getRecordingChannelMap()
+                    .getOrDefault(recordingChannel.toLowerCase(), RecordingChannel.MIXED));
+            recordingOptions.setRecordingFormat(
+                    Mapper.getRecordingFormatMap().getOrDefault(recordingFormat.toLowerCase(), RecordingFormat.MP4));
+            recordingOptions.setRecordingContent(Mapper.getRecordingContentMap()
+                    .getOrDefault(recordingContent.toLowerCase(), RecordingContent.AUDIO_VIDEO));
+
+            logger.log(Level.INFO,
+                    String.format("Start recording arguments Channel=%s Content=%s Format=%s",
+                            recordingOptions.getRecordingChannel().toString(),
+                            recordingOptions.getRecordingContent().toString(),
+                            recordingOptions.getRecordingFormat().toString()));
+
+            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId)
+                    .startRecordingWithResponse(String.valueOf(recordingStateCallbackUri), recordingOptions, null);
+            var output = response.getValue();
+
+            logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: "
+                    + response.getValue().getRecordingId());
+            if (!recordingDataMap.containsKey(serverCallId)) {
+                recordingDataMap.put(serverCallId, "");
+            }
+            recordingDataMap.replace(serverCallId, output.getRecordingId());
+
+            return output;
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -209,22 +276,22 @@ public class CallRecordingController  {
                                                     .getRecordingStorageInfo()
                                                     .getRecordingChunks().get(0);
 
-                    logger.log(Level.INFO, "Processing recording file --> \n");
-                    
-                    processFile(
-                        recordingChunk.getContentLocation(),
-                        recordingChunk.getDocumentId(),
-                        "mp4",
-                        "recording"
-                    );
-                    
                     logger.log(Level.INFO, "Processing metadata file --> \n");
                     
                     processFile(
                         recordingChunk.getMetadataLocation(),
                         recordingChunk.getDocumentId(),
-                        "json",
-                        "metadata"
+                        FileFormat.getJson(),
+                        FileDownloadType.getMetadata()
+                    );
+
+                    logger.log(Level.INFO, "Processing recording file --> \n");
+                    
+                    processFile(
+                        recordingChunk.getContentLocation(),
+                        recordingChunk.getDocumentId(),
+                        Strings.isNullOrEmpty(recordingFileFormat) ? FileFormat.getMp4() : recordingFileFormat,
+                        FileDownloadType.getRecording()
                     );
 
                     return new ResponseEntity<>(true, HttpStatus.OK);
@@ -254,6 +321,18 @@ public class CallRecordingController  {
 
         var downloadResponse = callingServerClient.downloadToWithResponse(url, path, null, true, null);
         logger.log(Level.INFO, String.format("Download media response --> %s", getResponse(downloadResponse)));
+        logger.log(Level.INFO, String.format("Download media request --> %s", getRequestData(downloadResponse)));
+
+        File file = new File(filePath);
+
+        if (Strings.areEqualIgnoreCase(downloadType, FileDownloadType.getMetadata()) && file.exists())
+        {   
+            BinaryData eventData = BinaryData.fromFile(path); 
+            Root root = eventData.toObject(Root.class);
+            recordingFileFormat = root.getRecordingInfo().getFormat();
+
+            logger.log(Level.INFO, "Recording File Format is -- > %s", recordingFileFormat);
+        }
 
         logger.log(Level.INFO, String.format("Uploading %s file to blob -- >", downloadType));
         uploadFileToStorage(fileName, filePath);
@@ -278,6 +357,18 @@ public class CallRecordingController  {
         responseString = new StringBuilder("StatusCode: " + response.getStatusCode() + "\nHeaders: { ");
 
         for (HttpHeader header : response.getHeaders()) {
+            responseString.append(header.getName()).append(": ").append(header.getValue()).append(", ");
+        }
+        responseString.append("} ");
+        return responseString.toString();
+    }
+
+    private String getRequestData(Response<?> response) {
+        StringBuilder responseString;
+        var req = response.getRequest();
+        responseString = new StringBuilder("Url: " + req.getUrl() + "\nBody:" + req.getBody() + "\nHeaders: { ");
+
+        for (HttpHeader header : req.getHeaders()) {
             responseString.append(header.getName()).append(": ").append(header.getValue()).append(", ");
         }
         responseString.append("} ");

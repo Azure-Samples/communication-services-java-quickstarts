@@ -3,6 +3,7 @@
 
 package com.acsrecording.api.Controller;
 
+import com.acsrecording.api.Models.Root;
 import com.acsrecording.api.ConfigurationManager;
 import com.acsrecording.api.Models.FileDownloadType;
 import com.acsrecording.api.Models.FileFormat;
@@ -31,8 +32,6 @@ import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedE
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
 
-import org.json.*;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +39,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -323,22 +323,15 @@ public class CallRecordingController  {
         logger.log(Level.INFO, String.format("Download media response --> %s", getResponse(downloadResponse)));
         logger.log(Level.INFO, String.format("Download media request --> %s", getRequestData(downloadResponse)));
 
-        // Parse metadata for fetching recording format
-        if (downloadType.equalsIgnoreCase(FileDownloadType.getMetadata())) {
-            if (Files.isReadable(path)) {
-                String content = new String(Files.readAllBytes(path));
-                if (!Strings.isNullOrEmpty(content)) {
-                    JSONObject root = new JSONObject(content);
-                    if (root != null) {
-                        JSONObject recInfo = root.getJSONObject("recordingInfo");
-                        if (recInfo != null) {
-                            recordingFileFormat = recInfo.getString("format");
-                            logger.log(Level.INFO,
-                                    String.format("Recording format from metadata --> %s", recordingFileFormat));
-                        }
-                    }
-                }
-            }
+        File file = new File(filePath);
+
+        if (Strings.areEqualIgnoreCase(downloadType, FileDownloadType.getMetadata()) && file.exists())
+        {   
+            BinaryData eventData = BinaryData.fromFile(path); 
+            Root root = eventData.toObject(Root.class);
+            recordingFileFormat = root.getRecordingInfo().getFormat();
+
+            logger.log(Level.INFO, "Recording File Format is -- > %s", recordingFileFormat);
         }
 
         logger.log(Level.INFO, String.format("Uploading %s file to blob -- >", downloadType));

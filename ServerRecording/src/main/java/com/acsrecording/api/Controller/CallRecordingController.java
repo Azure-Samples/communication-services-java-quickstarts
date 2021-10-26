@@ -77,10 +77,9 @@ public class CallRecordingController  {
 
     @GetMapping("/startRecording")
     public StartCallRecordingResult startRecording(String serverCallId) {
-        URI recordingStateCallbackUri;
-        ServerCallLocator callLocator = new ServerCallLocator(serverCallId);
         try {
-            recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+            ServerCallLocator callLocator = new ServerCallLocator(serverCallId);
+            URI recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
 
             /*
              * Usage of StartRecordingOptions
@@ -118,10 +117,9 @@ public class CallRecordingController  {
     // @GetMapping("/startRecording")
     public StartCallRecordingResult startRecordingWithArgs(String serverCallId, String recordingContent,
             String recordingChannel, String recordingFormat) {
-        URI recordingStateCallbackUri;
-        ServerCallLocator callLocator = new ServerCallLocator(serverCallId);
         try {
-            recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+            ServerCallLocator callLocator = new ServerCallLocator(serverCallId);
+            URI recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
 
             StartRecordingOptions recordingOptions = new StartRecordingOptions();
             recordingOptions.setRecordingChannel(Mapper.getRecordingChannelMap()

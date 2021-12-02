@@ -21,7 +21,7 @@ public class App
 					.buildClient();
 
 	public static void main( String[] args )
-    {
+  {
 		System.out.println("Azure Communication Services - NetworkTraversal Quickstart");
 		
 		System.out.println("Getting a relay configuration");
@@ -32,7 +32,7 @@ public class App
 
 		System.out.println("Getting a relay configuration passing a Route Type");
 		getRelayConfigurationUsingRouteType();
-    }
+  }
 
 	public static void getRelayConfiguration()
 	{
@@ -42,30 +42,30 @@ public class App
 		List<CommunicationIceServer> iceServers = config.getIceServers();
 
 		for (CommunicationIceServer iceS : iceServers) {
-				System.out.println("URLS: " + iceS.getUrls());
-				System.out.println("Username: " + iceS.getUsername());
-				System.out.println("credential: " + iceS.getCredential());
-				System.out.println("RouteType: " + iceS.getRouteType());
+			System.out.println("URLS: " + iceS.getUrls());
+			System.out.println("Username: " + iceS.getUsername());
+			System.out.println("credential: " + iceS.getCredential());
+			System.out.println("RouteType: " + iceS.getRouteType());
 		}
 
 	}
 
 	public static void getRelayConfigurationUsingIdentity()
 	{
-			CommunicationUserIdentifier user = communicationIdentityClient.createUser();
-			System.out.println("User id: " + user.getId());
+		CommunicationUserIdentifier user = communicationIdentityClient.createUser();
+		System.out.println("User id: " + user.getId());
 
-			CommunicationRelayConfiguration config = communicationRelayClient.getRelayConfiguration(user);
-			
-			System.out.println("Expires on:" + config.getExpiresOn());
-			List<CommunicationIceServer> iceServers = config.getIceServers();
+		CommunicationRelayConfiguration config = communicationRelayClient.getRelayConfiguration(user);
+		
+		System.out.println("Expires on:" + config.getExpiresOn());
+		List<CommunicationIceServer> iceServers = config.getIceServers();
 
-			for (CommunicationIceServer iceS : iceServers) {
-					System.out.println("URLS: " + iceS.getUrls());
-					System.out.println("Username: " + iceS.getUsername());
-					System.out.println("credential: " + iceS.getCredential());
-					System.out.println("RouteType: " + iceS.getRouteType());
-			}
+		for (CommunicationIceServer iceS : iceServers) {
+			System.out.println("URLS: " + iceS.getUrls());
+			System.out.println("Username: " + iceS.getUsername());
+			System.out.println("credential: " + iceS.getCredential());
+			System.out.println("RouteType: " + iceS.getRouteType());
+		}
 	}
 
 	public static void getRelayConfigurationUsingRouteType()
@@ -76,10 +76,10 @@ public class App
 		List<CommunicationIceServer> iceServers = config.getIceServers();
 
 		for (CommunicationIceServer iceS : iceServers) {
-				System.out.println("URLS: " + iceS.getUrls());
-				System.out.println("Username: " + iceS.getUsername());
-				System.out.println("credential: " + iceS.getCredential());
-				System.out.println("RouteType: " + iceS.getRouteType());
+			System.out.println("URLS: " + iceS.getUrls());
+			System.out.println("Username: " + iceS.getUsername());
+			System.out.println("credential: " + iceS.getCredential());
+			System.out.println("RouteType: " + iceS.getRouteType());
 		}
 	}
 }

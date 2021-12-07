@@ -13,7 +13,7 @@ import java.lang.reflect.*;
 
 public class App 
 {
-        private static KurentoClient kurento;
+    private static KurentoClient kurento;
 
     // You can find your connection string from your resource in the Azure portal
     private static String connectionString = "https://<RESOURCE_NAME>.communication.azure.com/;accesskey=<ACCESS_KEY>";
@@ -53,18 +53,17 @@ public class App
                 System.out.println("RouteType: " + iceS.getRouteType());
         }
 
-        // Then you can configure your WebRtcEndpoint to use TURN credentials
-        MediaPipeline pipeline = kurento.createMediaPipeline();
-        WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(pipeline).build();
+        // Now you can configure your WebRtcEndpoint to use TURN credentials
         
-        CommunicationIceServer iceServerToUse = iceServers.get(0);
-        String urlToUse = iceServerToUse.getUrls().get(0);
+        // MediaPipeline pipeline = kurento.createMediaPipeline();
+        // WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(pipeline).build();
+        
+        // CommunicationIceServer iceServerToUse = iceServers.get(0);
+        // String urlToUse = iceServerToUse.getUrls().get(0);
 
         // Format for URL must be user:password@ipaddress:port
-        // We remove the Stun/TURN word from the URL
-        String ipAndPort = urlToUse.substring(4, urlToUse.length());
-
-        webRtcEndpoint.setTurnUrl(iceServerToUse.getUsername()+ ":" + iceServerToUse.getCredential() + "@" + ipAndPort);
+        // String ipAndPort = urlToUse.substring(5, urlToUse.length());
+        // webRtcEndpoint.setTurnUrl(iceServerToUse.getUsername()+ ":" + iceServerToUse.getCredential() + "@" + ipAndPort);        
     }
 
     public static void getRelayConfigurationUsingIdentity()

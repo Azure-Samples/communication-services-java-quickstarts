@@ -19,8 +19,6 @@ public class IncomingcallsampleApplication {
         app.setDefaultProperties(Collections
           .singletonMap("server.port", serverPort));
         app.run(args);
-
-
 	}
 
 }

@@ -16,6 +16,7 @@ import java.util.Map;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
+import com.communication.incomingcallsample.Logger;
 import com.communication.incomingcallsample.utils.ResponseHandler;
 
 @RestController
@@ -39,14 +40,17 @@ public class IncomingCallController {
 			return new ResponseEntity<String>("Failed to parse EventGridEvent:" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		if(eventGridEvent == null){
-			return new ResponseEntity<String>("Could not get EventGridEvent", HttpStatus.INTERNAL_SERVER_ERROR);
+			return ResponseHandler.generateResponse("Could not get EventGridEvent", HttpStatus.INTERNAL_SERVER_ERROR, null);
 		}
+
+		Logger.logEventGridEvent(Logger.MessageType.INFORMATION, eventGridEvent);
 
 		// get event type
 		String type = eventGridEvent.getEventType();
 		if(type.equals("Microsoft.EventGrid.SubscriptionValidationEvent")) {
-			SubscriptionValidationEventData d = eventGridEvent.getData().toObject(SubscriptionValidationEventData.class);
-			String validationCode = d.getValidationCode();
+			SubscriptionValidationEventData subscriptionValidationEventData = eventGridEvent.getData().toObject(
+				SubscriptionValidationEventData.class);
+			String validationCode = subscriptionValidationEventData.getValidationCode();
 			return ResponseEntity.status(HttpStatus.OK).body(Map.of(
             "validationResponse", validationCode));
 		} else {

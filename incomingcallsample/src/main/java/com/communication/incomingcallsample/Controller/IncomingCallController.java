@@ -18,10 +18,10 @@ import java.util.concurrent.Executors;
 
 import com.azure.communication.callingserver.CallingServerClient;
 import com.azure.communication.callingserver.CallingServerClientBuilder;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.communication.incomingcallsample.EventHandler.EventAuthHandler;
+import com.communication.incomingcallsample.EventHandler.EventDispatcher;
 import com.communication.incomingcallsample.Log.Logger;
 import com.communication.incomingcallsample.Utils.CallConfiguration;
 import com.communication.incomingcallsample.Utils.ConfigurationManager;
@@ -36,34 +36,12 @@ public class IncomingCallController {
 
 	public IncomingCallController(){
 		ConfigurationManager configurationManager = ConfigurationManager.getInstance();
-		configurationManager.loadAppSettings();
 		this.eventAuthHandler = new EventAuthHandler(configurationManager.getAppSettings("SecretValue"));
-		this.callConfiguration = CallConfiguration.GetCallConfiguration(configurationManager, "secret=h3llowW0rld");
+		this.callConfiguration = CallConfiguration.GetCallConfiguration(configurationManager, this.eventAuthHandler.GetSecretQuerystring());
 
-
-		NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
-        CallingServerClientBuilder callClientBuilder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
-                .connectionString(this.callConfiguration.connectionString);
-        this.callingServerClient = callClientBuilder.buildClient();
-
-
-		/*
-		HttpPipeline pipeline = new HttpPipelineBuilder()
-            .policies()
-            .build();
-		this.callingServerClient = new CallingServerClientBuilder()
-            .pipeline(pipeline)
-            .connectionString(this.callConfiguration.connectionString)
-            .buildClient();
-		*/
-
-		/*
 		this.callingServerClient = new CallingServerClientBuilder()
 			.connectionString(this.callConfiguration.connectionString)
 			.buildClient();
-		*/
-
-
 	}
 
 	@GetMapping("/hello")
@@ -74,11 +52,10 @@ public class IncomingCallController {
 	@PostMapping(value = "CallingServerAPICallBacks")
 	public String callingServerAPICallBacks(@RequestBody(required = false) String data,
 			@RequestParam(value = "secret", required = false) String secretKey) {
-		//this.eventhandler = EventAuthHandler.getInstance();
 
-		/// Validating the incoming request by using secret set in app.settings
+		// Validating the incoming request by using secret set in config.properties
 		if (this.eventAuthHandler.authorize(secretKey)) {
-			// (EventDispatcher.getInstance()).processNotification(data);
+			EventDispatcher.getInstance().processNotification(data);
 		} else {
 			Logger.logMessage(Logger.MessageType.ERROR, "Unauthorized Request");
 		}

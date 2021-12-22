@@ -13,6 +13,7 @@ public class ConfigurationManager {
     private final Properties appSettings = new Properties();
 
     private ConfigurationManager() {
+        loadAppSettings();
     }
 
     // static method to create instance of ConfigurationManager class

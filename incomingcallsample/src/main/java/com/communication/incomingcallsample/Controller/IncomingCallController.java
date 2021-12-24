@@ -44,11 +44,6 @@ public class IncomingCallController {
 			.buildClient();
 	}
 
-	@GetMapping("/hello")
-	public ResponseEntity<?> greeting() {
-		return new ResponseEntity<>("OK", HttpStatus.OK);
-	}
-
 	@PostMapping(value = "CallingServerAPICallBacks")
 	public String callingServerAPICallBacks(@RequestBody(required = false) String data,
 			@RequestParam(value = "secret", required = false) String secretKey) {
@@ -85,7 +80,7 @@ public class IncomingCallController {
 		if(type.equals("Microsoft.EventGrid.SubscriptionValidationEvent")) {
 			return getRegisterEventGridResponse(eventGridEvent);
 		} else if(type.equals("Microsoft.Communication.IncomingCall")) {
-			return answerCall(data);
+			return handleIncomingCall(data);
 		} else {
 			return ResponseHandler.generateResponse("unknown EventGridEvent type: " + eventGridEvent.toString() , HttpStatus.BAD_REQUEST, null);
 		}
@@ -100,20 +95,13 @@ public class IncomingCallController {
             "validationResponse", validationCode));
 	}
 
-	private ResponseEntity<?> answerCall(String data) {
+	private ResponseEntity<?> handleIncomingCall(String data) {
 		try {
 			String incomingCallContext = data.split("\"incomingCallContext\":\"")[1].split("\"}")[0];
 
 			Logger.logMessage(Logger.MessageType.INFORMATION, "Microsoft.Communication.IncomingCall call context: " + incomingCallContext);
 
-			ExecutorService executorService = Executors.newCachedThreadPool();
-			Set<Callable<Boolean>> tasks = new HashSet<>();
-			tasks.add(() -> {
-				new IncomingCallHandler(this.callingServerClient, this.callConfiguration).report(incomingCallContext);
-				return true;
-			});
-			executorService.invokeAll(tasks);
-			executorService.shutdown();
+			new IncomingCallHandler(this.callingServerClient, this.callConfiguration).report(incomingCallContext);
 		} catch(Exception e) {
 			String message = "Fails in OnIncomingCall ---> " + e.getMessage();
 			Logger.logMessage(Logger.MessageType.ERROR, message);

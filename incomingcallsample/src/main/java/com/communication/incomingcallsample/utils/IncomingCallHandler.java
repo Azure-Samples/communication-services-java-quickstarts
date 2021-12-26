@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class IncomingCallHandler {
     private final CallingServerClient callingServerClient;
@@ -159,22 +160,15 @@ public class IncomingCallHandler {
                // listen to play audio events
                registerToPlayAudioResultEvent(response.getOperationContext());
 
-               CompletableFuture<Boolean> maxWait = CompletableFuture.supplyAsync(() -> {
-                   try {
-                       TimeUnit.SECONDS.sleep(5);
-                   } catch (InterruptedException ex) {
-                       Logger.logMessage(Logger.MessageType.ERROR, " -- > " + ex.getMessage());
-                   }
-                   return false;
-               });
-
-               CompletableFuture<Object> completedTask = CompletableFuture.anyOf(playAudioCompletedTask, maxWait);
-               if (completedTask.get() != playAudioCompletedTask.get()) {
-                   Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
-                   playAudioCompletedTask.complete(false);
-                   toneReceivedCompleteTask.complete(false);
+               try {
+                    Logger.logMessage(Logger.MessageType.INFORMATION, "Waiting for playAudioCompletedTask or timeout");
+                    playAudioCompletedTask.get(30, TimeUnit.SECONDS);
+                    Logger.logMessage(Logger.MessageType.INFORMATION, "Done playAudioCompletedTask ");
+               } catch (TimeoutException e) {
+                Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
+                playAudioCompletedTask.complete(false);
+                //to do toneReceivedCompleteTask.complete(false);
                }
-
             }
         } catch (CancellationException e) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio operation cancelled");
@@ -182,7 +176,7 @@ public class IncomingCallHandler {
             if (playAudioCompletedTask.isCancelled()) {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio operation cancelled");
             } else {
-                Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occured while playing audio on the call. Exception: " + ex.getMessage());
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occurred while playing audio on the call. Exception: " + ex.getMessage());
             }
         }
     }

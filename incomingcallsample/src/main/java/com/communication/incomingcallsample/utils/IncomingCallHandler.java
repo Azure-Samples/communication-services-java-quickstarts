@@ -114,6 +114,7 @@ public class IncomingCallHandler {
     private void registerToCallStateChangeEvent(String callConnectionId) {
         this.callConnectedTask = new CompletableFuture<>();
         this.callTerminatedTask = new CompletableFuture<>();
+
         // Set the callback method
         NotificationCallback callStateChangeNotificaiton = (callEvent) -> {
             CallConnectionStateChangedEvent callStateChanged = (CallConnectionStateChangedEvent) callEvent;
@@ -144,7 +145,7 @@ public class IncomingCallHandler {
 
         try{
             PlayAudioOptions playAudioOptions = new PlayAudioOptions();
-            playAudioOptions.setLoop(true);
+            playAudioOptions.setLoop(false);
             playAudioOptions.setAudioFileId(UUID.randomUUID().toString());
             playAudioOptions.setOperationContext(UUID.randomUUID().toString());
             Logger.logMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
@@ -165,9 +166,9 @@ public class IncomingCallHandler {
                     playAudioCompletedTask.get(30, TimeUnit.SECONDS);
                     Logger.logMessage(Logger.MessageType.INFORMATION, "Done playAudioCompletedTask ");
                } catch (TimeoutException e) {
-                Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
-                playAudioCompletedTask.complete(false);
-                //to do toneReceivedCompleteTask.complete(false);
+                   Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
+                   playAudioCompletedTask.complete(false);
+                   //to do toneReceivedCompleteTask.complete(false);
                }
             }
         } catch (CancellationException e) {
@@ -182,7 +183,7 @@ public class IncomingCallHandler {
     }
 
     private void registerToPlayAudioResultEvent(String operationContext) {
-        playAudioCompletedTask = new CompletableFuture<>();
+        this.playAudioCompletedTask = new CompletableFuture<>();
         NotificationCallback playPromptResponseNotification = ((callEvent) -> {
             PlayAudioResultEvent playAudioResultEvent = (PlayAudioResultEvent) callEvent;
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());

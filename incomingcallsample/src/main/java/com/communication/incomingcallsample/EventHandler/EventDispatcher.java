@@ -11,7 +11,6 @@ import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
 import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
 import com.azure.core.models.CloudEvent;
 import com.azure.core.util.BinaryData;
-import com.communication.incomingcallsample.Log.Logger;
 
 public class EventDispatcher {
     private static EventDispatcher instance = null;

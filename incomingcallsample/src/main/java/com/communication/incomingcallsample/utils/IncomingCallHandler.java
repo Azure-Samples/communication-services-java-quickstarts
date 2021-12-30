@@ -9,9 +9,12 @@ import com.azure.communication.callingserver.models.CallingEventSubscriptionType
 import com.azure.communication.callingserver.models.CallingOperationStatus;
 import com.azure.communication.callingserver.models.PlayAudioOptions;
 import com.azure.communication.callingserver.models.PlayAudioResult;
+import com.azure.communication.callingserver.models.ToneInfo;
+import com.azure.communication.callingserver.models.ToneValue;
 import com.azure.communication.callingserver.models.events.CallConnectionStateChangedEvent;
 import com.azure.communication.callingserver.models.events.CallingServerEventType;
 import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
+import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
 import com.azure.core.http.HttpHeader;
 import com.azure.core.http.rest.Response;
 import com.azure.cosmos.implementation.changefeed.CancellationToken;
@@ -31,7 +34,7 @@ import java.util.concurrent.TimeoutException;
 public class IncomingCallHandler {
     private final CallingServerClient callingServerClient;
     private final CallConfiguration callConfiguration;
-    private CallConnection callConnection = null;
+    private CallConnection callConnection;
     private CancellationTokenSource reportCancellationTokenSource;
     private CancellationToken reportCancellationToken;
     private String targetParticipant;
@@ -45,6 +48,10 @@ public class IncomingCallHandler {
     public IncomingCallHandler(CallingServerClient callingServerClient, CallConfiguration callConfiguration) {
         this.callingServerClient = callingServerClient;
         this.callConfiguration = callConfiguration;
+        this.callConnection = null;
+        this.reportCancellationTokenSource = new CancellationTokenSource();
+        this.reportCancellationToken = this.reportCancellationTokenSource.getToken();
+        this.targetParticipant = this.callConfiguration.targetParticipant;
 
         this.callConnectedTask = new CompletableFuture<>();
         this.playAudioCompletedTask = new CompletableFuture<>();
@@ -54,33 +61,20 @@ public class IncomingCallHandler {
     }
 
     public void report(String incomingCallContext){
-        this.reportCancellationTokenSource = new CancellationTokenSource();
-        this.reportCancellationToken = this.reportCancellationTokenSource.getToken();
-
         try {
-            //answer the call
+            // answer the call
             String callConnectionId = answerCall(incomingCallContext);
             registerToCallStateChangeEvent(callConnectionId);
+            // wait for the call to get connected
             this.callConnectedTask.get();
 
-            // to do: registerToDtmfResultEvent
+            registerToDtmfResultEvent(callConnection.getCallConnectionId());
 
-            // to do: play audio
+            // play audio
             playAudio();
+            // wait for audio play complete
             Boolean playAudioCompleted = this.playAudioCompletedTask.get();
 
-            /*
-            if (toneReceivedComplete)
-                {
-                        string participant = targetParticipant;
-                        Logger.LogMessage(Logger.MessageType.INFORMATION, $"Tranferring call to participant {participant}");
-                        var transferToParticipantCompleted = await TransferToParticipant(participant);
-                        if (!transferToParticipantCompleted)
-                        {
-                            await RetryTransferToParticipantAsync(async () => await TransferToParticipant(participant));
-                        }
-                }
-            */
             hangup();
 
             // Wait for the call to terminate
@@ -181,25 +175,24 @@ public class IncomingCallHandler {
 
                try {
                     Logger.logMessage(Logger.MessageType.INFORMATION, "Audio is playing for 30 seconds, it can be interrupted by pressing 1");
-                    playAudioCompletedTask.get(30, TimeUnit.SECONDS);
+                    this.playAudioCompletedTask.get(30, TimeUnit.SECONDS);
                     Logger.logMessage(Logger.MessageType.INFORMATION, "Audio playing done.");
                } catch (TimeoutException e) {
-                   Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec, initiating hangup");
+                   Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec.");
                    //to do toneReceivedCompleteTask.complete(false);
-               } finally {
-                   playAudioCompletedTask.complete(true);
+                   this.playAudioCompletedTask.complete(false);
                }
             }
         } catch (CancellationException e) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio operation cancelled");
-            playAudioCompletedTask.complete(false);
+            this.playAudioCompletedTask.complete(false);
         } catch (Exception ex) {
             if (playAudioCompletedTask.isCancelled()) {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio operation cancelled");
             } else {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occurred while playing audio on the call. Exception: " + ex.getMessage());
             }
-            playAudioCompletedTask.complete(false);
+            this.playAudioCompletedTask.complete(false);
         }
     }
 
@@ -232,5 +225,52 @@ public class IncomingCallHandler {
         Logger.logMessage(Logger.MessageType.INFORMATION, "Performing Hangup operation");
         Response<Void> response = this.callConnection.hangupWithResponse(null);
         Logger.logMessage(Logger.MessageType.INFORMATION, "hangupWithResponse -- > " + getResponse(response));
+    }
+
+    private void cancelMediaProcessing() {
+        if (reportCancellationToken.isCancellationRequested()) {
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Cancellation request, CancelMediaProcessing will not be performed");
+            return;
+        }
+
+        Logger.logMessage(Logger.MessageType.INFORMATION, "Performing cancel media processing operation to stop playing audio");
+
+        Response<Void> cancelMediaResponse = this.callConnection.cancelAllMediaOperationsWithResponse(null);
+
+        Logger.logMessage(Logger.MessageType.INFORMATION, "cancelAllMediaOperationsWithResponse -- > " + getResponse(cancelMediaResponse));
+    }
+
+    private void registerToDtmfResultEvent(String callLegId) {
+        toneReceivedCompleteTask = new CompletableFuture<>();
+
+        NotificationCallback dtmfReceivedEvent = ((callEvent) -> {
+            ToneReceivedEvent toneReceivedEvent = (ToneReceivedEvent) callEvent;
+            ToneInfo toneInfo = toneReceivedEvent.getToneInfo();
+
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
+
+            if (toneInfo.getTone().equals(ToneValue.TONE1)) {
+                toneReceivedCompleteTask.complete(true);
+
+                // transfer the call
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Transferring call to participant" +  this.targetParticipant);
+
+                /*
+                Boolean addParticipantCompleted = addParticipant(participant);
+                if (!addParticipantCompleted) {
+                    retryAddParticipantAsync(participant);
+                }
+                */
+
+            } else {
+                toneReceivedCompleteTask.complete(false);
+            }
+            EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
+            // cancel playing audio
+            cancelMediaProcessing();
+        });
+        // Subscribe to event
+        EventDispatcher.getInstance().subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,
+                dtmfReceivedEvent);
     }
 }

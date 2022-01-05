@@ -11,10 +11,14 @@ import com.azure.communication.callingserver.models.PlayAudioOptions;
 import com.azure.communication.callingserver.models.PlayAudioResult;
 import com.azure.communication.callingserver.models.ToneInfo;
 import com.azure.communication.callingserver.models.ToneValue;
+import com.azure.communication.callingserver.models.TransferCallResult;
 import com.azure.communication.callingserver.models.events.CallConnectionStateChangedEvent;
 import com.azure.communication.callingserver.models.events.CallingServerEventType;
 import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
 import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
+import com.azure.communication.common.CommunicationIdentifier;
+import com.azure.communication.common.CommunicationUserIdentifier;
+import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.http.HttpHeader;
 import com.azure.core.http.rest.Response;
 import com.azure.cosmos.implementation.changefeed.CancellationToken;
@@ -30,8 +34,13 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 public class IncomingCallHandler {
+    private final String userIdentityRegex = "8:acs:[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}_[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}";
+    private final String phoneIdentityRegex = "^\\+\\d{10,14}$";
+    private final int MaxRetryAttemptCount = 3;
+
     private final CallingServerClient callingServerClient;
     private final CallConfiguration callConfiguration;
     private CallConnection callConnection;
@@ -43,7 +52,7 @@ public class IncomingCallHandler {
     private CompletableFuture<Boolean> playAudioCompletedTask;
     private CompletableFuture<Boolean> callTerminatedTask;
     private CompletableFuture<Boolean> toneReceivedCompleteTask;
-    private CompletableFuture<Boolean> addParticipantCompleteTask;
+    private CompletableFuture<Boolean> transferToParticipantCompleteTask;
 
     public IncomingCallHandler(CallingServerClient callingServerClient, CallConfiguration callConfiguration) {
         this.callingServerClient = callingServerClient;
@@ -57,7 +66,7 @@ public class IncomingCallHandler {
         this.playAudioCompletedTask = new CompletableFuture<>();
         this.callTerminatedTask = new CompletableFuture<>();
         this.toneReceivedCompleteTask = new CompletableFuture<>();
-        this.addParticipantCompleteTask = new CompletableFuture<>();
+        this.transferToParticipantCompleteTask = new CompletableFuture<>();
     }
 
     public void report(String incomingCallContext){
@@ -68,12 +77,25 @@ public class IncomingCallHandler {
             // wait for the call to get connected
             this.callConnectedTask.get();
 
-            registerToDtmfResultEvent(callConnection.getCallConnectionId());
+            registerToDtmfResultEvent(callConnectionId);
 
             // play audio
             playAudio();
             // wait for audio play complete
             Boolean playAudioCompleted = this.playAudioCompletedTask.get();
+
+            // for debug purpose, will remove this line
+            this.toneReceivedCompleteTask.complete(true);
+
+            Boolean toneReceivedCompleted = this.toneReceivedCompleteTask.get();
+            if(toneReceivedCompleted) {
+                // transfer the call
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Transferring call to participant" +  this.targetParticipant);
+                Boolean transferToParticipantCompleted = transferToParticipant(this.targetParticipant);
+                if (!transferToParticipantCompleted) {
+                    retryTransferToParticipant(this.targetParticipant);
+                }
+            }
 
             hangup();
 
@@ -143,6 +165,7 @@ public class IncomingCallHandler {
                 this.callConnectedTask.complete(false);
                 this.toneReceivedCompleteTask.complete(false);
                 this.playAudioCompletedTask.complete(false);
+                this.transferToParticipantCompleteTask.complete(false);
                 this.callTerminatedTask.complete(true);
             }
         };
@@ -172,15 +195,19 @@ public class IncomingCallHandler {
             if(response.getStatus().equals(CallingOperationStatus.RUNNING)) {
                // listen to play audio events
                registerToPlayAudioResultEvent(response.getOperationContext());
-
                try {
                     Logger.logMessage(Logger.MessageType.INFORMATION, "Audio is playing for 30 seconds, it can be interrupted by pressing 1");
                     this.playAudioCompletedTask.get(30, TimeUnit.SECONDS);
                     Logger.logMessage(Logger.MessageType.INFORMATION, "Audio playing done.");
+                    //this.playAudioCompletedTask.complete(true);
+                    //this.toneReceivedCompleteTask.complete(false);
                } catch (TimeoutException e) {
                    Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec.");
-                   //to do toneReceivedCompleteTask.complete(false);
-                   this.playAudioCompletedTask.complete(false);
+                   //this.playAudioCompletedTask.complete(false);
+                   //this.toneReceivedCompleteTask.complete(false);
+               } finally {
+                   // cancel playing audio
+                   cancelMediaProcessing();
                }
             }
         } catch (CancellationException e) {
@@ -246,25 +273,14 @@ public class IncomingCallHandler {
         NotificationCallback dtmfReceivedEvent = ((callEvent) -> {
             ToneReceivedEvent toneReceivedEvent = (ToneReceivedEvent) callEvent;
             ToneInfo toneInfo = toneReceivedEvent.getToneInfo();
-
             Logger.logMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
 
             if (toneInfo.getTone().equals(ToneValue.TONE1)) {
                 toneReceivedCompleteTask.complete(true);
-
-                // transfer the call
-                Logger.logMessage(Logger.MessageType.INFORMATION, "Transferring call to participant" +  this.targetParticipant);
-
-                /*
-                Boolean addParticipantCompleted = addParticipant(participant);
-                if (!addParticipantCompleted) {
-                    retryAddParticipantAsync(participant);
-                }
-                */
-
             } else {
                 toneReceivedCompleteTask.complete(false);
             }
+
             EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
             // cancel playing audio
             cancelMediaProcessing();
@@ -272,5 +288,51 @@ public class IncomingCallHandler {
         // Subscribe to event
         EventDispatcher.getInstance().subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,
                 dtmfReceivedEvent);
+    }
+
+    private boolean transferToParticipant(String targetParticipant) {
+        CommunicationIdentifier identifier = getCommunicationIdentifier(targetParticipant);
+
+        if(identifier == null) {
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Unknown identity provided. Enter valid phone number or communication user id");
+            return true;
+        }
+
+        String operationContext = UUID.randomUUID().toString();
+        Response<TransferCallResult> response = callConnection.transferToParticipantWithResponse(identifier, null, null, operationContext, null);
+        Logger.logMessage(Logger.MessageType.INFORMATION, "Transfer to participant response -- > " + getResponse(response));
+
+        Boolean transferToParticipantCompleted = false;
+        try {
+            transferToParticipantCompleted = this.transferToParticipantCompleteTask.get();
+        } catch (Exception ex) {
+            Logger.logMessage(Logger.MessageType.ERROR, "Failed to add participant InterruptedException -- > " + ex.getMessage());
+        }
+        return transferToParticipantCompleted;
+    }
+
+    private void retryTransferToParticipant(String targetParticipant) {
+        int retryAttemptCount = 1;
+        while (retryAttemptCount <= this.MaxRetryAttemptCount) {
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Retrying transfer participant attempt -- > " + retryAttemptCount + " is in progress");
+            Boolean transferToParticipantCompleted = transferToParticipant(targetParticipant);
+
+            if (transferToParticipantCompleted) {
+                return;
+            } else {
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Retry transfer participant attempt -- > " + retryAttemptCount + " has failed");
+                retryAttemptCount++;
+            }
+        }
+    }
+
+    private CommunicationIdentifier getCommunicationIdentifier(String targetParticipant) {
+        if(Pattern.matches(userIdentityRegex, targetParticipant)) {
+            return new CommunicationUserIdentifier(targetParticipant);
+        } else if (Pattern.matches(phoneIdentityRegex, targetParticipant)) {
+            return new PhoneNumberIdentifier(targetParticipant);
+        } else {
+            return null;
+        }
     }
 }

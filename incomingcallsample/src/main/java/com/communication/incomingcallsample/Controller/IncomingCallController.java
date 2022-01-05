@@ -99,8 +99,6 @@ public class IncomingCallController {
 		try {
 			String incomingCallContext = data.split("\"incomingCallContext\":\"")[1].split("\"}")[0];
 
-			Logger.logMessage(Logger.MessageType.INFORMATION, "Microsoft.Communication.IncomingCall call context: " + incomingCallContext);
-
 			new IncomingCallHandler(this.callingServerClient, this.callConfiguration).report(incomingCallContext);
 		} catch(Exception e) {
 			String message = "Fails in OnIncomingCall ---> " + e.getMessage();

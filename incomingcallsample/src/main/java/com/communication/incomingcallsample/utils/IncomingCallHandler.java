@@ -16,6 +16,7 @@ import com.azure.communication.callingserver.models.events.CallConnectionStateCh
 import com.azure.communication.callingserver.models.events.CallingServerEventType;
 import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
 import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
+import com.azure.communication.callingserver.models.events.TransferCallResultEvent;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.CommunicationUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
@@ -97,7 +98,7 @@ public class IncomingCallHandler {
                 }
             }
 
-            hangup();
+            // hangup();
 
             // Wait for the call to terminate
             this.callTerminatedTask.get();
@@ -161,11 +162,6 @@ public class IncomingCallHandler {
                 EventDispatcher.getInstance()
                         .unsubscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callConnectionId);
                 this.reportCancellationTokenSource.cancel();
-
-                this.callConnectedTask.complete(false);
-                this.toneReceivedCompleteTask.complete(false);
-                this.playAudioCompletedTask.complete(false);
-                this.transferToParticipantCompleteTask.complete(false);
                 this.callTerminatedTask.complete(true);
             }
         };
@@ -196,15 +192,11 @@ public class IncomingCallHandler {
                // listen to play audio events
                registerToPlayAudioResultEvent(response.getOperationContext());
                try {
-                    Logger.logMessage(Logger.MessageType.INFORMATION, "Audio is playing for 30 seconds, it can be interrupted by pressing 1");
-                    this.playAudioCompletedTask.get(30, TimeUnit.SECONDS);
-                    Logger.logMessage(Logger.MessageType.INFORMATION, "Audio playing done.");
-                    //this.playAudioCompletedTask.complete(true);
-                    //this.toneReceivedCompleteTask.complete(false);
+                   Logger.logMessage(Logger.MessageType.INFORMATION, "Audio is playing for 30 seconds, it can be interrupted by pressing 1");
+                   this.playAudioCompletedTask.get(30, TimeUnit.SECONDS);
+                   Logger.logMessage(Logger.MessageType.INFORMATION, "Audio playing done.");
                } catch (TimeoutException e) {
                    Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec.");
-                   //this.playAudioCompletedTask.complete(false);
-                   //this.toneReceivedCompleteTask.complete(false);
                } finally {
                    // cancel playing audio
                    cancelMediaProcessing();
@@ -268,17 +260,15 @@ public class IncomingCallHandler {
     }
 
     private void registerToDtmfResultEvent(String callLegId) {
-        toneReceivedCompleteTask = new CompletableFuture<>();
-
         NotificationCallback dtmfReceivedEvent = ((callEvent) -> {
             ToneReceivedEvent toneReceivedEvent = (ToneReceivedEvent) callEvent;
             ToneInfo toneInfo = toneReceivedEvent.getToneInfo();
             Logger.logMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
 
             if (toneInfo.getTone().equals(ToneValue.TONE1)) {
-                toneReceivedCompleteTask.complete(true);
+                this.toneReceivedCompleteTask.complete(true);
             } else {
-                toneReceivedCompleteTask.complete(false);
+                this.toneReceivedCompleteTask.complete(false);
             }
 
             EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
@@ -299,7 +289,8 @@ public class IncomingCallHandler {
         }
 
         String operationContext = UUID.randomUUID().toString();
-        Response<TransferCallResult> response = callConnection.transferToParticipantWithResponse(identifier, null, null, operationContext, null);
+        RegisterToTransferParticipantsResultEvent(operationContext);
+        Response<TransferCallResult> response = this.callConnection.transferToParticipantWithResponse(identifier, null, null, operationContext, null);
         Logger.logMessage(Logger.MessageType.INFORMATION, "Transfer to participant response -- > " + getResponse(response));
 
         Boolean transferToParticipantCompleted = false;
@@ -309,6 +300,25 @@ public class IncomingCallHandler {
             Logger.logMessage(Logger.MessageType.ERROR, "Failed to add participant InterruptedException -- > " + ex.getMessage());
         }
         return transferToParticipantCompleted;
+    }
+
+    private void RegisterToTransferParticipantsResultEvent(String operationContext) {
+        NotificationCallback transferParticipantsResultEvent = ((callEvent) -> {
+            TransferCallResultEvent transferCallResultEvent = (TransferCallResultEvent) callEvent;
+            CallingOperationStatus operationStatus = transferCallResultEvent.getStatus();
+            Logger.logMessage(Logger.MessageType.INFORMATION, "transfer to participant status -- > " + operationStatus);
+            if (operationStatus.equals(CallingOperationStatus.COMPLETED)) {
+                this.transferToParticipantCompleteTask.complete(true);
+            } else if (operationStatus.equals(CallingOperationStatus.FAILED)) {
+                this.transferToParticipantCompleteTask.complete(false);
+            }
+            EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TRANSFER_CALL_RESULT_EVENT.toString(),
+                    operationContext);
+        });
+
+        // Subscribe to event
+        EventDispatcher.getInstance().subscribe(CallingServerEventType.TRANSFER_CALL_RESULT_EVENT.toString(),
+                operationContext, transferParticipantsResultEvent);
     }
 
     private void retryTransferToParticipant(String targetParticipant) {

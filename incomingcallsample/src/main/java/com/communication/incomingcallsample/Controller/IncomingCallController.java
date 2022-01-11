@@ -8,13 +8,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import com.azure.communication.callingserver.CallingServerClient;
 import com.azure.communication.callingserver.CallingServerClientBuilder;
@@ -50,6 +47,7 @@ public class IncomingCallController {
 
 		// Validating the incoming request by using secret set in config.properties
 		if (this.eventAuthHandler.authorize(secretKey)) {
+			Logger.logMessage(Logger.MessageType.INFORMATION, "call back event: " + data);
 			EventDispatcher.getInstance().processNotification(data);
 		} else {
 			Logger.logMessage(Logger.MessageType.ERROR, "Unauthorized Request");
@@ -80,7 +78,8 @@ public class IncomingCallController {
 		if(type.equals("Microsoft.EventGrid.SubscriptionValidationEvent")) {
 			return getRegisterEventGridResponse(eventGridEvent);
 		} else if(type.equals("Microsoft.Communication.IncomingCall")) {
-			return handleIncomingCall(data);
+			String to = getRecipientMRI(eventGridEvent);
+			return handleIncomingCall(data, to);
 		} else {
 			return ResponseHandler.generateResponse("unknown EventGridEvent type: " + eventGridEvent.toString() , HttpStatus.BAD_REQUEST, null);
 		}
@@ -95,17 +94,25 @@ public class IncomingCallController {
             "validationResponse", validationCode));
 	}
 
-	private ResponseEntity<?> handleIncomingCall(String data) {
+	private ResponseEntity<?> handleIncomingCall(String data, String to) {
 		try {
 			String incomingCallContext = data.split("\"incomingCallContext\":\"")[1].split("\"}")[0];
-
-			new IncomingCallHandler(this.callingServerClient, this.callConfiguration).report(incomingCallContext);
+			if(new ArrayList<>(Arrays.asList(this.callConfiguration.allowedRecipientList)).contains(to)){
+				new IncomingCallHandler(this.callingServerClient, this.callConfiguration).report(incomingCallContext);
+				return ResponseHandler.generateResponse("answer call done", HttpStatus.OK, null);
+			} else {
+				Logger.logMessage(Logger.MessageType.INFORMATION, to + " is not in the recipient list that this app supports to answer, skip answering");
+				return ResponseHandler.generateResponse("call to " + to + "ignored as it is not in the allow list", HttpStatus.OK, null);
+			}
 		} catch(Exception e) {
 			String message = "Fails in OnIncomingCall ---> " + e.getMessage();
 			Logger.logMessage(Logger.MessageType.ERROR, message);
 			return ResponseHandler.generateResponse(message, HttpStatus.INTERNAL_SERVER_ERROR, null);
 		}
-		return ResponseHandler.generateResponse("answer call done", HttpStatus.OK, null);
+	}
+
+	private String getRecipientMRI(EventGridEvent eventGridEvent) {
+		return eventGridEvent.getSubject().split("recipient/")[1];
 	}
 }
 

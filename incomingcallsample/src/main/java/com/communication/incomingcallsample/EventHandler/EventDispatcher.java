@@ -9,6 +9,7 @@ import com.azure.communication.callingserver.models.events.CallingServerEventBas
 import com.azure.communication.callingserver.models.events.CallingServerEventType;
 import com.azure.communication.callingserver.models.events.PlayAudioResultEvent;
 import com.azure.communication.callingserver.models.events.ToneReceivedEvent;
+import com.azure.communication.callingserver.models.events.TransferCallResultEvent;
 import com.azure.core.models.CloudEvent;
 import com.azure.core.util.BinaryData;
 
@@ -74,6 +75,8 @@ public class EventDispatcher {
                 return PlayAudioResultEvent.deserialize(eventData);
             } else if (cloudEvent.getType().equals(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString())) {
                 return AddParticipantResultEvent.deserialize(eventData);
+            } else if (cloudEvent.getType().equals(CallingServerEventType.TRANSFER_CALL_RESULT_EVENT.toString())) {
+                return TransferCallResultEvent.deserialize(eventData);
             }
         } catch (Exception ex) {
             System.out.println("Failed to parse request content Exception: " + ex.getMessage());
@@ -95,6 +98,9 @@ public class EventDispatcher {
         } else if (callEventBase.getClass() == AddParticipantResultEvent.class) {
             String operationContext = ((AddParticipantResultEvent) callEventBase).getOperationContext();
             return buildEventKey(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(), operationContext);
+        } else if (callEventBase.getClass() == TransferCallResultEvent.class) {
+            String operationContext = ((TransferCallResultEvent) callEventBase).getOperationContext();
+            return buildEventKey(CallingServerEventType.TRANSFER_CALL_RESULT_EVENT.toString(), operationContext);
         }
 
         return null;

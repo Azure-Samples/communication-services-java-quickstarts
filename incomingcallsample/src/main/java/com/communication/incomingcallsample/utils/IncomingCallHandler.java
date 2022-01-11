@@ -83,22 +83,13 @@ public class IncomingCallHandler {
             // play audio
             playAudio();
             // wait for audio play complete
-            Boolean playAudioCompleted = this.playAudioCompletedTask.get();
+            this.playAudioCompletedTask.get();
 
-            // for debug purpose, will remove this line
-            this.toneReceivedCompleteTask.complete(true);
-
-            Boolean toneReceivedCompleted = this.toneReceivedCompleteTask.get();
-            if(toneReceivedCompleted) {
-                // transfer the call
-                Logger.logMessage(Logger.MessageType.INFORMATION, "Transferring call to participant" +  this.targetParticipant);
-                Boolean transferToParticipantCompleted = transferToParticipant(this.targetParticipant);
-                if (!transferToParticipantCompleted) {
-                    retryTransferToParticipant(this.targetParticipant);
-                }
+            // No ToneReceived event fired, and since audio playing is done, drop the call
+            if(!this.toneReceivedCompleteTask.isDone()){
+                Logger.logMessage(Logger.MessageType.INFORMATION, "dtmf tone not sent from caller, dropped the call");
+                hangup();
             }
-
-            // hangup();
 
             // Wait for the call to terminate
             this.callTerminatedTask.get();
@@ -192,7 +183,7 @@ public class IncomingCallHandler {
                // listen to play audio events
                registerToPlayAudioResultEvent(response.getOperationContext());
                try {
-                   Logger.logMessage(Logger.MessageType.INFORMATION, "Audio is playing for 30 seconds, it can be interrupted by pressing 1");
+                   Logger.logMessage(Logger.MessageType.INFORMATION, "Audio is playing for 30 seconds, it can be interrupted by pressing 1 to transfer the call");
                    this.playAudioCompletedTask.get(30, TimeUnit.SECONDS);
                    Logger.logMessage(Logger.MessageType.INFORMATION, "Audio playing done.");
                } catch (TimeoutException e) {
@@ -224,9 +215,9 @@ public class IncomingCallHandler {
             if (playAudioResultEvent.getStatus().equals(CallingOperationStatus.COMPLETED)) {
                 EventDispatcher.getInstance().unsubscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
                         operationContext);
-                playAudioCompletedTask.complete(true);
+                this.playAudioCompletedTask.complete(true);
             } else if (playAudioResultEvent.getStatus().equals(CallingOperationStatus.FAILED)) {
-                playAudioCompletedTask.complete(false);
+                this.playAudioCompletedTask.complete(false);
             }
         });
 
@@ -266,6 +257,11 @@ public class IncomingCallHandler {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Tone received -- > : " + toneInfo.getTone());
 
             if (toneInfo.getTone().equals(ToneValue.TONE1)) {
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Transferring call to participant" +  this.targetParticipant);
+                Boolean transferToParticipantCompleted = transferToParticipant(this.targetParticipant);
+                if (!transferToParticipantCompleted) {
+                    retryTransferToParticipant(this.targetParticipant);
+                }
                 this.toneReceivedCompleteTask.complete(true);
             } else {
                 this.toneReceivedCompleteTask.complete(false);

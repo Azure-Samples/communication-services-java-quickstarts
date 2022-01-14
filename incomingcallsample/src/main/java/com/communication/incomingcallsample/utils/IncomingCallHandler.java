@@ -188,8 +188,6 @@ public class IncomingCallHandler {
                    Logger.logMessage(Logger.MessageType.INFORMATION, "Audio playing done.");
                } catch (TimeoutException e) {
                    Logger.logMessage(Logger.MessageType.INFORMATION, "No response from user in 30 sec.");
-               } finally {
-                   // cancel playing audio
                    cancelMediaProcessing();
                }
             }
@@ -263,13 +261,14 @@ public class IncomingCallHandler {
                     retryTransferToParticipant(this.targetParticipant);
                 }
                 this.toneReceivedCompleteTask.complete(true);
+
+                this.playAudioCompletedTask.complete(true);
+
             } else {
                 this.toneReceivedCompleteTask.complete(false);
             }
 
             EventDispatcher.getInstance().unsubscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId);
-            // cancel playing audio
-            cancelMediaProcessing();
         });
         // Subscribe to event
         EventDispatcher.getInstance().subscribe(CallingServerEventType.TONE_RECEIVED_EVENT.toString(), callLegId,

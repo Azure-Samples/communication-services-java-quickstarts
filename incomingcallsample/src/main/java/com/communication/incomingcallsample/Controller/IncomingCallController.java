@@ -1,16 +1,16 @@
 package com.communication.incomingcallsample.Controller;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import com.azure.communication.callingserver.CallingServerClient;
 import com.azure.communication.callingserver.CallingServerClientBuilder;
@@ -57,7 +57,6 @@ public class IncomingCallController {
 
 	@PostMapping(value = "/OnIncomingCall")
 	public ResponseEntity<?> onIncomingRequestAsync(@RequestBody(required = false) String data) {
-
 		// parse EventGridEvent
 		EventGridEvent eventGridEvent = null;
 		try{

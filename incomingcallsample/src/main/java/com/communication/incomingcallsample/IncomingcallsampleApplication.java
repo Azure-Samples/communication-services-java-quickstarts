@@ -1,12 +1,12 @@
 package com.communication.incomingcallsample;
 
+import java.util.*;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
-import java.util.*;
 
 import com.communication.incomingcallsample.Controller.IncomingCallController;
-
 
 @SpringBootApplication
 @ComponentScan(basePackageClasses= IncomingCallController.class)

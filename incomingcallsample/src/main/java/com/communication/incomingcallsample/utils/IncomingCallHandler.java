@@ -1,5 +1,14 @@
 package com.communication.incomingcallsample.Utils;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
+
 import com.azure.communication.callingserver.CallConnection;
 import com.azure.communication.callingserver.CallingServerClient;
 import com.azure.communication.callingserver.models.AnswerCallOptions;
@@ -27,15 +36,6 @@ import com.azure.cosmos.implementation.changefeed.CancellationTokenSource;
 import com.communication.incomingcallsample.EventHandler.EventDispatcher;
 import com.communication.incomingcallsample.EventHandler.NotificationCallback;
 import com.communication.incomingcallsample.Log.Logger;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.UUID;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 
 public class IncomingCallHandler {
     private final String userIdentityRegex = "8:acs:[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}_[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}";

@@ -1,4 +1,4 @@
-package com.communication.incomingcallsample.Utils;
+package com.communication.incomingcallsample.utils;
 
 public class CallConfiguration {
     public String connectionString;

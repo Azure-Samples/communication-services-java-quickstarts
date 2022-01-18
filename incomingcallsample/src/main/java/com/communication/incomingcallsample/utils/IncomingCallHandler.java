@@ -1,4 +1,4 @@
-package com.communication.incomingcallsample.Utils;
+package com.communication.incomingcallsample.utils;
 
 import java.net.URI;
 import java.util.ArrayList;

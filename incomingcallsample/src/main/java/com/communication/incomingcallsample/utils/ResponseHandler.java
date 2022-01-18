@@ -1,4 +1,4 @@
-package com.communication.incomingcallsample.Utils;
+package com.communication.incomingcallsample.utils;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

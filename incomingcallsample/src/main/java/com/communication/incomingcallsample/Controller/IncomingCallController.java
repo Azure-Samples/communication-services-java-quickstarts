@@ -19,10 +19,10 @@ import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventDat
 import com.communication.incomingcallsample.EventHandler.EventAuthHandler;
 import com.communication.incomingcallsample.EventHandler.EventDispatcher;
 import com.communication.incomingcallsample.Log.Logger;
-import com.communication.incomingcallsample.Utils.CallConfiguration;
-import com.communication.incomingcallsample.Utils.ConfigurationManager;
-import com.communication.incomingcallsample.Utils.IncomingCallHandler;
-import com.communication.incomingcallsample.Utils.ResponseHandler;
+import com.communication.incomingcallsample.utils.CallConfiguration;
+import com.communication.incomingcallsample.utils.ConfigurationManager;
+import com.communication.incomingcallsample.utils.IncomingCallHandler;
+import com.communication.incomingcallsample.utils.ResponseHandler;
 
 @RestController
 public class IncomingCallController {

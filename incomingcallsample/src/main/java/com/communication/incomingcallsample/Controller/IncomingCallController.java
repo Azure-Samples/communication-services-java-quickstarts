@@ -18,7 +18,7 @@ import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.communication.incomingcallsample.EventHandler.EventAuthHandler;
 import com.communication.incomingcallsample.EventHandler.EventDispatcher;
-import com.communication.incomingcallsample.Log.Logger;
+import com.communication.incomingcallsample.logger.Logger;
 import com.communication.incomingcallsample.utils.CallConfiguration;
 import com.communication.incomingcallsample.utils.ConfigurationManager;
 import com.communication.incomingcallsample.utils.IncomingCallHandler;

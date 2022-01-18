@@ -1,4 +1,4 @@
-package com.communication.incomingcallsample.log;
+package com.communication.incomingcallsample.logger;
 
 import com.azure.messaging.eventgrid.EventGridEvent;
 

@@ -35,7 +35,7 @@ import com.azure.cosmos.implementation.changefeed.CancellationToken;
 import com.azure.cosmos.implementation.changefeed.CancellationTokenSource;
 import com.communication.incomingcallsample.EventHandler.EventDispatcher;
 import com.communication.incomingcallsample.EventHandler.NotificationCallback;
-import com.communication.incomingcallsample.Log.Logger;
+import com.communication.incomingcallsample.logger.Logger;
 
 public class IncomingCallHandler {
     private final String userIdentityRegex = "8:acs:[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}_[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}";

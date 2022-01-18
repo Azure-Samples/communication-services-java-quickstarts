@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
 
-import com.communication.incomingcallsample.Log.Logger;
+import com.communication.incomingcallsample.logger.Logger;
 
 public class ConfigurationManager {
     private static ConfigurationManager configurationManager = null;

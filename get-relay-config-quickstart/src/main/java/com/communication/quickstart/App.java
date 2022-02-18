@@ -71,9 +71,7 @@ public class App
             CommunicationUserIdentifier user = communicationIdentityClient.createUser();
             System.out.println("User id: " + user.getId());
 
-            GetRelayConfigurationOptions options = new GetRelayConfigurationOptions();
-            options.setCommunicationUserIdentifier(user);
-            CommunicationRelayConfiguration config = communicationRelayClient.getRelayConfiguration(options);
+            CommunicationRelayConfiguration config = communicationRelayClient.getRelayConfiguration(user);
             
             System.out.println("Expires on:" + config.getExpiresOn());
             List<CommunicationIceServer> iceServers = config.getIceServers();
@@ -88,9 +86,7 @@ public class App
 
     public static void getRelayConfigurationUsingRouteType()
     {
-        GetRelayConfigurationOptions options = new GetRelayConfigurationOptions();
-        options.setRouteType(RouteType.ANY);
-        CommunicationRelayConfiguration config = communicationRelayClient.getRelayConfiguration(options);
+        CommunicationRelayConfiguration config = communicationRelayClient.getRelayConfiguration(RouteType.NEAREST);
         
         System.out.println("Expires on:" + config.getExpiresOn());
         List<CommunicationIceServer> iceServers = config.getIceServers();

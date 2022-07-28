@@ -34,13 +34,13 @@ The private preview version of Azure Communiation Services Rooms Java SDK is als
 - **pom.xml** Maven project and configuration
 
 ## Before running sample code
-1. In App.java, replace the `<connection string>` block with your Azure Communication Resource connection string.
-1. In App.java, replace the `<CommunicationUserIdentifier.Id>` blocks with your Communication User Identifiers as room participants.
+1. In App.java, replace the `<connection-string>` block with your Azure Communication Resource connection string.
+1. In App.java, replace the `<communication-user-id-*>` blocks with your Communication User Identifiers as room participants.
 
 ## Run the sample code
 1. Install `rooms-sdk` jar to local Maven repository:
     `mvn install:install-file -Dfile=.\azure-communication-rooms\azure-communication-rooms-1.0.0-alpha.1.jar -DgroupId=com.azure -DartifactId=azure-communication-rooms -Dversion=1.0.0-alpha.1`
-2. Compile the package:
-    `mvn compile`
-3. Run the App
-    `mvn exec:java "-Dexec.mainClass=com.communication.rooms.quickstart.App" "-Dexec.cleanupDaemonThreads=false"`
+2. Compile the package: `mvn compile`
+3. Then, build the package using command: `mvn package`
+4. Run the App
+    `mvn exec:java -Dexec.mainClass=com.communication.rooms.quickstart.App -Dexec.cleanupDaemonThreads=false`

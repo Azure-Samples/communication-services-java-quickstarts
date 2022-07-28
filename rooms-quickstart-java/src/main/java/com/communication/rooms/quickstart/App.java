@@ -1,12 +1,13 @@
 package com.communication.rooms.quickstart;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.io.*;
 
 import com.azure.communication.rooms.models.CommunicationRoom;
 import com.azure.communication.rooms.models.RoleType;
@@ -18,17 +19,17 @@ import com.azure.communication.common.CommunicationUserIdentifier;
 import com.azure.communication.rooms.RoomsClient;
 import com.azure.communication.rooms.RoomsClientBuilder;
 import com.azure.core.util.Context;
-/**
- * Hello world!
- *
-*/
+
 public class App
 {
+    static String USER_ID_1 = "<communication-user-id-1>";
+    static String USER_ID_2 = "<communication-user-id-2>";
+    static String USER_ID_3 = "<communication-user-id-3>";
+
     public static RoomsClient createRoomsClientWithConnectionString() {
-        String connectionString = "endpoint=<connection string>";
+        String connectionString = "<connection-string>";
 
         RoomsClient roomsClient = new RoomsClientBuilder().connectionString(connectionString).buildClient();
-
         return roomsClient;
     }
 
@@ -40,16 +41,12 @@ public class App
 
         List<RoomParticipant> roomParticipants = new ArrayList<RoomParticipant>();
 
-        RoomParticipant firstChangeParticipant = new RoomParticipant()
-                .setCommunicationIdentifier(
-                    new CommunicationUserIdentifier("<communication user id 1>"))
-                .setRole(RoleType.CONSUMER);
-        RoomParticipant secondChangeParticipant = new RoomParticipant()
-                .setCommunicationIdentifier(
-                    new CommunicationUserIdentifier("communication user id "))
-                .setRole(RoleType.ATTENDEE);
-        roomParticipants.add(firstChangeParticipant);
-        roomParticipants.add(secondChangeParticipant);
+        roomParticipants.add(new RoomParticipant()
+                .setCommunicationIdentifier(new CommunicationUserIdentifier(USER_ID_1))
+                .setRole(RoleType.CONSUMER));
+        roomParticipants.add(new RoomParticipant()
+                .setCommunicationIdentifier(new CommunicationUserIdentifier(USER_ID_2))
+                .setRole(RoleType.ATTENDEE));
 
         return roomsClient.createRoom(
             validFrom,
@@ -80,9 +77,10 @@ public class App
             CommunicationRoom roomResult = roomsClient.getRoom(roomId);
             System.out.println("RoomId: "+ roomResult.getRoomId());
             System.out.println("Create at: "+roomResult.getCreatedTime());
+
             System.out.println("ValidFrom: "+roomResult.getValidFrom());
             System.out.println("ValidUntil: "+roomResult.getValidUntil());
-            System.out.println("Participants: "+participantsToString(roomResult.getParticipants()));
+            System.out.println("Participants: \n"+listParticipantsAsString(roomResult.getParticipants()));
         } catch (Exception ex) {
             System.out.println(ex);
         }
@@ -92,8 +90,8 @@ public class App
     public static void updateRoom(RoomsClient roomsClient, String roomId)
     {
         try {
-            OffsetDateTime validFrom = OffsetDateTime.of(2022, 2, 1, 5, 30, 20, 10, ZoneOffset.UTC);
-            OffsetDateTime validUntil = OffsetDateTime.of(2022, 5, 2, 5, 30, 20, 10, ZoneOffset.UTC);
+            OffsetDateTime validFrom = OffsetDateTime.now().plusDays(1);
+            OffsetDateTime validUntil = validFrom.plusDays(1);
             List<RoomParticipant> participants = new ArrayList<>();
 
             CommunicationRoom roomResult = roomsClient.updateRoom(
@@ -108,7 +106,7 @@ public class App
             System.out.println("Create at: "+roomResult.getCreatedTime());
             System.out.println("ValidFrom: "+roomResult.getValidFrom());
             System.out.println("ValidUntil: "+roomResult.getValidUntil());
-            System.out.println("Participants: "+participantsToString(roomResult.getParticipants()));
+            System.out.println("Participants: \n"+listParticipantsAsString(roomResult.getParticipants()));
         } catch (Exception ex) {
             System.out.println(ex);
         }
@@ -118,12 +116,11 @@ public class App
     public static void addParticipant(RoomsClient roomsClient, String roomId)
     {
         try {
-            RoomParticipant firstChangeParticipant = new RoomParticipant()
-                .setCommunicationIdentifier(
-                    new CommunicationUserIdentifier("communication user id 3"))
+            RoomParticipant newParticipant = new RoomParticipant()
+                .setCommunicationIdentifier(new CommunicationUserIdentifier(USER_ID_3))
                 .setRole(RoleType.CONSUMER);
-            ParticipantsCollection updatedParticipants = roomsClient.addParticipants(roomId, List.of(firstChangeParticipant));
-            System.out.println("Participants: " + participantsToString(updatedParticipants.getParticipants()));
+            ParticipantsCollection updatedParticipants = roomsClient.addParticipants(roomId, List.of(newParticipant));
+            System.out.println("Participants: " + listParticipantsAsString(updatedParticipants.getParticipants()));
         } catch (Exception ex) {
             System.out.println(ex);
         }
@@ -131,20 +128,48 @@ public class App
 
     public static void updateParticipant(RoomsClient roomsClient, String roomId)
     {
-
+        try {
+            RoomParticipant firstChangeParticipant = new RoomParticipant()
+                .setCommunicationIdentifier(
+                    new CommunicationUserIdentifier(USER_ID_1))
+                .setRole(RoleType.PRESENTER);
+            ParticipantsCollection updatedParticipants = roomsClient.updateParticipants(roomId, List.of(firstChangeParticipant));
+            System.out.println("Participants: \n" + listParticipantsAsString(updatedParticipants.getParticipants()));
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
     }
 
     public static void removeParticipant(RoomsClient roomsClient, String roomId)
     {
-
+        try {
+            RoomParticipant firstChangeParticipant = new RoomParticipant()
+                .setCommunicationIdentifier(
+                    new CommunicationUserIdentifier(USER_ID_1))
+                .setRole(RoleType.CONSUMER);
+            ParticipantsCollection updatedParticipants = roomsClient.removeParticipants(roomId, List.of(firstChangeParticipant));
+            System.out.println("Participants: \n" + listParticipantsAsString(updatedParticipants.getParticipants()));
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
     }
 
-    private static String participantsToString(List<RoomParticipant> participants)
+    public static void listParticipants(RoomsClient roomsClient, String roomId)
     {
-        return participants.stream().map
+        try {
+            ParticipantsCollection participants = roomsClient.listParticipants(roomId);
+            System.out.println("Participants: \n" + listParticipantsAsString(participants.getParticipants()));
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
+    }
+
+    private static String listParticipantsAsString(List<RoomParticipant> participants)
+    {
+        return "[" + participants.stream().map
         (p -> "ID: " + p.getCommunicationIdentifier().getRawId()
-                    + "\n Role: " + p.getRole()
-        ).collect(Collectors.joining("\n"));
+                    + "\nRole: " + p.getRole()
+        ).collect(Collectors.joining("\n")) + "]";
     }
 
 
@@ -169,7 +194,8 @@ public class App
                 System.out.println("6. Add a participant");
                 System.out.println("7. Update a participant");
                 System.out.println("8. Remove a participant");
-                System.out.println("9. Exit");
+                System.out.println("9. List participants");
+                System.out.println("10. Exit");
                 selection = Integer.parseInt(br.readLine());
                 switch (selection) {
                     case 1:
@@ -206,7 +232,6 @@ public class App
                     {
                         for (String room : roomIds) {
                             System.out.println(room);
-
                         }
                         break;
                     }
@@ -235,6 +260,14 @@ public class App
                         break;
                     }
                     case 9:
+                    {
+                        System.out.print("RoomId:");
+                        String roomId = br.readLine();
+                        listParticipants(roomsClient, roomId);
+
+                        break;
+                    }
+                    case 10:
 
                         System.out.println("Deleting all rooms");
                         for (String room : roomIds) {

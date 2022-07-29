@@ -16,7 +16,7 @@ This is a private respository for the Azure Communication Services technology ad
 
 This code sample contains source code for a Java application that can create and manage Azure Communication Services rooms.
 
-For full instructions on how to build this code sample, please refer to the accompanying [document](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/rooms/get-started-rooms?branch=master).
+For full instructions on how to build this code sample, please refer to the accompanying [document](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/rooms/get-started-rooms?pivots=programming-language-java).
 
 The private preview version of Azure Communiation Services Rooms Java SDK is also embedded.
 

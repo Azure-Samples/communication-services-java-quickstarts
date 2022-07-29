@@ -25,6 +25,7 @@ public class App
     static String USER_ID_1 = "<communication-user-id-1>";
     static String USER_ID_2 = "<communication-user-id-2>";
     static String USER_ID_3 = "<communication-user-id-3>";
+    static RoomsClient roomsClient;
 
     public static RoomsClient createRoomsClientWithConnectionString() {
         String connectionString = "<connection-string>";
@@ -33,7 +34,7 @@ public class App
         return roomsClient;
     }
 
-    public static CommunicationRoom createRoom( RoomsClient roomsClient)
+    public static CommunicationRoom createRoom()
     {
         OffsetDateTime validFrom = OffsetDateTime.now();
         OffsetDateTime validUntil = validFrom.plusDays(30);
@@ -56,7 +57,7 @@ public class App
         );
     }
 
-    public static boolean deleteRoom( RoomsClient roomsClient, String roomId)
+    public static boolean deleteRoom(String roomId)
     {
         try {
             System.out.println(roomId);
@@ -71,7 +72,7 @@ public class App
         return true;
     }
 
-    public static void getRoom( RoomsClient roomsClient, String roomId)
+    public static void getRoom(String roomId)
     {
         try {
             CommunicationRoom roomResult = roomsClient.getRoom(roomId);
@@ -87,7 +88,7 @@ public class App
 
     }
 
-    public static void updateRoom(RoomsClient roomsClient, String roomId)
+    public static void updateRoom(String roomId)
     {
         try {
             OffsetDateTime validFrom = OffsetDateTime.now().plusDays(1);
@@ -113,7 +114,7 @@ public class App
 
     }
 
-    public static void addParticipant(RoomsClient roomsClient, String roomId)
+    public static void addParticipant(String roomId)
     {
         try {
             RoomParticipant newParticipant = new RoomParticipant()
@@ -126,7 +127,7 @@ public class App
         }
     }
 
-    public static void updateParticipant(RoomsClient roomsClient, String roomId)
+    public static void updateParticipant(String roomId)
     {
         try {
             RoomParticipant firstChangeParticipant = new RoomParticipant()
@@ -140,7 +141,7 @@ public class App
         }
     }
 
-    public static void removeParticipant(RoomsClient roomsClient, String roomId)
+    public static void removeParticipant(String roomId)
     {
         try {
             RoomParticipant firstChangeParticipant = new RoomParticipant()
@@ -154,7 +155,7 @@ public class App
         }
     }
 
-    public static void listParticipants(RoomsClient roomsClient, String roomId)
+    public static void listParticipants(String roomId)
     {
         try {
             ParticipantsCollection participants = roomsClient.listParticipants(roomId);
@@ -175,7 +176,7 @@ public class App
 
     public static void main(String[] args)
     {
-        RoomsClient roomsClient = createRoomsClientWithConnectionString();
+        roomsClient = createRoomsClientWithConnectionString();
         int selection;
         Set<String> roomIds = new HashSet<>();
 
@@ -199,22 +200,22 @@ public class App
                 selection = Integer.parseInt(br.readLine());
                 switch (selection) {
                     case 1:
-                        CommunicationRoom roomResult = createRoom(roomsClient);
-                        getRoom(roomsClient, roomResult.getRoomId());
+                        CommunicationRoom roomResult = createRoom();
+                        getRoom(roomResult.getRoomId());
                         roomIds.add(roomResult.getRoomId());
                         break;
                     case 2:
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        updateRoom(roomsClient, roomId);
+                        updateRoom(roomId);
                         break;
                     }
                     case 3:
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        if(deleteRoom(roomsClient, roomId))
+                        if(deleteRoom(roomId))
                         {
                             roomIds.remove(roomId);
                         }
@@ -224,7 +225,7 @@ public class App
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        getRoom(roomsClient, roomId);
+                        getRoom(roomId);
 
                         break;
                     }
@@ -239,7 +240,7 @@ public class App
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        addParticipant(roomsClient, roomId);
+                        addParticipant(roomId);
 
                         break;
                     }
@@ -247,7 +248,7 @@ public class App
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        updateParticipant(roomsClient, roomId);
+                        updateParticipant(roomId);
 
                         break;
                     }
@@ -255,7 +256,7 @@ public class App
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        removeParticipant(roomsClient, roomId);
+                        removeParticipant(roomId);
 
                         break;
                     }
@@ -263,7 +264,7 @@ public class App
                     {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
-                        listParticipants(roomsClient, roomId);
+                        listParticipants(roomId);
 
                         break;
                     }
@@ -272,7 +273,7 @@ public class App
                         System.out.println("Deleting all rooms");
                         for (String room : roomIds) {
                             System.out.println("Deleting:" + room);
-                            deleteRoom(roomsClient, room);
+                            deleteRoom(room);
                         }
 
                         return;

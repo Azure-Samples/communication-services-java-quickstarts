@@ -28,7 +28,7 @@ This quickstart will help you get started with Azure Communication Services Room
 
 1. Open an instance of PowerShell, Windows Terminal, Command Prompt or equivalent and navigate to the directory that you'd like to clone the sample to.
 1. `git clone https://github.com/Azure-Samples/communication-services-java-quickstarts.git`
-1. With the Communication Services resource connection string procured in pre-requisites, replace the placeholder at line no 21
+1. With the Communication Services resource connection string procured in pre-requisites, replace the placeholder at line no 31
     ```String connectionString = "<connection-string>";```.
 
 ## Run the code

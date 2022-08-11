@@ -158,7 +158,7 @@ public class App
     public static void listParticipants(String roomId)
     {
         try {
-            ParticipantsCollection participants = roomsClient.listParticipants(roomId);
+            ParticipantsCollection participants = roomsClient.getParticipants(roomId);
             System.out.println("Participants: \n" + listParticipantsAsString(participants.getParticipants()));
         } catch (Exception ex) {
             System.out.println(ex);

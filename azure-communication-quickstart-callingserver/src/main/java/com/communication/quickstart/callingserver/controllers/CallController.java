@@ -1,47 +1,56 @@
 package com.communication.quickstart.callingserver.controllers;
 
 import com.azure.communication.callingserver.EventHandler;
-import com.azure.communication.callingserver.models.events.AcsEventType;
 import com.azure.communication.callingserver.models.events.AddParticipantsFailedEvent;
 import com.azure.communication.callingserver.models.events.AddParticipantsSucceededEvent;
+import com.azure.communication.callingserver.models.events.CallAutomationEventBase;
 import com.azure.communication.callingserver.models.events.CallConnectedEvent;
 import com.azure.communication.callingserver.models.events.CallDisconnectedEvent;
-import com.azure.communication.callingserver.models.events.CallingServerBaseEvent;
-import com.azure.communication.callingserver.models.events.IncomingCallEvent;
 import com.azure.communication.callingserver.models.events.ParticipantsUpdatedEvent;
-import com.azure.communication.callingserver.models.events.SubscriptionValidationEvent;
 
-import com.communication.quickstart.callingserver.CallAutomationClient;
+import com.azure.messaging.eventgrid.EventGridEvent;
+import com.communication.quickstart.callingserver.QueryCallAutomationClient;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.jetty.http.HttpStatus;
 import spark.Request;
 import spark.Response;
 
 import java.util.List;
+import java.util.Objects;
 
 public class CallController {
 
     public Object onIncomingCall(Request req, Response res){
         try {
-            List<CallingServerBaseEvent> events = EventHandler.parseEventList(req.body());
-            for (CallingServerBaseEvent event : events) {
-                if (event.getType() == AcsEventType.SUBSCRIPTION_VALIDATION_EVENT) {
+            List<EventGridEvent> eventGridEvents = EventGridEvent.fromString(req.body());
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+            for (EventGridEvent event : eventGridEvents) {
+                String data = event.getData().toString();
+                JsonNode eventData = mapper.readTree(data);
+
+                if (Objects.equals(event.getEventType(), "Microsoft.EventGrid.SubscriptionValidationEvent")) {
                     res.status(HttpStatus.OK_200);
-                    return "{\"validationResponse\": \"" + ((SubscriptionValidationEvent)event).getValidationCode() + "\"}";
+                    return "{\"validationResponse\": \"" + mapper.convertValue(eventData.get("validationCode"), String.class) + "\"}";
                 }
-                else if (event.getType() == AcsEventType.INCOMING_CALL_EVENT) {
+                else if (Objects.equals(event.getEventType(), "Microsoft.Communication.IncomingCall")) {
                     String callbackUri = "https://juntuchen.ngrok.io/events";
 
                     System.out.println("-----Phone is ringing...------");
                     synchronized (this) {
-                        this.wait(7000);
+                        this.wait(5000);
                     }
                     System.out.println("------Someone came and is going to pick it up...------");
 
                     // Answering the incoming call
-                    String incomingCallContext = ((IncomingCallEvent)event).getIncomingCallContext();
-                    String callConnectionId = CallAutomationClient
+                    String incomingCallContext = mapper.convertValue(eventData.get("incomingCallContext"), String.class);
+                    String callConnectionId = QueryCallAutomationClient
                             .getCallAutomationClient()
                             .answerCall(incomingCallContext, callbackUri)
+                            .getCallConnectionProperties()
                             .getCallConnectionId();
                     System.out.println("Call answered, callConnectionId: " + callConnectionId);
                     return "";
@@ -59,34 +68,34 @@ public class CallController {
 
     public Object onCloudEvents(Request req, Response res){
         try {
-            CallingServerBaseEvent event = EventHandler.parseEvent(req.body());
+            CallAutomationEventBase event = EventHandler.parseEvent(req.body());
 
             if (event == null) {
-                System.out.println("Empty cloud event");
+                System.out.println("Empty Cloud event");
                 return "";
+            } else {
+                System.out.println(req.body());
             }
 
-            System.out.println("<============ " + event.getType() + " ==============>");
-
-            if (event.getType() == AcsEventType.CALL_CONNECTED) {
+            if (event.getClass() == CallConnectedEvent.class) {
                 CallConnectedEvent temp = (CallConnectedEvent) event;
                 System.out.println("callConnectionId: " + temp.getCallConnectionId());
                 System.out.println("correlationId: " + temp.getCorrelationId());
-            } else if (event.getType() == AcsEventType.CALL_DISCONNECTED) {
+            } else if (event.getClass() == CallDisconnectedEvent.class) {
                 CallDisconnectedEvent temp = (CallDisconnectedEvent) event;
                 System.out.println("callConnectionId: " + temp.getCallConnectionId());
                 System.out.println("correlationId: " + temp.getCorrelationId());
-            } else if (event.getType() == AcsEventType.ADD_PARTICIPANTS_SUCCEEDED) {
+            } else if (event.getClass() == AddParticipantsSucceededEvent.class) {
                 AddParticipantsSucceededEvent temp = (AddParticipantsSucceededEvent) event;
                 System.out.println("callConnectionId: " + temp.getCallConnectionId());
                 System.out.println("correlationId: " + temp.getCorrelationId());
                 temp.getParticipants().forEach(participant -> System.out.println(participant.toString()));
-            } else if (event.getType() == AcsEventType.ADD_PARTICIPANTS_FAILED) {
+            } else if (event.getClass() == AddParticipantsFailedEvent.class) {
                 AddParticipantsFailedEvent temp = (AddParticipantsFailedEvent) event;
                 System.out.println("callConnectionId: " + temp.getCallConnectionId());
                 System.out.println("correlationId: " + temp.getCorrelationId());
                 temp.getParticipants().forEach(participant -> System.out.println(participant.toString()));
-            } else if (event.getType() == AcsEventType.PARTICIPANTS_UPDATED) {
+            } else if (event.getClass() == ParticipantsUpdatedEvent.class) {
                 ParticipantsUpdatedEvent temp = (ParticipantsUpdatedEvent) event;
                 System.out.println("callConnectionId: " + temp.getCallConnectionId());
                 System.out.println("correlationId: " + temp.getCorrelationId());

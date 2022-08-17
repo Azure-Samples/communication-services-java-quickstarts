@@ -4,7 +4,7 @@ import com.azure.communication.callingserver.CallConnection;
 import com.azure.communication.callingserver.models.AddParticipantsOptions;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.CommunicationUserIdentifier;
-import com.communication.quickstart.callingserver.CallAutomationClient;
+import com.communication.quickstart.callingserver.QueryCallAutomationClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,7 +22,7 @@ public class ActionController {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(request.body());
 
-        CallConnection callConnection = CallAutomationClient
+        CallConnection callConnection = QueryCallAutomationClient
                 .getCallAutomationClient()
                 .getCallConnection(root.get("callConnectionId").asText());
 

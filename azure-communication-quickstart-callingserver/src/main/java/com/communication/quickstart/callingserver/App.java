@@ -9,7 +9,7 @@ public class App
 {
     public static void main( String[] args )
     {
-        CallAutomationClient.initializeCallAutomationClient();
+        QueryCallAutomationClient.initializeCallAutomationClient();
         CallController callController = new CallController();
         ActionController actionController = new ActionController();
         post("/incomingCall", callController::onIncomingCall);

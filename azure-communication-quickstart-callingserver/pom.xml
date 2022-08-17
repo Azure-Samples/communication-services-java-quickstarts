@@ -22,7 +22,7 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-communication-callingserver</artifactId>
-      <version>1.0.0-beta.7-20220802</version>
+      <version>1.0.0-alpha.20220805.1</version>
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>

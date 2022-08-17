@@ -18,11 +18,41 @@
     <maven.compiler.target>1.7</maven.compiler.target>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>azure-sdk-for-java</id>
+      <url>https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-java/maven/v1</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+  <distributionManagement>
+    <repository>
+      <id>azure-sdk-for-java</id>
+      <url>https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-java/maven/v1</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </distributionManagement>
+
   <dependencies>
     <dependency>
       <groupId>com.azure</groupId>
+      <artifactId>azure-client-sdk-parent</artifactId>
+      <version>1.7.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
       <artifactId>azure-communication-callingserver</artifactId>
-      <version>1.0.0-alpha.20220805.1</version>
+      <version>1.0.0-alpha.20220817.1</version>
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>

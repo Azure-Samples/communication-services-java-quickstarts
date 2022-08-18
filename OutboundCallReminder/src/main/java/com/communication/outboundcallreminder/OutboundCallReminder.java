@@ -5,11 +5,10 @@ import com.azure.communication.callingserver.CallingServerClient;
 import com.azure.communication.callingserver.CallingServerClientBuilder;
 import com.azure.communication.callingserver.models.AddParticipantResult;
 import com.azure.communication.callingserver.models.CallConnectionState;
-import com.azure.communication.callingserver.models.CancelAllMediaOperationsResult;
 import com.azure.communication.callingserver.models.CreateCallOptions;
-import com.azure.communication.callingserver.models.EventSubscriptionType;
-import com.azure.communication.callingserver.models.MediaType;
-import com.azure.communication.callingserver.models.OperationStatus;
+import com.azure.communication.callingserver.models.CallingEventSubscriptionType;
+import com.azure.communication.callingserver.models.CallMediaType;
+import com.azure.communication.callingserver.models.CallingOperationStatus;
 import com.azure.communication.callingserver.models.PlayAudioOptions;
 import com.azure.communication.callingserver.models.PlayAudioResult;
 import com.azure.communication.callingserver.models.ToneInfo;
@@ -38,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.net.URI;
 
 
 public class OutboundCallReminder {
@@ -105,20 +105,20 @@ public class OutboundCallReminder {
             CommunicationUserIdentifier source = new CommunicationUserIdentifier(this.callConfiguration.sourceIdentity);
             PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
 
-            List<MediaType> callModality = new ArrayList<>() {
+            List<CallMediaType> callModality = new ArrayList<>() {
                 {
-                    add(MediaType.AUDIO);
+                    add(CallMediaType.AUDIO);
                 }
             };
 
-            List<EventSubscriptionType> eventSubscriptionType = new ArrayList<>() {
+            List<CallingEventSubscriptionType> eventSubscriptionType = new ArrayList<>() {
                 {
-                    add(EventSubscriptionType.PARTICIPANTS_UPDATED);
-                    add(EventSubscriptionType.DTMF_RECEIVED);
+                    add(CallingEventSubscriptionType.PARTICIPANTS_UPDATED);
+                    add(CallingEventSubscriptionType.TONE_RECEIVED);
                 }
             };
 
-            CreateCallOptions createCallOption = new CreateCallOptions(this.callConfiguration.appCallbackUrl,
+            CreateCallOptions createCallOption = new CreateCallOptions(new URI(this.callConfiguration.appCallbackUrl),
                     callModality, eventSubscriptionType);
 
             createCallOption.setAlternateCallerId(new PhoneNumberIdentifier(this.callConfiguration.sourcePhoneNumber));
@@ -201,13 +201,7 @@ public class OutboundCallReminder {
 
         Logger.logMessage(Logger.MessageType.INFORMATION, "Performing cancel media processing operation to stop playing audio");
 
-        String operationContext = UUID.randomUUID().toString();
-        Response<CancelAllMediaOperationsResult> cancelmediaresponse = this.callConnection.cancelAllMediaOperationsWithResponse(operationContext, null);
-        CancelAllMediaOperationsResult response = cancelmediaresponse.getValue();
-
-        Logger.logMessage(Logger.MessageType.INFORMATION, "cancelAllMediaOperationsWithResponse -- > " + getResponse(cancelmediaresponse) + 
-        ", Id: " + response.getOperationId() + ", OperationContext: " + response.getOperationContext() + ", OperationStatus: " +
-        response.getStatus().toString());
+        this.callConnection.cancelAllMediaOperations();
     }
 
     private void playAudioAsync() {
@@ -218,7 +212,8 @@ public class OutboundCallReminder {
 
         try {
             // Preparing data for request
-            String audioFileUri = callConfiguration.audioFileUrl;
+            URI audioFileUri = new URI (this.callConfiguration.audioFileUrl);
+            URI appCallbackUri = new URI(this.callConfiguration.appCallbackUrl);
             Boolean loop = true;
             String operationContext = UUID.randomUUID().toString();
             String audioFileId = UUID.randomUUID().toString();
@@ -226,6 +221,7 @@ public class OutboundCallReminder {
             playAudioOptions.setLoop(loop);
             playAudioOptions.setAudioFileId(audioFileId);
             playAudioOptions.setOperationContext(operationContext);
+            playAudioOptions.setCallbackUri(appCallbackUri);
 
             Logger.logMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
             Response<PlayAudioResult> playAudioResponse = this.callConnection.playAudioWithResponse(audioFileUri, playAudioOptions, null);
@@ -236,8 +232,8 @@ public class OutboundCallReminder {
             ", Id: " + response.getOperationId() + ", OperationContext: " + response.getOperationContext() + ", OperationStatus: " +
             response.getStatus().toString());
 
-            if (response.getStatus().equals(OperationStatus.RUNNING)) {
-                Logger.logMessage(Logger.MessageType.INFORMATION, "Play Audio state -- > " + OperationStatus.RUNNING);
+            if (response.getStatus().equals(CallingOperationStatus.RUNNING)) {
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Play Audio state -- > " + CallingOperationStatus.RUNNING);
 
                 // listen to play audio events
                 registerToPlayAudioResultEvent(response.getOperationContext());
@@ -284,11 +280,11 @@ public class OutboundCallReminder {
             PlayAudioResultEvent playAudioResultEvent = (PlayAudioResultEvent) callEvent;
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status -- > " + playAudioResultEvent.getStatus());
 
-            if (playAudioResultEvent.getStatus().equals(OperationStatus.COMPLETED)) {
+            if (playAudioResultEvent.getStatus().equals(CallingOperationStatus.COMPLETED)) {
                 EventDispatcher.getInstance().unsubscribe(CallingServerEventType.PLAY_AUDIO_RESULT_EVENT.toString(),
                         operationContext);
                 playAudioCompletedTask.complete(true);
-            } else if (playAudioResultEvent.getStatus().equals(OperationStatus.FAILED)) {
+            } else if (playAudioResultEvent.getStatus().equals(CallingOperationStatus.FAILED)) {
                 playAudioCompletedTask.complete(false);
             }
         });
@@ -332,7 +328,7 @@ public class OutboundCallReminder {
                 participant = new PhoneNumberIdentifier(addedParticipant);
             }
 
-            Response<AddParticipantResult> response = callConnection.addParticipantWithResponse(participant, this.callConfiguration.sourcePhoneNumber, operationContext, null);
+            Response<AddParticipantResult> response = callConnection.addParticipantWithResponse(participant, new PhoneNumberIdentifier(this.callConfiguration.sourcePhoneNumber), operationContext, null);
             Logger.logMessage(Logger.MessageType.INFORMATION, "addParticipantWithResponse -- > " + getResponse(response));
         }
 
@@ -342,7 +338,7 @@ public class OutboundCallReminder {
         } catch (InterruptedException ex) {
             Logger.logMessage(Logger.MessageType.ERROR, "Failed to add participant InterruptedException -- > " + ex.getMessage());
         } catch (ExecutionException ex) {
-            Logger.logMessage(Logger.MessageType.ERROR,"Failed to add participant ExecutionException -- > " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failed to add participant ExecutionException -- > " + ex.getMessage());
         }
 
         return addParticipantCompleted;
@@ -353,8 +349,8 @@ public class OutboundCallReminder {
 
         NotificationCallback addParticipantReceivedEvent = ((callEvent) -> {
             AddParticipantResultEvent addParticipantsUpdatedEvent = (AddParticipantResultEvent) callEvent;
-            OperationStatus operationStatus = addParticipantsUpdatedEvent.getStatus();
-            if (operationStatus.equals(OperationStatus.COMPLETED)) {
+            CallingOperationStatus operationStatus = addParticipantsUpdatedEvent.getStatus();
+            if (operationStatus.equals(CallingOperationStatus.COMPLETED)) {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Add participant status -- > " + operationStatus);
                 
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Sleeping for 60 seconds before proceeding further");
@@ -365,7 +361,7 @@ public class OutboundCallReminder {
                 }
 
                 addParticipantCompleteTask.complete(true);
-            } else if (operationStatus.equals(OperationStatus.FAILED)) {
+            } else if (operationStatus.equals(CallingOperationStatus.FAILED)) {
                 addParticipantCompleteTask.complete(false);
             }
             EventDispatcher.getInstance().unsubscribe(CallingServerEventType.ADD_PARTICIPANT_RESULT_EVENT.toString(),

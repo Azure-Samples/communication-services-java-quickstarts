@@ -14,6 +14,7 @@ import com.azure.communication.callingserver.models.CallRecordingState;
 import com.azure.communication.callingserver.models.RecordingChannel;
 import com.azure.communication.callingserver.models.RecordingContent;
 import com.azure.communication.callingserver.models.RecordingFormat;
+import com.azure.communication.callingserver.models.ServerCallLocator;
 import com.azure.core.http.HttpHeader;
 import com.azure.communication.callingserver.models.StartCallRecordingResult;
 import com.azure.communication.callingserver.models.StartRecordingOptions;
@@ -77,8 +78,10 @@ public class CallRecordingController  {
     @GetMapping("/startRecording")
     public StartCallRecordingResult startRecording(String serverCallId) {
         URI recordingStateCallbackUri;
+        ServerCallLocator serverCallLocator;
         try {
             recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+            serverCallLocator = new ServerCallLocator(serverCallId);
 
             /*
              * Usage of StartRecordingOptions
@@ -92,7 +95,7 @@ public class CallRecordingController  {
              * recordingOptions.setRecordingChannel(RecordingChannel.MIXED);
              * recordingOptions.setRecordingFormat(RecordingFormat.MP4);
              */
-            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri), null, null);
+            Response<StartCallRecordingResult> response = this.callingServerClient.startRecordingWithResponse(serverCallLocator, recordingStateCallbackUri, null, null);
             var output = response.getValue();
 
             logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: " + response.getValue().getRecordingId());
@@ -117,8 +120,10 @@ public class CallRecordingController  {
     public StartCallRecordingResult startRecordingWithArgs(String serverCallId, String recordingContent,
             String recordingChannel, String recordingFormat) {
         URI recordingStateCallbackUri;
+        ServerCallLocator serverCallLocator;
         try {
             recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+            serverCallLocator = new ServerCallLocator(serverCallId);
 
             StartRecordingOptions recordingOptions = new StartRecordingOptions();
             recordingOptions.setRecordingChannel(Mapper.getRecordingChannelMap()
@@ -134,8 +139,8 @@ public class CallRecordingController  {
                             recordingOptions.getRecordingContent().toString(),
                             recordingOptions.getRecordingFormat().toString()));
 
-            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId)
-                    .startRecordingWithResponse(String.valueOf(recordingStateCallbackUri), recordingOptions, null);
+            Response<StartCallRecordingResult> response = this.callingServerClient
+                    .startRecordingWithResponse(serverCallLocator, recordingStateCallbackUri, recordingOptions, null);
             var output = response.getValue();
 
             logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: "
@@ -167,7 +172,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).pauseRecordingWithResponse(recordingId, null);
+            Response<Void> response = this.callingServerClient.pauseRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Pause Recording response --> " + getResponse(response));
         }
     }
@@ -187,7 +192,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).resumeRecordingWithResponse(recordingId, null);
+            Response<Void> response = this.callingServerClient.resumeRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Resume Recording response --> " + getResponse(response));
         }
     }
@@ -207,7 +212,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).stopRecordingWithResponse(recordingId, null);
+            Response<Void> response = this.callingServerClient.stopRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Stop Recording response --> " + getResponse(response));
 
             recordingDataMap.remove(serverCallId);
@@ -229,7 +234,7 @@ public class CallRecordingController  {
                 }
             }
 
-            CallRecordingProperties recordingStateResult = this.callingServerClient.initializeServerCall(serverCallId).getRecordingState(recordingId);
+            CallRecordingProperties recordingStateResult = this.callingServerClient.getRecordingState(recordingId);
             logger.log(Level.INFO, "Recording State --> " + recordingStateResult.getRecordingState().toString());
             
             return recordingStateResult.getRecordingState();

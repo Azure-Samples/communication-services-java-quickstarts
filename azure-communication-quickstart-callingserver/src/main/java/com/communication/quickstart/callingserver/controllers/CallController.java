@@ -17,6 +17,7 @@ import org.eclipse.jetty.http.HttpStatus;
 import spark.Request;
 import spark.Response;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,7 +38,7 @@ public class CallController {
                     return "{\"validationResponse\": \"" + mapper.convertValue(eventData.get("validationCode"), String.class) + "\"}";
                 }
                 else if (Objects.equals(event.getEventType(), "Microsoft.Communication.IncomingCall")) {
-                    String callbackUri = "https://juntuchen.ngrok.io/events";
+                    String callbackUri = "<YOUR_CALLBACK>";
 
                     System.out.println("-----Phone is ringing...------");
                     synchronized (this) {

@@ -17,6 +17,7 @@ public class QueryCallAutomationClient {
 
             callAutomationClient = new CallAutomationClientBuilder()
                     .connectionString(acsConnectionString)
+                    //.endpoint(devPMAEndPoint)
                     .buildClient();
         }
     }

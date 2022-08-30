@@ -61,10 +61,9 @@ public class App
 
 		// Update Phone Number Capabilities
 		
-		PhoneNumberCapabilities updatecapabilities = new PhoneNumberCapabilities();
-		capabilities
-			.setCalling(PhoneNumberCapabilityType.INBOUND)
-			.setSms(PhoneNumberCapabilityType.INBOUND_OUTBOUND);
+		PhoneNumberCapabilities updatecapabilities = new PhoneNumberCapabilities()
+		.setCalling(PhoneNumberCapabilityType.INBOUND)
+		.setSms(PhoneNumberCapabilityType.INBOUND_OUTBOUND);
 		PurchasedPhoneNumber updatephoneNumber = phoneNumberClient.beginUpdatePhoneNumberCapabilities("<Phone Number>", updatecapabilities, Context.NONE).getFinalResult();
 
 		System.out.println("Phone Number Calling capabilities: " + updatephoneNumber.getCapabilities().getCalling()); //Phone Number Calling capabilities: inbound

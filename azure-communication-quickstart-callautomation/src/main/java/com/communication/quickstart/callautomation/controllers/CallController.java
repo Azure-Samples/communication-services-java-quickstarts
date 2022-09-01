@@ -1,15 +1,14 @@
-package com.communication.quickstart.callingserver.controllers;
+package com.communication.quickstart.callautomation.controllers;
 
-import com.azure.communication.callingserver.EventHandler;
-import com.azure.communication.callingserver.models.events.AddParticipantsFailedEvent;
-import com.azure.communication.callingserver.models.events.AddParticipantsSucceededEvent;
-import com.azure.communication.callingserver.models.events.CallAutomationEventBase;
-import com.azure.communication.callingserver.models.events.CallConnectedEvent;
-import com.azure.communication.callingserver.models.events.CallDisconnectedEvent;
-import com.azure.communication.callingserver.models.events.ParticipantsUpdatedEvent;
+import com.azure.communication.callautomation.EventHandler;
+import com.azure.communication.callautomation.models.events.AddParticipantsFailedEvent;
+import com.azure.communication.callautomation.models.events.AddParticipantsSucceededEvent;
+import com.azure.communication.callautomation.models.events.CallAutomationEventBase;
+import com.azure.communication.callautomation.models.events.CallConnectedEvent;
+import com.azure.communication.callautomation.models.events.CallDisconnectedEvent;
+import com.azure.communication.callautomation.models.events.ParticipantsUpdatedEvent;
 
 import com.azure.messaging.eventgrid.EventGridEvent;
-import com.communication.quickstart.callingserver.QueryCallAutomationClient;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +16,6 @@ import org.eclipse.jetty.http.HttpStatus;
 import spark.Request;
 import spark.Response;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,22 +36,11 @@ public class CallController {
                     return "{\"validationResponse\": \"" + mapper.convertValue(eventData.get("validationCode"), String.class) + "\"}";
                 }
                 else if (Objects.equals(event.getEventType(), "Microsoft.Communication.IncomingCall")) {
-                    String callbackUri = "<YOUR_CALLBACK>";
-
                     System.out.println("-----Phone is ringing...------");
-                    synchronized (this) {
-                        this.wait(5000);
-                    }
-                    System.out.println("------Someone came and is going to pick it up...------");
 
                     // Answering the incoming call
                     String incomingCallContext = mapper.convertValue(eventData.get("incomingCallContext"), String.class);
-                    String callConnectionId = QueryCallAutomationClient
-                            .getCallAutomationClient()
-                            .answerCall(incomingCallContext, callbackUri)
-                            .getCallConnectionProperties()
-                            .getCallConnectionId();
-                    System.out.println("Call answered, callConnectionId: " + callConnectionId);
+                    System.out.println(incomingCallContext);
                     return "";
                 }
                 else {

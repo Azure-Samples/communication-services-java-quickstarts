@@ -1,7 +1,7 @@
-package com.communication.quickstart.callingserver;
+package com.communication.quickstart.callautomation;
 
-import com.communication.quickstart.callingserver.controllers.ActionController;
-import com.communication.quickstart.callingserver.controllers.CallController;
+import com.communication.quickstart.callautomation.controllers.ActionController;
+import com.communication.quickstart.callautomation.controllers.CallController;
 
 import static spark.Spark.*;
 

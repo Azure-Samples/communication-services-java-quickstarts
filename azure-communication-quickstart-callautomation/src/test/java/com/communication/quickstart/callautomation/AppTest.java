@@ -1,4 +1,4 @@
-package com.communication.quickstart.callingserver;
+package com.communication.quickstart.callautomation;
 
 import static org.junit.Assert.assertTrue;
 

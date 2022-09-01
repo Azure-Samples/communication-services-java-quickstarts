@@ -1,4 +1,4 @@
-package com.communication.quickstart;
+package com.communication.email;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -10,7 +10,6 @@ import com.azure.communication.email.models.EmailRecipients;
 import com.azure.communication.email.models.SendEmailResult;
 import com.azure.communication.email.models.SendStatus;
 import com.azure.communication.email.models.SendStatusResult;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 
 public class App 
 {
@@ -18,11 +17,7 @@ public class App
     {
         String connectionString = "<ACS_CONNECTION_STRING>";
 
-        NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
-        EmailClientBuilder emailClientBuilder = new EmailClientBuilder().httpClient(httpClientBuilder.build())
-        .connectionString(connectionString);
-
-        EmailClient emailClient = emailClientBuilder.buildClient();
+        EmailClient emailClient = new EmailClientBuilder().connectionString(connectionString).buildClient();
     
         String subject = "Send email quick start - java";
 

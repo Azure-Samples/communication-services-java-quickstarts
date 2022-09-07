@@ -39,6 +39,6 @@ From a console prompt, navigate to the directory containing the `pom.xml` file, 
 
 1. Compile the project by using command `mvn compile`
 2. Then, build the package using command `mvn package`
-3. Run the command to execute the app `mvn exec:java -Dexec.mainClass="com.communication.quickstart.App" -Dexec.cleanupDaemonThreads=false`
+3. Run the command to execute the app `mvn exec:java -Dexec.mainClass="com.communication.quickstart.App" -Dexec.cleanupDaemonThreads=false`. If you are using Powershell CLI try to execute as follow `mvn exec:java -D exec.mainClass="com.communication.quickstart.App" -D exec.cleanupDaemonThreads=false`.
 
 You should be presented with a browser window and navigated to the Azure AD login form. If the authentication is successful, the application receives an Azure AD access token and exchanges it for a Communication access token.

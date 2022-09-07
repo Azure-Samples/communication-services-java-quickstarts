@@ -13,10 +13,12 @@ Azure Communication Services enable developers to add communication capabilities
 
 1. [Create and manage access tokens](https://docs.microsoft.com/azure/communication-services/quickstarts/access-tokens?pivots=programming-language-java)
 
-2. [Add Chat to your app](https://docs.microsoft.com/azure/communication-services/quickstarts/chat/get-started?pivots=programming-language-java)
+2. [Set up and manage access tokens for Teams users](https://docs.microsoft.com/azure/communication-services/quickstarts/manage-teams-identity?pivots=programming-language-java)
 
-3. [Send an SMS message](https://docs.microsoft.com/azure/communication-services/quickstarts/telephony-sms/send?pivots=programming-language-java)
+3. [Add Chat to your app](https://docs.microsoft.com/azure/communication-services/quickstarts/chat/get-started?pivots=programming-language-java)
 
-4. [Create and manage access tokens](https://docs.microsoft.com/azure/communication-services/quickstarts/access-tokens?pivots=programming-language-java)
+4. [Send an SMS message](https://docs.microsoft.com/azure/communication-services/quickstarts/telephony-sms/send?pivots=programming-language-java)
 
-5. [Get started with Rooms](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/rooms/get-started-rooms?pivots=programming-language-java)
+5. [Create and manage access tokens](https://docs.microsoft.com/azure/communication-services/quickstarts/access-tokens?pivots=programming-language-java)
+
+6. [Get started with Rooms](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/rooms/get-started-rooms?pivots=programming-language-java)

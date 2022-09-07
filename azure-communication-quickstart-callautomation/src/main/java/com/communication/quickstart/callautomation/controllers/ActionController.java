@@ -4,9 +4,11 @@ import com.azure.communication.callautomation.CallConnection;
 import com.azure.communication.callautomation.CallMedia;
 import com.azure.communication.callautomation.models.AddParticipantsOptions;
 import com.azure.communication.callautomation.models.CreateCallOptions;
+import com.azure.communication.callautomation.models.CreateCallResult;
 import com.azure.communication.callautomation.models.FileSource;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.CommunicationUserIdentifier;
+import com.azure.core.util.Context;
 import com.communication.quickstart.callautomation.QueryCallAutomationClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,6 +30,7 @@ public class ActionController {
         CallConnection callConnection = QueryCallAutomationClient
                 .getCallAutomationClient()
                 .getCallConnection(root.get("callConnectionId").asText());
+        String callbackUri = QueryCallAutomationClient.getCallbackUrl();
 
         if (Objects.equals(action, "addParticipant")) {
             String targetMri = root.get("participant").asText();
@@ -47,14 +50,14 @@ public class ActionController {
             String sourceMri = root.get("source").asText();
             String targetMri = root.get("participant").asText();
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetMri);
+//            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetMri);
             List<CommunicationIdentifier> targets = new ArrayList<>(List.of(target));
 
-            CreateCallOptions callOptions = new CreateCallOptions(new CommunicationUserIdentifier(sourceMri), targets, "https://juntuchen.ngrok.io/events");
-            QueryCallAutomationClient.getCallAutomationClient().createCall(callOptions);
+            CreateCallOptions callOptions = new CreateCallOptions(new CommunicationUserIdentifier(sourceMri), targets, callbackUri);
+//                    .setSourceCallerId("+18337597849");
+            com.azure.core.http.rest.Response<CreateCallResult> result = QueryCallAutomationClient.getCallAutomationClient().createCallWithResponse(callOptions, Context.NONE);
 
         } else if (Objects.equals(action, "answerCall")) {
-            String callbackUri = "https://juntuchen.ngrok.io/events";
-
             // Answering the incoming call
             String incomingCallContext = root.get("incomingCallContext").asText();
             String callConnectionId = QueryCallAutomationClient

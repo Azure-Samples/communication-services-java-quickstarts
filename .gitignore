@@ -348,3 +348,45 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Other Tooling #
+.classpath
+.project
+target
+.idea
+*.iml
+
+# Mac OS #
+.DS_Store
+.DS_Store?
+
+# Windows #
+Thumbs.db
+
+# VS Code
+.vscode/
+.factorypath
+jacoco.exec
+
+# Eclipse #
+*.pydevproject
+.project
+.metadata
+bin/**
+tmp/**
+tmp/**/*
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+

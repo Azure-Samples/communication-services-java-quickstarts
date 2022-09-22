@@ -15,15 +15,15 @@ It's a Java web application powered by Spring Boot to connect this application w
 
 ## Prerequisites
 
-- [Create an Azure Communication Resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource). You'll need to record your resource\'s **connection string** for this quickstart.
+- [Create an Azure Communication Resource](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/create-communication-resource). You'll need to record your resource\'s **connection string** for this quickstart.
 - [Visual Studio Code](https://code.visualstudio.com/download)
-- [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install)
+- [Java Development Kit (JDK) version 11 or above](https://learn.microsoft.com/en-us/azure/developer/java/fundamentals/java-jdk-install)
 - [Apache Maven](https://maven.apache.org/download.cgi)
 - [Spring Boot framework v- 2.5.0](https://spring.io/projects/spring-boot)
 - [Docker desktop](https://www.docker.com/products/docker-desktop)
 - An Azure account with an active subscription. For details, see here to [create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F).
-- [Create container registry](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry)
-- [Create a webhook](https://docs.microsoft.com/azure/communication-services/quickstarts/voice-video-calling/download-recording-file-sample) and subscribe to the recording events.
+- [Create container registry](https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry)
+- [Create a webhook](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/voice-video-calling/download-recording-file-sample) and subscribe to the recording events.
 
 
 ## Code structure
@@ -33,12 +33,11 @@ It's a Java web application powered by Spring Boot to connect this application w
 - ./src/main/resources/config.properties : config file which contains user level configurations
 
 ## Before running the sample for the first time
-1. Get the `Connection String` from the Azure portal. For more information on connection strings, see [Create an Azure Communication Resources](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource).
+1. Get the `Connection String` from the Azure portal. For more information on connection strings, see [Create an Azure Communication Resources](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/create-communication-resource).
 2. Once you get the config keys, add the keys to the **resources/config.properties** file found under the ./src/main/resources folder.
 	- Input your ACS connection string in the variable: `ACSConnectionString`
 	- Input your blob storage connection string in the variable: `BlobStorageConnectionString`
 	- Input blob container name for recorded media in the variable `ContainerName`
-	- Input recording callback url for start recording api in the variable `CallbackUri`
 
 ## Locally deploying the sample app
 
@@ -82,7 +81,7 @@ It's a Java web application powered by Spring Boot to connect this application w
 	});
 	```
 
- For complete details on how to build a client application using ACS calling SDK, refer to https://docs.microsoft.com/azure/communication-services/samples/calling-hero-sample?pivots=platform-web
+ For complete details on how to build a client application using ACS calling SDK, refer to https://learn.microsoft.com/en-us/azure/communication-services/samples/calling-hero-sample?pivots=platform-web
 
 ### Troubleshooting
 
@@ -109,7 +108,7 @@ It's a Java web application powered by Spring Boot to connect this application w
 1. Configure Maven to build image to your Azure Container Registry.
 
  	- Navigate to the completed project directory for your Spring Boot application and open the pom.xml file with a text editor.
- 	- Update the <properties> collection in the pom.xml file with the latest version of [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin), login server value, and access settings for your Azure Container Registry created using [Create container registry](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry). For example:
+ 	- Update the <properties> collection in the pom.xml file with the latest version of [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin), login server value, and access settings for your Azure Container Registry created using [Create container registry](https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry). For example:
 
 		```xml
 		<properties>
@@ -172,8 +171,8 @@ It's a Java web application powered by Spring Boot to connect this application w
 	docker push <registryName>.azurecr.io/<dockerImageName>
 	```
 
-1. Create web app by following steps in link : [Create Web App](https://docs.microsoft.com/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-a-web-app-on-linux-on-azure-app-service-using-your-container-image)
+1. Create web app by following steps in link : [Create Web App](https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-a-web-app-on-linux-on-azure-app-service-using-your-container-image)
 
 ## Additional Reading
 
-- [Azure Communication Calling SDK](https://docs.microsoft.com/azure/communication-services/concepts/voice-video-calling/calling-sdk-features) - To learn more about the calling web sdk.
+- [Azure Communication Calling SDK](https://learn.microsoft.com/en-us/azure/communication-services/concepts/voice-video-calling/calling-sdk-features) - To learn more about the calling web sdk.

@@ -17,7 +17,6 @@ import com.azure.communication.callingserver.models.ServerCallLocator;
 import com.azure.core.http.HttpHeader;
 import com.azure.communication.callingserver.models.RecordingStateResult;
 import com.azure.communication.callingserver.models.StartRecordingOptions;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.cosmos.implementation.Strings;
@@ -62,10 +61,7 @@ public class CallRecordingController  {
         container = configurationManager.getAppSettings("ContainerName");
         blobStorageConnectionString = configurationManager.getAppSettings("BlobStorageConnectionString");
 
-        NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
-        CallAutomationClientBuilder  builder = new CallAutomationClientBuilder().httpClient(httpClientBuilder.build())
-                .connectionString(connectionString);
-        callAutomationClient = builder.buildClient();
+        callAutomationClient  = new CallAutomationClientBuilder().connectionString(connectionString).buildClient();
         logger =  Logger.getLogger(CallRecordingController.class.getName());
         recordingDataMap = new HashMap<>();
     }
@@ -101,7 +97,7 @@ public class CallRecordingController  {
             return output;
         }catch (Exception e) {
             e.printStackTrace();
-            return  null;
+            return null;
         }
     }
 
@@ -145,7 +141,7 @@ public class CallRecordingController  {
             return output;
         } catch (Exception e) {
             e.printStackTrace();
-            return  null;
+            return null;
         } 
     }
 
@@ -233,7 +229,7 @@ public class CallRecordingController  {
         }
         catch (Exception e) {
             e.printStackTrace();
-            return  null;
+            return null;
         }
     }
 

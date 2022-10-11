@@ -9,8 +9,8 @@ products:
 
 # Recognize Dtmf Call Sample
 
-This sample application shows how the Azure Communication Services Server Calling SDK can be used to build IVR related solutions. This sample makes an outbound call to a phone number or a communication identifier and plays an audio message. application plays audio according to whatever tone 1 (tone1), 2 (tone2) and 3 (tone3), presses by callee. If the callee presses any other key then an audio of invalid tone got played and the application ends the call. This sample application is also capable of making multiple concurrent outbound calls.
-The application is a console based application build on Java development kit(JDK) 11.
+This sample application shows how the Azure Communication Services - Call Automation SDK can be used to build IVR related solutions. This sample makes an outbound call to a phone number or a communication identifier and plays an audio message. Application plays next audio based on the key pressed by the callee. This sample application configured for accepting tone 1 (tone1), 2 (tone2) and 3 (tone3), If the callee pressed any other key than expected, an invalid audio tone will be played and then call will be disconnected. This sample application is also capable of making multiple concurrent outbound calls.
+The application is a console-based application build on Java development kit(JDK) 11.
 
 ## Getting started
 
@@ -30,23 +30,23 @@ The application is a console based application build on Java development kit(JDK
 
 - Open the config.properities file to configure the following settings
 
-	- Connection String: Azure Communication Service resource's connection string.
-	- Source Phone: Phone number associated with the Azure Communication Service resource.
-	- DestinationIdentities: Multiple sets of phonenumber targets. These sets are seperated by a semi-colon.
+	- `ConnectionString`: Azure Communication Service resource's connection string.
+	- `SourcePhone`: Phone number associated with the Azure Communication Service resource.
+	- `DestinationIdentities`: Multiple sets of phone number targets. These sets are separated by a semi-colon.
 
-    	Format: "OutboundTarget1(PhoneNumber); OutboundTarget2(PhoneNumber);OutboundTarget3(PhoneNumber)".
+    	Format: "OutboundTarget1(Phone Number); OutboundTarget2(Phone Number);OutboundTarget3(Phone Number)".
 
 	  	For e.g. "+1425XXXAAAA; +1425XXXBBBB; +1425XXXCCCC"
 
-	- NgrokExePath: Folder path where ngrok.exe is insalled/saved.
-	- SecretPlaceholder: Secret/Password that would be part of callback and will be use to validate incoming requests.
-	- CognitiveServiceKey: (Optional) Cognitive service key used for generating custom message
-	- CognitiveServiceRegion: (Optional) Region associated with cognitive service
-	- CustomMessage: (Optional) Text for the custom message to be converted to speech.
-	- SalesCustomMessage: (Optional) Text for the custom message when callee presses 1.
-	- MarketingCustomMessage: (Optional) Text for the custom message when callee presses 2.
-	- CustomerCustomMessage: (Optional) Text for the custom message when callee presses 3.
-	- InvalidCustomMessage: (Optional) Text for the custom message when callee presses invalid tone.
+	- `NgrokExePath`: Folder path where ngrok.exe is installed.
+	- `SecretPlaceholder`: Secret/Password that would be part of callback and will be use to validate incoming requests.
+	- `CognitiveServiceKey`: (Optional) Cognitive service key used for generating custom messages.
+	- `CognitiveServiceRegion`: (Optional) Region associated with cognitive service.
+	- `CustomMessage`: (Optional) Text for the custom message to be converted to speech.
+	- `SalesCustomMessage`: (Optional) Text for the custom message when callee presses 1.
+	- `MarketingCustomMessage`: (Optional) Text for the custom message when callee presses 2.
+	- `CustomerCustomMessage`: (Optional) Text for the custom message when callee presses 3.
+	- `InvalidCustomMessage`: (Optional) Text for the custom message when callee presses invalid tone.
 
 ### Run the Application
 

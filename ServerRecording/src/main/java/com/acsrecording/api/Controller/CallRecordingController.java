@@ -8,15 +8,15 @@ import com.acsrecording.api.ConfigurationManager;
 import com.acsrecording.api.Models.FileDownloadType;
 import com.acsrecording.api.Models.FileFormat;
 import com.acsrecording.api.Models.Mapper;
-import com.azure.communication.callingserver.CallAutomationClientBuilder ;
-import com.azure.communication.callingserver.models.RecordingChannel;
-import com.azure.communication.callingserver.models.RecordingContent;
-import com.azure.communication.callingserver.models.RecordingFormat;
-import com.azure.communication.callingserver.models.RecordingState;
-import com.azure.communication.callingserver.models.ServerCallLocator;
+import com.azure.communication.callautomation.CallAutomationClientBuilder ;
+import com.azure.communication.callautomation.models.RecordingChannel;
+import com.azure.communication.callautomation.models.RecordingContent;
+import com.azure.communication.callautomation.models.RecordingFormat;
+import com.azure.communication.callautomation.models.RecordingState;
+import com.azure.communication.callautomation.models.ServerCallLocator;
 import com.azure.core.http.HttpHeader;
-import com.azure.communication.callingserver.models.RecordingStateResult;
-import com.azure.communication.callingserver.models.StartRecordingOptions;
+import com.azure.communication.callautomation.models.RecordingStateResult;
+import com.azure.communication.callautomation.models.StartRecordingOptions;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.cosmos.implementation.Strings;
@@ -53,7 +53,7 @@ public class CallRecordingController  {
     String blobStorageConnectionString;
     Logger logger;
     String recordingFileFormat;
-    private final com.azure.communication.callingserver.CallAutomationClient callAutomationClient;
+    private final com.azure.communication.callautomation.CallAutomationClient callAutomationClient;
 
     CallRecordingController() {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();

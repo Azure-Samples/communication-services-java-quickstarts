@@ -49,8 +49,8 @@
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
-			<artifactId>azure-communication-callingserver</artifactId>
-			<version>1.0.0-alpha.20220914.1</version>
+			<artifactId>azure-communication-callautomation</artifactId>
+			<version>1.0.0-alpha.20221017.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>

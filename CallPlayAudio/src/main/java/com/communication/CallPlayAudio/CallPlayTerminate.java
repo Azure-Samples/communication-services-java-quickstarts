@@ -1,21 +1,19 @@
 package com.communication.CallPlayAudio;
 
-import com.azure.communication.callingserver.CallConnection;
-import com.azure.communication.callingserver.CallingServerClient;
-import com.azure.communication.callingserver.CallingServerClientBuilder;
-import com.azure.communication.callingserver.models.CallConnectionState;
-import com.azure.communication.callingserver.models.CreateCallOptions;
-import com.azure.communication.callingserver.models.EventSubscriptionType;
-import com.azure.communication.callingserver.models.MediaType;
-import com.azure.communication.callingserver.models.OperationStatus;
-import com.azure.communication.callingserver.models.PlayAudioOptions;
-import com.azure.communication.callingserver.models.PlayAudioResult;
-import com.azure.communication.callingserver.models.events.CallConnectionStateChangedEvent;
-import com.azure.communication.callingserver.models.events.CallingServerEventType;
+import com.azure.communication.callautomation.CallConnection;
+import com.azure.communication.callautomation.CallAutomationClient;
+import com.azure.communication.callautomation.CallAutomationClientBuilder;
+import com.azure.communication.callautomation.models.CreateCallOptions;
+import com.azure.communication.callautomation.models.CreateCallResult;
+import com.azure.communication.callautomation.models.FileSource;
+import com.azure.communication.callautomation.models.HangUpOptions;
+import com.azure.communication.callautomation.models.PlayOptions;
+import com.azure.communication.callautomation.models.PlaySource;
+import com.azure.communication.callautomation.models.events.CallConnectedEvent;
+import com.azure.communication.callautomation.models.events.CallDisconnectedEvent;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.CommunicationUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.cosmos.implementation.changefeed.CancellationToken;
 import com.azure.cosmos.implementation.changefeed.CancellationTokenSource;
 import com.communication.CallPlayAudio.EventHandler.EventDispatcher;
@@ -31,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 public class CallPlayTerminate {
 
     private final CallConfiguration callConfiguration;
-    private final CallingServerClient callingServerClient;
+    private final CallAutomationClient callingAutomationClient;
     private CallConnection callConnection = null;
     private CancellationTokenSource reportCancellationTokenSource;
     private CancellationToken reportCancellationToken;
@@ -40,12 +38,8 @@ public class CallPlayTerminate {
 
     public CallPlayTerminate(CallConfiguration callConfiguration) {
         this.callConfiguration = callConfiguration;
-
-        NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
-        CallingServerClientBuilder callClientBuilder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
-                .connectionString(this.callConfiguration.connectionString);
-
-        this.callingServerClient = callClientBuilder.buildClient();
+        this.callingAutomationClient = new CallAutomationClientBuilder().connectionString(this.callConfiguration.connectionString)
+        .buildClient();
     }
 
     public void report(String targetPhoneNumber) {
@@ -68,46 +62,23 @@ public class CallPlayTerminate {
         try {
             // Preparing request data
             CommunicationUserIdentifier source = new CommunicationUserIdentifier(this.callConfiguration.sourceIdentity);
-            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-
-            List<MediaType> callModality = new ArrayList<>() {
-                {
-                    add(MediaType.AUDIO);
-                }
+            List<CommunicationIdentifier> targets = new ArrayList<CommunicationIdentifier>() {
+                {add(new PhoneNumberIdentifier(targetPhoneNumber));}
             };
 
-            List<EventSubscriptionType> eventSubscriptionType = new ArrayList<>() {
-                {
-                    add(EventSubscriptionType.PARTICIPANTS_UPDATED);
-                    add(EventSubscriptionType.DTMF_RECEIVED);
-                }
-            };
-
-            CreateCallOptions createCallOption = new CreateCallOptions(this.callConfiguration.appCallbackUrl,
-                    callModality, eventSubscriptionType);
-
-            createCallOption.setAlternateCallerId(new PhoneNumberIdentifier(this.callConfiguration.sourcePhoneNumber));
-
+            CreateCallOptions createCallOption = new CreateCallOptions(source, targets, this.callConfiguration.appCallbackUrl);
+            createCallOption.setSourceCallerId(this.callConfiguration.sourcePhoneNumber);
             Logger.logMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
-
-            List<CommunicationIdentifier> targets = new ArrayList<>() {
-                {
-                    add(target);
-                }
-            };
-
-            Logger.logMessage(Logger.MessageType.INFORMATION,"this.callConfiguration.sourcePhoneNumber"+this.callConfiguration.sourcePhoneNumber);
-            Logger.logMessage(Logger.MessageType.INFORMATION,"targetPhoneNumber"+targetPhoneNumber);
             
-            Response<CallConnection> response = this.callingServerClient.createCallConnectionWithResponse(source, targets, createCallOption, null);
-            callConnection = response.getValue(); 
+            Response<CreateCallResult> response = this.callingAutomationClient.
+            createCallWithResponse(createCallOption, null);
+            CreateCallResult callResult = response.getValue(); 
 
-            Logger.logMessage(Logger.MessageType.INFORMATION, "createCallConnectionWithResponse -- > " + getResponse(response) + ", Call connection ID: " + callConnection.getCallConnectionId());
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Call initiated with Call Leg id -- >" + callConnection.getCallConnectionId());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "createCallConnectionWithResponse -- > " + getResponse(response) + ", Call connection ID: " + callResult.getCallConnectionProperties().getCallConnectionId());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Call initiated with Call Leg id -- >" + callResult.getCallConnectionProperties().getCallConnectionId());
 
-            registerToCallStateChangeEvent(callConnection.getCallConnectionId());
+            registerToCallStateChangeEvent(callResult.getCallConnectionProperties().getCallConnectionId());
             callConnectedTask.get();
-
         } catch (Exception ex) {
             Logger.logMessage(Logger.MessageType.ERROR, "Failure occured while creating/establishing the call. Exception -- >" + ex.getMessage());
         }
@@ -117,25 +88,21 @@ public class CallPlayTerminate {
         callTerminatedTask = new CompletableFuture<>();
         callConnectedTask = new CompletableFuture<>();
         // Set the callback method
-        NotificationCallback callStateChangeNotificaiton = ((callEvent) -> {
-            CallConnectionStateChangedEvent callStateChanged = (CallConnectionStateChangedEvent) callEvent;
+        NotificationCallback callConnectedNotificaiton = ((callEvent) -> {
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
+            callConnectedTask.complete(true);
+            EventDispatcher.getInstance().unsubscribe(CallConnectedEvent.class.getName(), callLegId);
+        });
 
-            Logger.logMessage(Logger.MessageType.INFORMATION,"Call State changed to -- > " + callStateChanged.getCallConnectionState());
-
-            if (callStateChanged.getCallConnectionState().equals(CallConnectionState.CONNECTED)) {
-                Logger.logMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
-                callConnectedTask.complete(true);
-            } else if (callStateChanged.getCallConnectionState().equals(CallConnectionState.DISCONNECTED)) {
-                EventDispatcher.getInstance()
-                        .unsubscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(), callLegId);
-                reportCancellationTokenSource.cancel();
-                callTerminatedTask.complete(true);
-            }
+        NotificationCallback callDisconnectedNotificaiton = ((callEvent) -> {
+            EventDispatcher.getInstance().unsubscribe(CallDisconnectedEvent.class.getName(), callLegId);
+            reportCancellationTokenSource.cancel();
+            callTerminatedTask.complete(true);
         });
 
         // Subscribe to the event
-        EventDispatcher.getInstance().subscribe(CallingServerEventType.CALL_CONNECTION_STATE_CHANGED_EVENT.toString(),
-                callLegId, callStateChangeNotificaiton);
+        EventDispatcher.getInstance().subscribe(CallConnectedEvent.class.getName(), callLegId, callConnectedNotificaiton);
+        EventDispatcher.getInstance().subscribe(CallDisconnectedEvent.class.getName(), callLegId, callDisconnectedNotificaiton);
     }
 
     private void playAudioAsync() {
@@ -146,31 +113,25 @@ public class CallPlayTerminate {
 
         try {
             // Preparing data for request
-            String audioFileUri = callConfiguration.audioFileUrl;
-            Boolean loop = true;
-            String operationContext = UUID.randomUUID().toString();
-            String audioFileId = UUID.randomUUID().toString();
-            PlayAudioOptions playAudioOptions = new PlayAudioOptions();
-            playAudioOptions.setLoop(loop);
-            playAudioOptions.setAudioFileId(audioFileId);
-            playAudioOptions.setOperationContext(operationContext);
-
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
-            Response<PlayAudioResult> playAudioResponse = this.callConnection.playAudioWithResponse(audioFileUri, playAudioOptions, null);
+            String audioFileUri = this.callConfiguration.audioFileUrl;
+            PlaySource playSource = new FileSource().setUri(audioFileUri);
+            PlayOptions playAudioOptions = new PlayOptions();
+            playAudioOptions.setLoop(true);
+            playAudioOptions.setOperationContext(UUID.randomUUID().toString());
             
-            PlayAudioResult response = playAudioResponse.getValue();
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
+            Response<Void> playAudioResponse = this.callConnection.getCallMedia().
+            playToAllWithResponse(playSource, playAudioOptions, null);
+            
+            Logger.logMessage(Logger.MessageType.INFORMATION, "playAudioWithResponse -- > " + getResponse(playAudioResponse));
 
-            Logger.logMessage(Logger.MessageType.INFORMATION, "playAudioWithResponse -- > " + getResponse(playAudioResponse) + 
-            ", Id: " + response.getOperationId() + ", OperationContext: " + response.getOperationContext() + ", OperationStatus: " +
-            response.getStatus().toString());
-
-            if (response.getStatus().equals(OperationStatus.RUNNING)) {
-                Logger.logMessage(Logger.MessageType.INFORMATION, "Play Audio state -- > " + OperationStatus.RUNNING);
+            if (playAudioResponse.getStatusCode() == 202) {
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Play Audio state is running ");
                 TimeUnit.SECONDS.sleep(20);
                 hangupAsync();
             }
         } catch (Exception ex) {
-                 Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occured while playing audio on the call. Exception: " + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occured while playing audio on the call. Exception: " + ex.getMessage());
         }
     }
 
@@ -181,7 +142,9 @@ public class CallPlayTerminate {
         }
 
         Logger.logMessage(Logger.MessageType.INFORMATION, "Performing Hangup operation");
-        Response<Void> response = this.callConnection.hangupWithResponse(null);
+
+        HangUpOptions hangUpOptions = new HangUpOptions(true);
+        Response<Void> response = this.callConnection.hangUpWithResponse(hangUpOptions, null);
         Logger.logMessage(Logger.MessageType.INFORMATION, "hangupWithResponse -- > " + getResponse(response));
     }
 

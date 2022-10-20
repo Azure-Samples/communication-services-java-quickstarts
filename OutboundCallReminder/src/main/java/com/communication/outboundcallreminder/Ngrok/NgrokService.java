@@ -67,7 +67,7 @@ public class NgrokService {
 
             String openCmd = "cmd /c start cmd.exe /k ";
             String fileName = ngrokPath + "ngrok.exe";
-            String arguments = " http http://localhost:9007/ -host-header=/localhost:9007/" + authTokenArgs;
+            String arguments = " http http://localhost:9007/ --host-header=/localhost:9007/" + authTokenArgs;
             String command = openCmd + fileName + arguments;
 
             this.ngrokProcess = Runtime.getRuntime().exec(command);
@@ -85,7 +85,7 @@ public class NgrokService {
         try {
             do {
                 // Wait for fetching the ngrok url as ngrok process might not be started yet.
-                Thread.sleep(2000);
+                Thread.sleep(5000);
                 JSONArray tunnelList = this.connector.getAllTunnelsAsync();
 
                 if (tunnelList.iterator().hasNext()) {

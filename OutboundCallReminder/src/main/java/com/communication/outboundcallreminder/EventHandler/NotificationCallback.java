@@ -1,7 +1,7 @@
 package com.communication.outboundcallreminder.EventHandler;
 
-import com.azure.communication.callingserver.models.events.CallingServerEventBase;
+import com.azure.communication.callautomation.models.events.CallAutomationEventBase;
 
 public interface NotificationCallback {
-    void callback(CallingServerEventBase callEvent);
+    void callback(CallAutomationEventBase callEvent);
 }

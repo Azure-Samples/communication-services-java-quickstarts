@@ -79,16 +79,6 @@
 			<name>communication-callingserver-sdk</name>
 			<url>https://csspeechstorage.blob.core.windows.net/maven/</url>
 		</repository>
-		<repository>
-			<id>azure-sdk-for-java</id>
-			<url>https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-java/maven/v1</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
 	</repositories>
 	<build>
 		<pluginManagement>

@@ -67,7 +67,7 @@ public class NgrokService {
 
             String openCmd = "cmd /c start cmd.exe /k ";
             String fileName = ngrokPath + "ngrok.exe";
-            String arguments = " http http://localhost:9007/ -host-header=/localhost:9007/" + authTokenArgs;
+            String arguments = " http http://localhost:9007/ --host-header=/localhost:9007/" + authTokenArgs;
             String command = openCmd + fileName + arguments;
 
             this.ngrokProcess = Runtime.getRuntime().exec(command);

@@ -115,10 +115,9 @@ public class App {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
         String connectionString = configurationManager.getAppSettings("Connectionstring");
         String sourcePhoneNumber = configurationManager.getAppSettings("SourcePhone");
-        String maxRetryAttemptCount = configurationManager.getAppSettings("MaxRetryCount");
         String sourceIdentity = createUser(connectionString);
         String audioFileName = generateCustomAudioMessage();
-        return new CallConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, appBaseUrl, audioFileName, maxRetryAttemptCount);
+        return new CallConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, appBaseUrl, audioFileName);
     }
 
     /// <summary>
@@ -154,9 +153,6 @@ public class App {
     /// Create new user
     /// </summary>
     private static String createUser(String connectionString) {
-        Logger.logMessage(Logger.MessageType.INFORMATION,"createUser method");
-        Logger.logMessage(Logger.MessageType.INFORMATION,"connection string is="+connectionString);
-
         CommunicationIdentityClient client = new CommunicationIdentityClientBuilder().connectionString(connectionString)
                 .buildClient();
         CommunicationUserIdentifier user = client.createUser();

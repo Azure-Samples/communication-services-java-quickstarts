@@ -9,8 +9,11 @@ import com.azure.communication.callautomation.models.FileSource;
 import com.azure.communication.callautomation.models.HangUpOptions;
 import com.azure.communication.callautomation.models.PlayOptions;
 import com.azure.communication.callautomation.models.PlaySource;
-import com.azure.communication.callautomation.models.events.CallConnectedEvent;
-import com.azure.communication.callautomation.models.events.CallDisconnectedEvent;
+import com.azure.communication.callautomation.models.events.CallConnected;
+import com.azure.communication.callautomation.models.events.CallDisconnected;
+import com.azure.communication.callautomation.models.events.PlayCanceled;
+import com.azure.communication.callautomation.models.events.PlayCompleted;
+import com.azure.communication.callautomation.models.events.PlayFailed;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.CommunicationUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
@@ -24,21 +27,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class CallPlayTerminate {
 
     private final CallConfiguration callConfiguration;
-    private final CallAutomationClient callingAutomationClient;
+    private final CallAutomationClient callAutomationClient;
     private CallConnection callConnection = null;
     private CancellationTokenSource reportCancellationTokenSource;
     private CancellationToken reportCancellationToken;
     private CompletableFuture<Boolean> callConnectedTask;
+    private CompletableFuture<Boolean> playAudioCompletedTask;
     private CompletableFuture<Boolean> callTerminatedTask;
 
     public CallPlayTerminate(CallConfiguration callConfiguration) {
         this.callConfiguration = callConfiguration;
-        this.callingAutomationClient = new CallAutomationClientBuilder().connectionString(this.callConfiguration.connectionString)
+        this.callAutomationClient = new CallAutomationClientBuilder().connectionString(this.callConfiguration.connectionString)
         .buildClient();
     }
 
@@ -48,7 +51,15 @@ public class CallPlayTerminate {
 
         try {
             createCallAsync(targetPhoneNumber);
+
+            registerToPlayAudioResultEvent(this.callConnection.getCallProperties().getCallConnectionId());
+
             playAudioAsync();
+
+            // Wait for audio play
+            playAudioCompletedTask.get();
+
+            // Hang up the call
             hangupAsync();
 
             // Wait for the call to terminate
@@ -63,24 +74,33 @@ public class CallPlayTerminate {
             // Preparing request data
             CommunicationUserIdentifier source = new CommunicationUserIdentifier(this.callConfiguration.sourceIdentity);
             List<CommunicationIdentifier> targets = new ArrayList<CommunicationIdentifier>() {
-                {add(new PhoneNumberIdentifier(targetPhoneNumber));}
+                {
+                    add(new PhoneNumberIdentifier(targetPhoneNumber));
+                }
             };
 
-            CreateCallOptions createCallOption = new CreateCallOptions(source, targets, this.callConfiguration.appCallbackUrl);
+            CreateCallOptions createCallOption = new CreateCallOptions(source, targets,
+                    this.callConfiguration.appCallbackUrl);
             createCallOption.setSourceCallerId(this.callConfiguration.sourcePhoneNumber);
-            Logger.logMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
-            
-            Response<CreateCallResult> response = this.callingAutomationClient.
-            createCallWithResponse(createCallOption, null);
-            CreateCallResult callResult = response.getValue(); 
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Performing CreateCall operation");
 
-            Logger.logMessage(Logger.MessageType.INFORMATION, "createCallConnectionWithResponse -- > " + getResponse(response) + ", Call connection ID: " + callResult.getCallConnectionProperties().getCallConnectionId());
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Call initiated with Call Leg id -- >" + callResult.getCallConnectionProperties().getCallConnectionId());
+            Response<CreateCallResult> response = this.callAutomationClient.createCallWithResponse(createCallOption,
+                    null);
+            CreateCallResult callResult = response.getValue();
+            callConnection = callResult.getCallConnection();
+
+            Logger.logMessage(Logger.MessageType.INFORMATION,
+                    "createCallConnectionWithResponse -- > " + getResponse(response) + ", Call connection ID: "
+                            + callResult.getCallConnectionProperties().getCallConnectionId());
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Call initiated with Call Leg id -- >"
+                    + callResult.getCallConnectionProperties().getCallConnectionId());
 
             registerToCallStateChangeEvent(callResult.getCallConnectionProperties().getCallConnectionId());
             callConnectedTask.get();
+
         } catch (Exception ex) {
-            Logger.logMessage(Logger.MessageType.ERROR, "Failure occured while creating/establishing the call. Exception -- >" + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR,
+                    "Failure occured while creating/establishing the call. Exception -- >" + ex.getMessage());
         }
     }
 
@@ -91,18 +111,18 @@ public class CallPlayTerminate {
         NotificationCallback callConnectedNotificaiton = ((callEvent) -> {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Call State successfully connected");
             callConnectedTask.complete(true);
-            EventDispatcher.getInstance().unsubscribe(CallConnectedEvent.class.getName(), callLegId);
+            EventDispatcher.getInstance().unsubscribe(CallConnected.class.getName(), callLegId);
         });
 
         NotificationCallback callDisconnectedNotificaiton = ((callEvent) -> {
-            EventDispatcher.getInstance().unsubscribe(CallDisconnectedEvent.class.getName(), callLegId);
+            EventDispatcher.getInstance().unsubscribe(CallDisconnected.class.getName(), callLegId);
             reportCancellationTokenSource.cancel();
             callTerminatedTask.complete(true);
         });
 
         // Subscribe to the event
-        EventDispatcher.getInstance().subscribe(CallConnectedEvent.class.getName(), callLegId, callConnectedNotificaiton);
-        EventDispatcher.getInstance().subscribe(CallDisconnectedEvent.class.getName(), callLegId, callDisconnectedNotificaiton);
+        EventDispatcher.getInstance().subscribe(CallConnected.class.getName(), callLegId, callConnectedNotificaiton);
+        EventDispatcher.getInstance().subscribe(CallDisconnected.class.getName(), callLegId, callDisconnectedNotificaiton);
     }
 
     private void playAudioAsync() {
@@ -116,10 +136,10 @@ public class CallPlayTerminate {
             String audioFileUri = this.callConfiguration.audioFileUrl;
             PlaySource playSource = new FileSource().setUri(audioFileUri);
             PlayOptions playAudioOptions = new PlayOptions();
-            playAudioOptions.setLoop(true);
+            playAudioOptions.setLoop(false);
             playAudioOptions.setOperationContext(UUID.randomUUID().toString());
             
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Performing PlayAudio operation");
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Performing Play Audio operation");
             Response<Void> playAudioResponse = this.callConnection.getCallMedia().
             playToAllWithResponse(playSource, playAudioOptions, null);
             
@@ -127,8 +147,6 @@ public class CallPlayTerminate {
 
             if (playAudioResponse.getStatusCode() == 202) {
                 Logger.logMessage(Logger.MessageType.INFORMATION, "Play Audio state is running ");
-                TimeUnit.SECONDS.sleep(20);
-                hangupAsync();
             }
         } catch (Exception ex) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Failure occured while playing audio on the call. Exception: " + ex.getMessage());
@@ -161,5 +179,33 @@ public class CallPlayTerminate {
         }
         responseString.append("} ");
         return responseString.toString();
+    }
+
+    private void registerToPlayAudioResultEvent(String callConnectionId) {
+        playAudioCompletedTask = new CompletableFuture<>();
+        NotificationCallback playCompleted = ((callEvent) -> {
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status completed");
+
+            EventDispatcher.getInstance().unsubscribe(PlayCompleted.class.getName(), callConnectionId);
+            playAudioCompletedTask.complete(true);
+        });
+
+        NotificationCallback playFailed = ((callEvent) -> {
+            EventDispatcher.getInstance().unsubscribe(PlayFailed.class.getName(), callConnectionId);
+            reportCancellationTokenSource.cancel();
+            playAudioCompletedTask.complete(false);
+        });
+
+        NotificationCallback playCanceled = ((callEvent) -> {
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Play audio status Canceled");
+            EventDispatcher.getInstance().unsubscribe(PlayCanceled.class.getName(), callConnectionId);
+            reportCancellationTokenSource.cancel();
+            playAudioCompletedTask.complete(false);
+        });
+
+        // Subscribe to event
+        EventDispatcher.getInstance().subscribe(PlayCompleted.class.getName(), callConnectionId, playCompleted);
+        EventDispatcher.getInstance().subscribe(PlayFailed.class.getName(), callConnectionId, playFailed);
+        EventDispatcher.getInstance().subscribe(PlayCanceled.class.getName(), callConnectionId, playCanceled);
     }
 }

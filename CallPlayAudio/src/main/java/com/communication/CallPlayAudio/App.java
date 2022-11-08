@@ -139,7 +139,7 @@ public class App {
                 AudioConfig audioConfig = AudioConfig.fromWavFileInput(
                         "src/main/java/com/communication/CallPlayAudio/audio/custom-message.wav");
                 SpeechSynthesizer synthesizer = new SpeechSynthesizer(config, audioConfig);
-                synthesizer.SpeakTextAsync(customMessage);
+                synthesizer.SpeakTextAsync(customMessage).get();
                 synthesizer.close();
                 return "custom-message.wav";
             }

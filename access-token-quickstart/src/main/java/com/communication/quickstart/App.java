@@ -27,14 +27,18 @@ public class App
         System.out.println("\nCreated an identity with ID: " + user.getId());
         
 
-        // Issue an access token with the "voip" scope for a user identity
+        // Issue an access token with a validity of 24 hours and the "voip" scope for a user identity
         List<CommunicationTokenScope> scopes = new ArrayList<>(Arrays.asList(CommunicationTokenScope.VOIP));
         AccessToken accessToken = communicationIdentityClient.getToken(user, scopes);
         OffsetDateTime expiresAt = accessToken.getExpiresAt();
         String token = accessToken.getToken();
-        System.out.println("\nIssued an access token with 'voip' scope that expires at: " + expiresAt + ": " + token);
-               
-        //Create an identity and issue token in one call
+        System.out.println("\nIssued an access token with 'voip' scope that expires at " + expiresAt + ": " + token);
+
+        // Issue an access token with a validity of an hour and the "voip" scope for a user identity
+        Duration tokenExpiresIn = Duration.ofHours(1);
+        accessToken = communicationIdentityClient.getToken(user, scopes, tokenExpiresIn);
+
+        //Create an identity and issue token with a validity of 24 hours in one call
         List<CommunicationTokenScope> scope = Arrays.asList(CommunicationTokenScope.CHAT);
         CommunicationUserIdentifierAndToken result = communicationIdentityClient.createUserAndToken(scope);
         CommunicationUserIdentifier userIdentifier = result.getUser();
@@ -42,7 +46,7 @@ public class App
         AccessToken userTokenResult = result.getUserToken();
         OffsetDateTime expiresTime = userTokenResult.getExpiresAt();
         String userToken = userTokenResult.getToken();
-        System.out.println("\nIssued an access token with 'chat' scope that expires at: " + expiresTime + ": " + userToken);
+        System.out.println("\nIssued an access token with 'chat' scope that expires at " + expiresTime + ": " + userToken);
 
         // Refresh access tokens - existingIdentity represents identity of Azure Communication Services stored during identity creation
         CommunicationUserIdentifier identity = new CommunicationUserIdentifier(userIdentifier.getId());

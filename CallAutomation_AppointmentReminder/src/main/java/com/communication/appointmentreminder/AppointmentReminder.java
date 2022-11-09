@@ -105,7 +105,7 @@ public class AppointmentReminder {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Call successfully connected");
             // 4.1 Prepare the audio file to play as a menu for DTMF recognition.
             PlaySource reminderMessage = new FileSource()
-                    .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getReminderMessage())
+                    .setUri(callConfiguration.getAppBaseUrl() + Speech.getReminderMessage())
                     .setPlaySourceId("ReminderMessage");
             // 4.2 Create the parameters for the recognition.
             CallMediaRecognizeOptions recognizeOptions = new CallMediaRecognizeDtmfOptions(
@@ -120,45 +120,47 @@ public class AppointmentReminder {
                     Logger.MessageType.INFORMATION,
                     "startRecognizingWithResponse -- > " + getResponse(response)
             );
-        } else if (callEvent instanceof RecognizeCompleted && callEvent.getOperationContext().equals("ReminderMenu")) {
-            // 5. Recognize succeeded.
-            RecognizeCompleted recognizeCompleted = (RecognizeCompleted)callEvent;
-            // 5.1 Collect the tone that was recognized.
-            DtmfTone tone = recognizeCompleted.getCollectTonesResult().getTones().get(0);
-            Logger.logMessage(Logger.MessageType.INFORMATION, "DTMF tones received: " + tone);
-            PlaySource playSource;
-            // 5.2 Choose the right sound to play, based on the collected tone.
-            if (tone == DtmfTone.ONE) {
-                playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getConfirmationMessage())
-                        .setPlaySourceId("ConfirmationMessage");
-            } else if (tone == DtmfTone.TWO) {
-                playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getCancellationMessage())
-                        .setPlaySourceId("CancellationMessage");
-            } else {
-                playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getNoInputMessage())
-                        .setPlaySourceId("CancellationMessage");
-            }
-            // 5.3 Play the right sound.
-            Response<?> response = callMedia.playToAllWithResponse(playSource, new PlayOptions(), null);
-            Logger.logMessage(
-                    Logger.MessageType.INFORMATION,
-                    "PlayToAllWithResponse -- > " + getResponse(response)
-            );
-        } else if (callEvent instanceof RecognizeFailed && callEvent.getOperationContext().equals("ReminderMenu")) {
-            // 6. In case that the user didn't emit any tone.
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Recognize timed out");
-            // 6.1 Play the relevant sound.
-            PlaySource playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getNoInputMessage())
+        } else if (callEvent.getOperationContext() != null && callEvent.getOperationContext().equals("ReminderMenu")) {
+            if (callEvent instanceof RecognizeCompleted) {
+                // 5. Recognize succeeded.
+                RecognizeCompleted recognizeCompleted = (RecognizeCompleted) callEvent;
+                // 5.1 Collect the tone that was recognized.
+                DtmfTone tone = recognizeCompleted.getCollectTonesResult().getTones().get(0);
+                Logger.logMessage(Logger.MessageType.INFORMATION, "DTMF tones received: " + tone);
+                PlaySource playSource;
+                // 5.2 Choose the right sound to play, based on the collected tone.
+                if (tone == DtmfTone.ONE) {
+                    playSource = new FileSource()
+                            .setUri(callConfiguration.getAppBaseUrl() + Speech.getConfirmationMessage())
+                            .setPlaySourceId("ConfirmationMessage");
+                } else if (tone == DtmfTone.TWO) {
+                    playSource = new FileSource()
+                            .setUri(callConfiguration.getAppBaseUrl() + Speech.getCancellationMessage())
+                            .setPlaySourceId("CancellationMessage");
+                } else {
+                    playSource = new FileSource()
+                            .setUri(callConfiguration.getAppBaseUrl() + Speech.getInvalidInputMessage())
+                            .setPlaySourceId("InvalidMessage");
+                }
+                // 5.3 Play the right sound.
+                Response<?> response = callMedia.playToAllWithResponse(playSource, new PlayOptions(), null);
+                Logger.logMessage(
+                        Logger.MessageType.INFORMATION,
+                        "PlayToAllWithResponse -- > " + getResponse(response)
+                );
+            } else if (callEvent instanceof RecognizeFailed) {
+                // 6. In case that the user didn't emit any tone.
+                Logger.logMessage(Logger.MessageType.INFORMATION, "Recognize timed out");
+                // 6.1 Play the relevant sound.
+                PlaySource playSource = new FileSource()
+                        .setUri(callConfiguration.getAppBaseUrl() + Speech.getNoInputMessage())
                         .setPlaySourceId("NoInputMessage");
-            Response<?> response = callMedia.playToAllWithResponse(playSource, new PlayOptions(), null);
-            Logger.logMessage(
-                    Logger.MessageType.INFORMATION,
-                    "PlayToAllWithResponse -- > " + getResponse(response)
-            );
+                Response<?> response = callMedia.playToAllWithResponse(playSource, new PlayOptions(), null);
+                Logger.logMessage(
+                        Logger.MessageType.INFORMATION,
+                        "PlayToAllWithResponse -- > " + getResponse(response)
+                );
+            }
         } else if (callEvent instanceof PlayCompleted || callEvent instanceof PlayFailed) {
             // 7. Once the sound was played. Hang up the call.
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play completed! Terminating the call");

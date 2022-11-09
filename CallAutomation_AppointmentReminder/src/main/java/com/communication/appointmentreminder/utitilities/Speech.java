@@ -14,14 +14,16 @@ public class Speech {
         REMINDER,
         CONFIRMATION,
         CANCELLATION,
-        NO_OP
+        NO_OP,
+        INVALID
     }
 
     private static final Map<Messages, String> APP_SETTINGS_KEYS = Map.of(
         Messages.REMINDER, "ReminderMessage",
         Messages.CANCELLATION, "CancellationMessage",
         Messages.CONFIRMATION, "ConfirmationMessage",
-        Messages.NO_OP, "NoInputMessage"
+        Messages.NO_OP, "NoInputMessage",
+        Messages.INVALID, "InvalidInputMessage"
     );
 
     private static final String CUSTOM_REMINDER_MESSAGE_FILE_NAME = "custom-reminder-message.wav";
@@ -32,6 +34,8 @@ public class Speech {
     private static final String CANCELLATION_MESSAGE = "cancellation-message.wav";
     private static final String CUSTOM_NO_INPUT_MESSAGE_FILE_NAME = "custom-no-input-message.wav";
     private static final String NO_INPUT_MESSAGE = "no-input-message.wav";
+    private static final String CUSTOM_INVALID_INPUT_MESSAGE_FILE_NAME = "custom-invalid-input-message.wav";
+    private static final String INVALID_INPUT_MESSAGE = "invalid-input-message.wav";
 
     /// <summary>
     /// Get .wav Audio file for Reminder message.
@@ -59,6 +63,13 @@ public class Speech {
     /// </summary>
     public static String getNoInputMessage() {
         return getMessage(Messages.NO_OP, CUSTOM_NO_INPUT_MESSAGE_FILE_NAME, NO_INPUT_MESSAGE);
+    }
+
+    /// <summary>
+    /// Get .wav Audio file for Invalid Input received message.
+    /// </summary>
+    public static String getInvalidInputMessage() {
+        return getMessage(Messages.INVALID, CUSTOM_INVALID_INPUT_MESSAGE_FILE_NAME, INVALID_INPUT_MESSAGE);
     }
 
     private static String getMessage(Messages messageKind, String customName, String defaultName) {

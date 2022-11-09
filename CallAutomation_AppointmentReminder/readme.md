@@ -16,6 +16,10 @@ The application is a console-based application build on Java development kit(JDK
 
 ## Getting started
 
+### Design
+
+![design](./media/recognizeDtmfDesign.png)
+
 ### Prerequisites
 
 - Create an Azure account with an active subscription. For details, see [Create an account for free](https://azure.microsoft.com/free/)
@@ -34,11 +38,11 @@ The application is a console-based application build on Java development kit(JDK
 
 	- `ConnectionString`: Azure Communication Service resource's connection string.
 	- `SourcePhone`: Phone number associated with the Azure Communication Service resource.
-	- `DestinationIdentities`: Multiple sets of phone number targets. These sets are separated by a semi-colon.
+	- `DestinationIdentity`: Target Phone number.
 
-    	Format: "OutboundTarget1(Phone Number); OutboundTarget2(Phone Number);OutboundTarget3(Phone Number)".
+    	Format: "OutboundTarget(Phone Number)".
 
-	  	For e.g. "+1425XXXAAAA; +1425XXXBBBB; +1425XXXCCCC"
+	  	For e.g. "+1425XXXAAAA"
 
 	- `CallbackUrl`: Ngrok URL.
 	- `CognitiveServiceKey`: (Optional) Cognitive service key used for generating custom messages.

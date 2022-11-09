@@ -14,7 +14,7 @@ public class CallAutomationClientConfiguration {
         this.connectionString = connectionString;
         this.sourceIdentity = sourceIdentity;
         this.sourcePhoneNumber = sourcePhoneNumber;
-        this.appBaseUrl = appBaseUrl;
+        this.appBaseUrl = appBaseUrl + (appBaseUrl.endsWith("/") ? "" : "/");
         appCallbackUrl = appBaseUrl + Constants.CALLBACK_PATH;
     }
 

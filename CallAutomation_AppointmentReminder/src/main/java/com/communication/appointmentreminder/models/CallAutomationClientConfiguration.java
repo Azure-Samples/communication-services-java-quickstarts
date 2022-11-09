@@ -3,12 +3,11 @@ package com.communication.appointmentreminder.models;
 import com.communication.appointmentreminder.utitilities.Constants;
 
 public class CallAutomationClientConfiguration {
-    private String connectionString;
-    private String sourceIdentity;
-    private String sourcePhoneNumber;
-    private String appBaseUrl;
-    private String appCallbackUrl;
-    private String audioFileUrl;
+    private final String connectionString;
+    private final String sourceIdentity;
+    private final String sourcePhoneNumber;
+    private final String appBaseUrl;
+    private final String appCallbackUrl;
 
     public CallAutomationClientConfiguration(String connectionString, String sourceIdentity, String sourcePhoneNumber,
                              String appBaseUrl) {
@@ -37,9 +36,5 @@ public class CallAutomationClientConfiguration {
 
     public String getAppCallbackUrl() {
         return appCallbackUrl;
-    }
-
-    public String getAudioFileUrl() {
-        return audioFileUrl;
     }
 }

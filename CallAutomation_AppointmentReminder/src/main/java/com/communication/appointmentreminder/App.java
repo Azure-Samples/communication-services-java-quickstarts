@@ -1,19 +1,10 @@
 package com.communication.appointmentreminder;
 
-import com.communication.appointmentreminder.models.CallAutomationClientConfiguration;
-import com.communication.appointmentreminder.utitilities.Identity;
 import com.communication.appointmentreminder.utitilities.Logger;
-import com.communication.appointmentreminder.utitilities.Speech;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @SpringBootApplication
 public class App {
@@ -44,6 +35,4 @@ public class App {
             Logger.logMessage(Logger.MessageType.ERROR, "Failed to initiate the Appointment Reminder call. Exception -- > " + ex.getMessage());
         }
     }
-
-
 }

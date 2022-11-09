@@ -6,7 +6,24 @@ import com.microsoft.cognitiveservices.speech.SpeechSynthesisOutputFormat;
 import com.microsoft.cognitiveservices.speech.SpeechSynthesizer;
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
 
+import java.util.Map;
+
+/** Class that could generate messages using Azure Cognitive Speech **/
 public class Speech {
+    private enum Messages  {
+        REMINDER,
+        CONFIRMATION,
+        CANCELLATION,
+        NO_OP
+    }
+
+    private static final Map<Messages, String> APP_SETTINGS_KEYS = Map.of(
+        Messages.REMINDER, "ReminderMessage",
+        Messages.CANCELLATION, "CancellationMessage",
+        Messages.CONFIRMATION, "ConfirmationMessage",
+        Messages.NO_OP, "NoInputMessage"
+    );
+
     private static final String CUSTOM_REMINDER_MESSAGE_FILE_NAME = "custom-reminder-message.wav";
     private static final String REMINDER_MESSAGE = "reminder-message.wav";
     private static final String CUSTOM_CONFIRMATION_MESSAGE_FILE_NAME = "custom-confirmation-message.wav";
@@ -15,91 +32,40 @@ public class Speech {
     private static final String CANCELLATION_MESSAGE = "cancellation-message.wav";
     private static final String CUSTOM_NO_INPUT_MESSAGE_FILE_NAME = "custom-no-input-message.wav";
     private static final String NO_INPUT_MESSAGE = "no-input-message.wav";
+
     /// <summary>
-    /// Get .wav Audio file
+    /// Get .wav Audio file for Reminder message.
     /// </summary>
     public static String getReminderMessage() {
-        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
-        String key = configurationManager.getAppSettings("CognitiveServiceKey");
-        String region = configurationManager.getAppSettings("CognitiveServiceRegion");
-        String customMessage = configurationManager.getAppSettings("ReminderMessage");
-
-        try {
-            if (key != null && !key.isEmpty() && region != null && !region.isEmpty() && customMessage != null
-                    && !customMessage.isEmpty()) {
-                SpeechConfig config = SpeechConfig.fromSubscription(key, region);
-                config.setSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm);
-
-                AudioConfig audioConfig = AudioConfig.fromWavFileInput(
-                        Constants.AUDIO_FILES_ROUTE + CUSTOM_REMINDER_MESSAGE_FILE_NAME);
-                SpeechSynthesizer synthesizer = new SpeechSynthesizer(config, audioConfig);
-                synthesizer.SpeakTextAsync(customMessage).get();
-                synthesizer.close();
-                return CUSTOM_REMINDER_MESSAGE_FILE_NAME;
-            }
-            return REMINDER_MESSAGE;
-        } catch (Exception ex) {
-            Logger.logMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
-            return REMINDER_MESSAGE;
-        }
+        return getMessage(Messages.REMINDER, CUSTOM_REMINDER_MESSAGE_FILE_NAME, REMINDER_MESSAGE);
     }
+
+    /// <summary>
+    /// Get .wav Audio file for Appointment Confirmed message.
+    /// </summary>
     public static String getConfirmationMessage() {
-        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
-        String key = configurationManager.getAppSettings("CognitiveServiceKey");
-        String region = configurationManager.getAppSettings("CognitiveServiceRegion");
-        String customMessage = configurationManager.getAppSettings("ConfirmationMessage");
-
-        try {
-            if (key != null && !key.isEmpty() && region != null && !region.isEmpty() && customMessage != null
-                    && !customMessage.isEmpty()) {
-                SpeechConfig config = SpeechConfig.fromSubscription(key, region);
-                config.setSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm);
-
-                AudioConfig audioConfig = AudioConfig.fromWavFileInput(
-                        Constants.AUDIO_FILES_ROUTE + CUSTOM_CONFIRMATION_MESSAGE_FILE_NAME);
-                SpeechSynthesizer synthesizer = new SpeechSynthesizer(config, audioConfig);
-                synthesizer.SpeakTextAsync(customMessage).get();
-                synthesizer.close();
-                return CUSTOM_CONFIRMATION_MESSAGE_FILE_NAME;
-            }
-            return CONFIRMATION_MESSAGE;
-        } catch (Exception ex) {
-            Logger.logMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
-            return CONFIRMATION_MESSAGE;
-        }
+        return getMessage(Messages.CONFIRMATION, CUSTOM_CONFIRMATION_MESSAGE_FILE_NAME, CONFIRMATION_MESSAGE);
     }
 
+    /// <summary>
+    /// Get .wav Audio file for Appointment Cancellation message.
+    /// </summary>
     public static String getCancellationMessage() {
-        ConfigurationManager configurationManager = ConfigurationManager.getInstance();
-        String key = configurationManager.getAppSettings("CognitiveServiceKey");
-        String region = configurationManager.getAppSettings("CognitiveServiceRegion");
-        String customMessage = configurationManager.getAppSettings("CancellationMessage");
-
-        try {
-            if (key != null && !key.isEmpty() && region != null && !region.isEmpty() && customMessage != null
-                    && !customMessage.isEmpty()) {
-                SpeechConfig config = SpeechConfig.fromSubscription(key, region);
-                config.setSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm);
-
-                AudioConfig audioConfig = AudioConfig.fromWavFileInput(
-                        Constants.AUDIO_FILES_ROUTE + CUSTOM_CANCELLATION_MESSAGE_FILE_NAME);
-                SpeechSynthesizer synthesizer = new SpeechSynthesizer(config, audioConfig);
-                synthesizer.SpeakTextAsync(customMessage).get();
-                synthesizer.close();
-                return CUSTOM_CANCELLATION_MESSAGE_FILE_NAME;
-            }
-            return CANCELLATION_MESSAGE;
-        } catch (Exception ex) {
-            Logger.logMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
-            return CANCELLATION_MESSAGE;
-        }
+        return getMessage(Messages.CANCELLATION, CUSTOM_CANCELLATION_MESSAGE_FILE_NAME, CANCELLATION_MESSAGE);
     }
 
+    /// <summary>
+    /// Get .wav Audio file for No Input received message.
+    /// </summary>
     public static String getNoInputMessage() {
+        return getMessage(Messages.NO_OP, CUSTOM_NO_INPUT_MESSAGE_FILE_NAME, NO_INPUT_MESSAGE);
+    }
+
+    private static String getMessage(Messages messageKind, String customName, String defaultName) {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
         String key = configurationManager.getAppSettings("CognitiveServiceKey");
         String region = configurationManager.getAppSettings("CognitiveServiceRegion");
-        String customMessage = configurationManager.getAppSettings("NoInputMessage");
+        String customMessage = configurationManager.getAppSettings(APP_SETTINGS_KEYS.get(messageKind));
 
         try {
             if (key != null && !key.isEmpty() && region != null && !region.isEmpty() && customMessage != null
@@ -108,16 +74,16 @@ public class Speech {
                 config.setSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm);
 
                 AudioConfig audioConfig = AudioConfig.fromWavFileInput(
-                        Constants.AUDIO_FILES_ROUTE + CUSTOM_NO_INPUT_MESSAGE_FILE_NAME);
+                        Constants.AUDIO_FILES_ROUTE + customName);
                 SpeechSynthesizer synthesizer = new SpeechSynthesizer(config, audioConfig);
                 synthesizer.SpeakTextAsync(customMessage).get();
                 synthesizer.close();
-                return CUSTOM_NO_INPUT_MESSAGE_FILE_NAME;
+                return customName;
             }
-            return NO_INPUT_MESSAGE;
+            return defaultName;
         } catch (Exception ex) {
             Logger.logMessage(Logger.MessageType.ERROR,"Exception while generating text to speech, falling back to sample audio. Exception -- > " + ex.getMessage());
-            return NO_INPUT_MESSAGE;
+            return defaultName;
         }
     }
 }

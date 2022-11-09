@@ -50,6 +50,9 @@ public class AppointmentReminder {
     private static CallConnection callConnection;
     private static String targetPhoneNumber;
 
+    /**
+     * Sets the configuration needed to act on received events and to start calls.
+     */
     public static void setCConfiguration() {
         String callBackUrl = ConfigurationManager.getInstance().getAppSettings("CallbackUrl");
         callConfiguration = initiateConfiguration(callBackUrl);
@@ -58,17 +61,22 @@ public class AppointmentReminder {
                 .buildClient();
     }
 
+    /**
+     * This process starts the Reminder action.
+     * @param targetPhoneNumber - Phone Number to call, starting with +1.
+     */
     public static void executeReminder(String targetPhoneNumber) {
         try {
+
             setTargetPhoneNumber(targetPhoneNumber);
-            // Preparing request data
+            // 1. Preparing data to start the call.
             CommunicationUserIdentifier source = new CommunicationUserIdentifier(callConfiguration.getSourceIdentity());
             List<CommunicationIdentifier> targets = Collections.singletonList(new PhoneNumberIdentifier(targetPhoneNumber));
-
             CreateCallOptions createCallOption = new CreateCallOptions(source, targets, callConfiguration.getAppCallbackUrl());
             createCallOption.setSourceCallerId(callConfiguration.getSourcePhoneNumber());
-            Logger.logMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
 
+            // 2. Create the call.
+            Logger.logMessage(Logger.MessageType.INFORMATION,"Performing CreateCall operation");
             Response<CreateCallResult> response = callAutomationClient.createCallWithResponse(createCallOption, null);
             CreateCallResult callResult = response.getValue();
 
@@ -88,43 +96,43 @@ public class AppointmentReminder {
         }
     }
 
-    public static String getResponse(Response<?> response)
-    {
-        StringBuilder responseString;
-        responseString = new StringBuilder("StatusCode: " + response.getStatusCode() + ", Headers: { ");
-
-        for (HttpHeader header : response.getHeaders()) {
-            responseString.append(header.getName()).append(":").append(header.getValue()).append(", ");
-        }
-        responseString.append("} ");
-        return responseString.toString();
-    }
-
+    /**
+     * This is the controller that accepts Call Automation Webhook events.
+     * @param event - The webhook event emitted by Azure Call Automation.
+     */
     @RequestMapping("/api/outboundcall/callback")
     public static void handleIncomingEvents(@RequestBody(required = false) String event) {
+        // 3. Read the event received from Azure Call Automation.
         CallAutomationEventBase callEvent = EventHandler.parseEvent(event);
         CallMedia callMedia = callConnection.getCallMedia();
+        // 4. When the call has been connected...
         if(callEvent instanceof CallConnected) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Call successfully connected");
+            // 4.1 Prepare the audio file to play as a menu for DTMF recognition.
             PlaySource reminderMessage = new FileSource()
                     .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getReminderMessage())
                     .setPlaySourceId("ReminderMessage");
+            // 4.2 Create the parameters for the recognition.
             CallMediaRecognizeOptions recognizeOptions = new CallMediaRecognizeDtmfOptions(
                     new PhoneNumberIdentifier(targetPhoneNumber),
-                    1
+                    1       // Max number of tones to collect.
             )
                     .setPlayPrompt(reminderMessage)
                     .setOperationContext("ReminderMenu");
+            // 4.3 Start recognizing for DTMF tones.
             Response<?> response = callMedia.startRecognizingWithResponse(recognizeOptions, null);
             Logger.logMessage(
                     Logger.MessageType.INFORMATION,
                     "startRecognizingWithResponse -- > " + getResponse(response)
             );
         } else if (callEvent instanceof RecognizeCompleted && callEvent.getOperationContext().equals("ReminderMenu")) {
+            // 5. Recognize succeeded.
             RecognizeCompleted recognizeCompleted = (RecognizeCompleted)callEvent;
+            // 5.1 Collect the tone that was recognized.
             DtmfTone tone = recognizeCompleted.getCollectTonesResult().getTones().get(0);
             Logger.logMessage(Logger.MessageType.INFORMATION, "DTMF tones received: " + tone);
             PlaySource playSource;
+            // 5.2 Choose the right sound to play, based on the collected tone.
             if (tone == DtmfTone.ONE) {
                 playSource = new FileSource()
                         .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getConfirmationMessage())
@@ -134,13 +142,16 @@ public class AppointmentReminder {
                         .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getCancellationMessage())
                         .setPlaySourceId("CancellationMessage");
             }
+            // 5.3 Play the right sound.
             Response<?> response = callMedia.playToAllWithResponse(playSource, new PlayOptions(), null);
             Logger.logMessage(
                     Logger.MessageType.INFORMATION,
                     "PlayToAllWithResponse -- > " + getResponse(response)
             );
         } else if (callEvent instanceof RecognizeFailed && callEvent.getOperationContext().equals("ReminderMenu")) {
+            // 6. In case that the user didn't emit any tone.
             Logger.logMessage(Logger.MessageType.INFORMATION, "Recognize timed out");
+            // 6.1 Play the relevant sound.
             PlaySource playSource = new FileSource()
                         .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getNoInputMessage())
                         .setPlaySourceId("NoInputMessage");
@@ -150,11 +161,17 @@ public class AppointmentReminder {
                     "PlayToAllWithResponse -- > " + getResponse(response)
             );
         } else if (callEvent instanceof PlayCompleted) {
+            // 7. Once the sound was played. Hang up the call.
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play completed! Hanging up the call");
             callConnection.hangUp(true);
         }
     }
 
+    /**
+     * Controller to provide with sounds to the Play/Recognize operations.
+     * @param fileName - Filename to be provided.
+     * @return a stream with the file.
+     */
     @RequestMapping("/audio/{fileName}")
     public ResponseEntity<Object> loadFile(@PathVariable(value = "fileName", required = false) String fileName) {
         String filePath = Constants.AUDIO_FILES_ROUTE + fileName;
@@ -188,7 +205,19 @@ public class AppointmentReminder {
         return new CallAutomationClientConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, appBaseUrl);
     }
 
-    public static void setTargetPhoneNumber(String targetPhoneNumber) {
+    private static String getResponse(Response<?> response)
+    {
+        StringBuilder responseString;
+        responseString = new StringBuilder("StatusCode: " + response.getStatusCode() + ", Headers: { ");
+
+        for (HttpHeader header : response.getHeaders()) {
+            responseString.append(header.getName()).append(":").append(header.getValue()).append(", ");
+        }
+        responseString.append("} ");
+        return responseString.toString();
+    }
+
+    private static void setTargetPhoneNumber(String targetPhoneNumber) {
         AppointmentReminder.targetPhoneNumber = targetPhoneNumber;
     }
 }

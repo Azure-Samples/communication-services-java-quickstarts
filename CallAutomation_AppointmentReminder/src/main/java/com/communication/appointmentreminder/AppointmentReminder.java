@@ -137,9 +137,13 @@ public class AppointmentReminder {
                 playSource = new FileSource()
                         .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getConfirmationMessage())
                         .setPlaySourceId("ConfirmationMessage");
-            } else {
+            } else if (tone == DtmfTone.TWO) {
                 playSource = new FileSource()
                         .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getCancellationMessage())
+                        .setPlaySourceId("CancellationMessage");
+            } else {
+                playSource = new FileSource()
+                        .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getNoInputMessage())
                         .setPlaySourceId("CancellationMessage");
             }
             // 5.3 Play the right sound.

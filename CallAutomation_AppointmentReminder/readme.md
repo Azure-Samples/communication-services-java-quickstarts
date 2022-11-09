@@ -35,7 +35,7 @@ The application is a console-based application build on Java development kit(JDK
 ### Configuring application
 
 - Start ngrok in a terminal using the following command: `ngrok http 9007`, and copy the forwarding URL (`https://<ID>.grok.io`).
-- Open the config.properities file to configure the following settings
+- Open the config.properties file to configure the following settings
 
     - `ConnectionString`: Azure Communication Service resource's connection string.
     - `SourcePhone`: Phone number associated with the Azure Communication Service resource.
@@ -51,7 +51,8 @@ The application is a console-based application build on Java development kit(JDK
     - `ReminderMessage`: (Optional) Text for the custom message to be converted to speech.
     - `ConfirmationMessage`: (Optional) Text for the custom message when callee presses 1.
     - `CancellationMessage`: (Optional) Text for the custom message when callee presses 2.
-    - `NoInputMessage`: (Optional) Text for the custom message when callee presses invalid tone.
+    - `NoInputMessage`: (Optional) Text for the custom message when DTMF recognition times out.
+    - `InvalidInputMessage`: (Optional) Text for the custom message when callee presses invalid tone.
 
 ### Run the Application
 

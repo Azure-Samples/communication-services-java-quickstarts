@@ -9,10 +9,10 @@ products:
 
 # Appointment Reminder Call Sample
 
-This sample application shows how the Azure Communication Services - Call Automation SDK can be used to build automated call solutions.
-This sample makes an outbound call to a phone number and plays an audio message. Application plays next audio based on the key pressed by the callee.
-This sample application configured for accepting tone 1 (tone1) and 2 (tone2), If the callee pressed any other key than expected, or none at all, an invalid audio tone will be played and then call will be disconnected.
-The application is a console-based application build on Java development kit(JDK) 11.
+This sample application shows how the Azure Communication Services - Call Automation SDK can be used to build automated call solutions.  
+This sample makes an outbound call to a phone number and plays an audio message. Application plays next audio based on the key pressed by the callee.  
+This sample application configured for accepting tone 1 (tone1) and 2 (tone2), If the callee pressed any other key than expected, or none at all, an audio tone will be played accordingly and then call will be disconnected.  
+The application is a console-based application build on Java development kit(JDK) 11.  
 
 ## Getting started
 
@@ -34,23 +34,24 @@ The application is a console-based application build on Java development kit(JDK
 
 ### Configuring application
 
+- Start ngrok in a terminal using the following command: `ngrok http 9007`, and copy the forwarding URL (`https://<ID>.grok.io`).
 - Open the config.properities file to configure the following settings
 
-	- `ConnectionString`: Azure Communication Service resource's connection string.
-	- `SourcePhone`: Phone number associated with the Azure Communication Service resource.
-	- `DestinationIdentity`: Target Phone number.
+    - `ConnectionString`: Azure Communication Service resource's connection string.
+    - `SourcePhone`: Phone number associated with the Azure Communication Service resource.
+    - `DestinationIdentity`: Target Phone number.
 
-    	Format: "OutboundTarget(Phone Number)".
+        Format: "OutboundTarget(Phone Number)".
 
-	  	For e.g. "+1425XXXAAAA"
+          For e.g. "+1425XXXAAAA"
 
-	- `CallbackUrl`: Ngrok URL.
-	- `CognitiveServiceKey`: (Optional) Cognitive service key used for generating custom messages.
-	- `CognitiveServiceRegion`: (Optional) Region associated with cognitive service.
-	- `ReminderMessage`: (Optional) Text for the custom message to be converted to speech.
-	- `ConfirmationMessage`: (Optional) Text for the custom message when callee presses 1.
-	- `CancellationMessage`: (Optional) Text for the custom message when callee presses 2.
-	- `NoInputMessage`: (Optional) Text for the custom message when callee presses invalid tone.
+    - `CallbackUrl`: Ngrok Forwarding URL.
+    - `CognitiveServiceKey`: (Optional) Cognitive service key used for generating custom messages.
+    - `CognitiveServiceRegion`: (Optional) Region associated with cognitive service.
+    - `ReminderMessage`: (Optional) Text for the custom message to be converted to speech.
+    - `ConfirmationMessage`: (Optional) Text for the custom message when callee presses 1.
+    - `CancellationMessage`: (Optional) Text for the custom message when callee presses 2.
+    - `NoInputMessage`: (Optional) Text for the custom message when callee presses invalid tone.
 
 ### Run the Application
 

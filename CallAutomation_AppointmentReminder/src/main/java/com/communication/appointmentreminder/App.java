@@ -20,7 +20,7 @@ public class App {
         // Get configuration properties
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
         configurationManager.loadAppSettings();
-        AppointmentReminder.setCConfiguration();
+        AppointmentReminder.setConfiguration();
 
         runSample();
         Logger.logMessage(Logger.MessageType.INFORMATION, "Listening to Events. Press 'Ctrl + C' to exit the sample");

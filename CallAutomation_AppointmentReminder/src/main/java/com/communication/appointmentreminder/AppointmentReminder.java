@@ -15,7 +15,6 @@ import com.azure.communication.callautomation.models.PlayOptions;
 import com.azure.communication.callautomation.models.PlaySource;
 import com.azure.communication.callautomation.models.events.CallAutomationEventBase;
 import com.azure.communication.callautomation.models.events.CallConnected;
-import com.azure.communication.callautomation.models.events.CallDisconnected;
 import com.azure.communication.callautomation.models.events.PlayCompleted;
 import com.azure.communication.callautomation.models.events.PlayFailed;
 import com.azure.communication.callautomation.models.events.RecognizeCompleted;
@@ -48,7 +47,7 @@ public class AppointmentReminder {
     /**
      * Sets the configuration needed to act on received events and to start calls.
      */
-    public static void setCConfiguration() {
+    public static void setConfiguration() {
         String callBackUrl = ConfigurationManager.getInstance().getAppSettings("CallbackUrl");
         callConfiguration = initiateConfiguration(callBackUrl);
         callAutomationClient = new CallAutomationClientBuilder()

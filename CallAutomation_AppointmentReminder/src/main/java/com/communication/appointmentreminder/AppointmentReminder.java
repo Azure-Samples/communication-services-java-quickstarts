@@ -100,7 +100,6 @@ public class AppointmentReminder {
         // 3. Read the event received from Azure Call Automation.
         CallAutomationEventBase callEvent = EventHandler.parseEvent(event);
         CallMedia callMedia = callConnection.getCallMedia();
-        boolean hangUp = false;
         // 4. When the call has been connected...
         if(callEvent instanceof CallConnected) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Call successfully connected");
@@ -164,11 +163,6 @@ public class AppointmentReminder {
             // 7. Once the sound was played. Hang up the call.
             Logger.logMessage(Logger.MessageType.INFORMATION, "Play completed! Terminating the call");
             callConnection.hangUp(true);
-            hangUp = true;
-        } else if (callEvent instanceof CallDisconnected && !hangUp) {
-            // 7a. If call is disconnected, just hangup.
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Call disconnected! Hanging up the call");
-            callConnection.hangUp(false);
         }
     }
 

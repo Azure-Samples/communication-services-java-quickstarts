@@ -9,7 +9,7 @@ products:
 
 # Recording APIs Sample
 
-This is a sample application to show how the Azure Communication Services server calling SDK can be used to build a call recording feature.
+This is a sample application to show how the Azure Communication Services Call Automation SDK can be used to build a call recording feature.
 
 It's a Java web application powered by Spring Boot to connect this application with Azure Communication Services.
 

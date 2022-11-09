@@ -15,7 +15,9 @@ import com.azure.communication.callautomation.models.PlayOptions;
 import com.azure.communication.callautomation.models.PlaySource;
 import com.azure.communication.callautomation.models.events.CallAutomationEventBase;
 import com.azure.communication.callautomation.models.events.CallConnected;
+import com.azure.communication.callautomation.models.events.CallDisconnected;
 import com.azure.communication.callautomation.models.events.PlayCompleted;
+import com.azure.communication.callautomation.models.events.PlayFailed;
 import com.azure.communication.callautomation.models.events.RecognizeCompleted;
 import com.azure.communication.callautomation.models.events.RecognizeFailed;
 import com.azure.communication.common.CommunicationIdentifier;
@@ -28,17 +30,10 @@ import com.communication.appointmentreminder.utitilities.Constants;
 import com.communication.appointmentreminder.utitilities.Identity;
 import com.communication.appointmentreminder.utitilities.Logger;
 import com.communication.appointmentreminder.utitilities.Speech;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.util.Collections;
 import java.util.List;
 
@@ -92,7 +87,7 @@ public class AppointmentReminder {
 
             callConnection = callResult.getCallConnection();
         } catch (Exception ex) {
-            Logger.logMessage(Logger.MessageType.ERROR, "Failure occured while creating/establishing the call. Exception -- >" + ex.getMessage());
+            Logger.logMessage(Logger.MessageType.ERROR, "Failure occurred while creating/establishing the call. Exception -- >" + ex.getMessage());
         }
     }
 
@@ -100,17 +95,18 @@ public class AppointmentReminder {
      * This is the controller that accepts Call Automation Webhook events.
      * @param event - The webhook event emitted by Azure Call Automation.
      */
-    @RequestMapping("/api/outboundcall/callback")
+    @RequestMapping(Constants.CALLBACK_PATH)
     public static void handleIncomingEvents(@RequestBody(required = false) String event) {
         // 3. Read the event received from Azure Call Automation.
         CallAutomationEventBase callEvent = EventHandler.parseEvent(event);
         CallMedia callMedia = callConnection.getCallMedia();
+        boolean hangUp = false;
         // 4. When the call has been connected...
         if(callEvent instanceof CallConnected) {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Call successfully connected");
             // 4.1 Prepare the audio file to play as a menu for DTMF recognition.
             PlaySource reminderMessage = new FileSource()
-                    .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getReminderMessage())
+                    .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getReminderMessage())
                     .setPlaySourceId("ReminderMessage");
             // 4.2 Create the parameters for the recognition.
             CallMediaRecognizeOptions recognizeOptions = new CallMediaRecognizeDtmfOptions(
@@ -135,15 +131,15 @@ public class AppointmentReminder {
             // 5.2 Choose the right sound to play, based on the collected tone.
             if (tone == DtmfTone.ONE) {
                 playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getConfirmationMessage())
+                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getConfirmationMessage())
                         .setPlaySourceId("ConfirmationMessage");
             } else if (tone == DtmfTone.TWO) {
                 playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getCancellationMessage())
+                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getCancellationMessage())
                         .setPlaySourceId("CancellationMessage");
             } else {
                 playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getNoInputMessage())
+                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getNoInputMessage())
                         .setPlaySourceId("CancellationMessage");
             }
             // 5.3 Play the right sound.
@@ -157,43 +153,23 @@ public class AppointmentReminder {
             Logger.logMessage(Logger.MessageType.INFORMATION, "Recognize timed out");
             // 6.1 Play the relevant sound.
             PlaySource playSource = new FileSource()
-                        .setUri(callConfiguration.getAppBaseUrl() + "/audio/" + Speech.getNoInputMessage())
+                        .setUri(callConfiguration.getAppBaseUrl() + "/" + Speech.getNoInputMessage())
                         .setPlaySourceId("NoInputMessage");
             Response<?> response = callMedia.playToAllWithResponse(playSource, new PlayOptions(), null);
             Logger.logMessage(
                     Logger.MessageType.INFORMATION,
                     "PlayToAllWithResponse -- > " + getResponse(response)
             );
-        } else if (callEvent instanceof PlayCompleted) {
+        } else if (callEvent instanceof PlayCompleted || callEvent instanceof PlayFailed) {
             // 7. Once the sound was played. Hang up the call.
-            Logger.logMessage(Logger.MessageType.INFORMATION, "Play completed! Hanging up the call");
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Play completed! Terminating the call");
             callConnection.hangUp(true);
+            hangUp = true;
+        } else if (callEvent instanceof CallDisconnected && !hangUp) {
+            // 7a. If call is disconnected, just hangup.
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Call disconnected! Hanging up the call");
+            callConnection.hangUp(false);
         }
-    }
-
-    /**
-     * Controller to provide with sounds to the Play/Recognize operations.
-     * @param fileName - Filename to be provided.
-     * @return a stream with the file.
-     */
-    @RequestMapping("/audio/{fileName}")
-    public ResponseEntity<Object> loadFile(@PathVariable(value = "fileName", required = false) String fileName) {
-        String filePath = Constants.AUDIO_FILES_ROUTE + fileName;
-        File file = new File(filePath);
-        InputStreamResource resource = null;
-
-        try {
-            resource = new InputStreamResource(new FileInputStream(file));
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Cache-Control", "no-cache, no-store, must-revalidate");
-        headers.add("Pragma", "no-cache");
-
-        return ResponseEntity.ok().headers(headers).contentLength(file.length())
-                .contentType(MediaType.parseMediaType("audio/x-wav")).body(resource);
     }
 
     /// <summary>

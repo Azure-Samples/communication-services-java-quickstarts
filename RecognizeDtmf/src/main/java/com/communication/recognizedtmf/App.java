@@ -120,7 +120,6 @@ public class App {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
         String connectionString = configurationManager.getAppSettings("Connectionstring");
         String sourcePhoneNumber = configurationManager.getAppSettings("SourcePhone");
-        String maxRetryAttemptCount = configurationManager.getAppSettings("MaxRetryCount");
         String sourceIdentity = createUser(connectionString);
         String audioFileName = generateCustomAudioMessage(AudioName.GeneralAudio);
         String salesAudioFileName = generateCustomAudioMessage(AudioName.SalesAudio);
@@ -129,7 +128,7 @@ public class App {
         String invalidAudioFileName = generateCustomAudioMessage(AudioName.InvalidAudio);
 
         return new CallConfiguration(connectionString, sourceIdentity, sourcePhoneNumber, 
-        appBaseUrl, audioFileName, maxRetryAttemptCount, salesAudioFileName, marketingAudioFileName,
+        appBaseUrl, audioFileName, salesAudioFileName, marketingAudioFileName,
         customerCareAudioFileName, invalidAudioFileName);
     }
 

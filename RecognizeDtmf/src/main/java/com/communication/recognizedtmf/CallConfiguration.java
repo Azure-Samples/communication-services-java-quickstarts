@@ -10,14 +10,13 @@ public class CallConfiguration {
     public String audioFileName;
     public String appCallbackUrl;
     public String audioFileUrl;
-    public int maxRetryAttemptCount;
     public String SalesAudioFileName;
     public String MarketingAudioFileName;
     public String CustomerCareAudioFileName;
     public String InvalidAudioFileName;
 
     public CallConfiguration(String connectionString, String sourceIdentity, String sourcePhoneNumber,
-            String appBaseUrl, String audioFileName, String maxRetryAttemptCount, String salesAudioFileName,
+            String appBaseUrl, String audioFileName, String salesAudioFileName,
             String marketingAudioFileName, String customerCareAudioFileName, String invalidAudioFileName) {
         this.connectionString = connectionString;
         this.sourceIdentity = sourceIdentity;
@@ -27,7 +26,6 @@ public class CallConfiguration {
         EventAuthHandler eventhandler = EventAuthHandler.getInstance();
         this.appCallbackUrl = appBaseUrl + "/api/recognizedtmf/callback?" + eventhandler.getSecretQuerystring();
         audioFileUrl = appBaseUrl + "/audio/";
-        this.maxRetryAttemptCount = Integer.parseInt(maxRetryAttemptCount);
         this.SalesAudioFileName = salesAudioFileName;
         this.MarketingAudioFileName = marketingAudioFileName;
         this.CustomerCareAudioFileName = customerCareAudioFileName;

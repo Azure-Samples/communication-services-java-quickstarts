@@ -8,16 +8,15 @@ import com.acsrecording.api.ConfigurationManager;
 import com.acsrecording.api.Models.FileDownloadType;
 import com.acsrecording.api.Models.FileFormat;
 import com.acsrecording.api.Models.Mapper;
-import com.azure.communication.callingserver.CallingServerClientBuilder;
-import com.azure.communication.callingserver.models.CallRecordingProperties;
-import com.azure.communication.callingserver.models.CallRecordingState;
-import com.azure.communication.callingserver.models.RecordingChannel;
-import com.azure.communication.callingserver.models.RecordingContent;
-import com.azure.communication.callingserver.models.RecordingFormat;
+import com.azure.communication.callautomation.CallAutomationClientBuilder ;
+import com.azure.communication.callautomation.models.RecordingChannel;
+import com.azure.communication.callautomation.models.RecordingContent;
+import com.azure.communication.callautomation.models.RecordingFormat;
+import com.azure.communication.callautomation.models.RecordingState;
+import com.azure.communication.callautomation.models.ServerCallLocator;
 import com.azure.core.http.HttpHeader;
-import com.azure.communication.callingserver.models.StartCallRecordingResult;
-import com.azure.communication.callingserver.models.StartRecordingOptions;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.communication.callautomation.models.RecordingStateResult;
+import com.azure.communication.callautomation.models.StartRecordingOptions;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.cosmos.implementation.Strings;
@@ -40,8 +39,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -54,32 +51,28 @@ public class CallRecordingController  {
     Map<String,String> recordingDataMap;
     String container;
     String blobStorageConnectionString;
-    String recordingStateCallbackUrl;
     Logger logger;
     String recordingFileFormat;
-    private final com.azure.communication.callingserver.CallingServerClient callingServerClient;
+    private final com.azure.communication.callautomation.CallAutomationClient callAutomationClient;
 
     CallRecordingController() {
         ConfigurationManager configurationManager = ConfigurationManager.getInstance();
         String connectionString = configurationManager.getAppSettings("Connectionstring");
         container = configurationManager.getAppSettings("ContainerName");
-        recordingStateCallbackUrl = configurationManager.getAppSettings("CallbackUri");
         blobStorageConnectionString = configurationManager.getAppSettings("BlobStorageConnectionString");
 
-        NettyAsyncHttpClientBuilder httpClientBuilder = new NettyAsyncHttpClientBuilder();
-        CallingServerClientBuilder builder = new CallingServerClientBuilder().httpClient(httpClientBuilder.build())
-                .connectionString(connectionString);
-        callingServerClient = builder.buildClient();
+        callAutomationClient  = new CallAutomationClientBuilder().connectionString(connectionString).buildClient();
         logger =  Logger.getLogger(CallRecordingController.class.getName());
         recordingDataMap = new HashMap<>();
     }
 
     @GetMapping("/startRecording")
-    public StartCallRecordingResult startRecording(String serverCallId) {
-        URI recordingStateCallbackUri;
+    public RecordingStateResult startRecording(String serverCallId) {
+        ServerCallLocator serverCallLocator;
         try {
-            recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+            serverCallLocator = new ServerCallLocator(serverCallId);
 
+            StartRecordingOptions recordingOptions = new StartRecordingOptions(serverCallLocator);
             /*
              * Usage of StartRecordingOptions
              * 
@@ -92,7 +85,7 @@ public class CallRecordingController  {
              * recordingOptions.setRecordingChannel(RecordingChannel.MIXED);
              * recordingOptions.setRecordingFormat(RecordingFormat.MP4);
              */
-            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId).startRecordingWithResponse(String.valueOf(recordingStateCallbackUri), null, null);
+            Response<RecordingStateResult> response = this.callAutomationClient.getCallRecording().startRecordingWithResponse(recordingOptions, null);
             var output = response.getValue();
 
             logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: " + response.getValue().getRecordingId());
@@ -102,9 +95,9 @@ public class CallRecordingController  {
             recordingDataMap.replace(serverCallId, output.getRecordingId());
 
             return output;
-        } catch (URISyntaxException e) {
+        }catch (Exception e) {
             e.printStackTrace();
-            return  null;
+            return null;
         }
     }
 
@@ -114,13 +107,13 @@ public class CallRecordingController  {
      *****************/
 
     // @GetMapping("/startRecording")
-    public StartCallRecordingResult startRecordingWithArgs(String serverCallId, String recordingContent,
+    public RecordingStateResult startRecordingWithArgs(String serverCallId, String recordingContent,
             String recordingChannel, String recordingFormat) {
-        URI recordingStateCallbackUri;
+        ServerCallLocator serverCallLocator;
         try {
-            recordingStateCallbackUri = new URI(recordingStateCallbackUrl);
+            serverCallLocator = new ServerCallLocator(serverCallId);
 
-            StartRecordingOptions recordingOptions = new StartRecordingOptions();
+            StartRecordingOptions recordingOptions = new StartRecordingOptions(serverCallLocator);
             recordingOptions.setRecordingChannel(Mapper.getRecordingChannelMap()
                     .getOrDefault(recordingChannel.toLowerCase(), RecordingChannel.MIXED));
             recordingOptions.setRecordingFormat(
@@ -134,8 +127,8 @@ public class CallRecordingController  {
                             recordingOptions.getRecordingContent().toString(),
                             recordingOptions.getRecordingFormat().toString()));
 
-            Response<StartCallRecordingResult> response = this.callingServerClient.initializeServerCall(serverCallId)
-                    .startRecordingWithResponse(String.valueOf(recordingStateCallbackUri), recordingOptions, null);
+            Response<RecordingStateResult> response = this.callAutomationClient.getCallRecording()
+                    .startRecordingWithResponse(recordingOptions, null);
             var output = response.getValue();
 
             logger.log(Level.INFO, "Start Recording response --> " + getResponse(response) + "\n recording ID: "
@@ -146,10 +139,10 @@ public class CallRecordingController  {
             recordingDataMap.replace(serverCallId, output.getRecordingId());
 
             return output;
-        } catch (URISyntaxException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
-        }
+        } 
     }
 
     @GetMapping("/pauseRecording")
@@ -167,7 +160,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).pauseRecordingWithResponse(recordingId, null);
+            Response<Void> response = this.callAutomationClient.getCallRecording().pauseRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Pause Recording response --> " + getResponse(response));
         }
     }
@@ -187,7 +180,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).resumeRecordingWithResponse(recordingId, null);
+            Response<Void> response = this.callAutomationClient.getCallRecording().resumeRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Resume Recording response --> " + getResponse(response));
         }
     }
@@ -207,7 +200,7 @@ public class CallRecordingController  {
                 }
             }
 
-            Response<Void> response = this.callingServerClient.initializeServerCall(serverCallId).stopRecordingWithResponse(recordingId, null);
+            Response<Void> response = this.callAutomationClient.getCallRecording().stopRecordingWithResponse(recordingId, null);
             logger.log(Level.INFO, "Stop Recording response --> " + getResponse(response));
 
             recordingDataMap.remove(serverCallId);
@@ -215,7 +208,7 @@ public class CallRecordingController  {
     }
 
     @GetMapping("/getRecordingState")
-    public CallRecordingState getRecordingState(String serverCallId, String recordingId) {
+    public RecordingState getRecordingState(String serverCallId, String recordingId) {
         try {
             if (Strings.isNullOrEmpty(recordingId))
             {
@@ -229,14 +222,14 @@ public class CallRecordingController  {
                 }
             }
 
-            CallRecordingProperties recordingStateResult = this.callingServerClient.initializeServerCall(serverCallId).getRecordingState(recordingId);
+            RecordingStateResult recordingStateResult = this.callAutomationClient.getCallRecording().getRecordingState(recordingId);
             logger.log(Level.INFO, "Recording State --> " + recordingStateResult.getRecordingState().toString());
             
             return recordingStateResult.getRecordingState();
         }
         catch (Exception e) {
             e.printStackTrace();
-            return  null;
+            return null;
         }
     }
 
@@ -319,7 +312,7 @@ public class CallRecordingController  {
         Path path = Paths.get(filePath);
         logger.log(Level.INFO, String.format("Local file Path url -- > %s", filePath));
 
-        var downloadResponse = callingServerClient.downloadToWithResponse(url, path, null, true, null);
+        var downloadResponse = callAutomationClient.getCallRecording().downloadToWithResponse(url, path, null, null);
         logger.log(Level.INFO, String.format("Download media response --> %s", getResponse(downloadResponse)));
         logger.log(Level.INFO, String.format("Download media request --> %s", getRequestData(downloadResponse)));
 

@@ -2,9 +2,9 @@ package com.acsrecording.api.Models;
 
 import java.util.Map;
 import java.util.HashMap;
-import com.azure.communication.callingserver.models.RecordingContent;
-import com.azure.communication.callingserver.models.RecordingChannel;
-import com.azure.communication.callingserver.models.RecordingFormat;
+import com.azure.communication.callautomation.models.RecordingContent;
+import com.azure.communication.callautomation.models.RecordingChannel;
+import com.azure.communication.callautomation.models.RecordingFormat;
 
 public class Mapper {
     static Map<String, RecordingContent> recContentMap = new HashMap<String, RecordingContent>() {

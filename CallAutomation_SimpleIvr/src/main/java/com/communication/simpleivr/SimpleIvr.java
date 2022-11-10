@@ -1,34 +1,27 @@
 package com.communication.simpleivr;
 
-import com.communication.simpleivr.utils.ConfigurationManager;
-import com.communication.simpleivr.utils.Logger;
-import com.azure.core.util.BinaryData;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.azure.communication.callautomation.*;
 import com.azure.communication.callautomation.models.*;
 import com.azure.communication.callautomation.models.events.*;
 import com.azure.communication.callautomation.CallAutomationClientBuilder;
-import com.azure.communication.callautomation.CallConnection;
 import com.azure.communication.callautomation.EventHandler;
-import com.azure.communication.callautomation.CallAutomationClient;
 import com.azure.communication.callautomation.models.AddParticipantsOptions;
 import com.azure.communication.callautomation.models.AddParticipantsResult;
-import com.azure.communication.callautomation.models.AnswerCallOptions;
 import com.azure.communication.callautomation.models.AnswerCallResult;
-import com.azure.communication.callautomation.models.CallMediaRecognizeOptions;
 import com.azure.communication.callautomation.models.DtmfTone;
 import com.azure.communication.callautomation.models.FileSource;
-import com.azure.communication.callautomation.models.HangUpOptions;
-import com.azure.communication.callautomation.models.RecordingStateResult;
-import com.azure.communication.callautomation.models.ServerCallLocator;
-import com.azure.communication.callautomation.models.StartRecordingOptions;
 import com.azure.communication.callautomation.models.CallMediaRecognizeDtmfOptions;
-import com.azure.communication.callautomation.models.events.AddParticipantsSucceeded;
 import com.azure.communication.callautomation.models.events.CallAutomationEventBase;
 import com.azure.communication.callautomation.models.events.CallConnected;
 import com.azure.communication.callautomation.models.events.RecognizeCompleted;
@@ -36,23 +29,25 @@ import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.http.HttpHeader;
 import com.azure.core.http.rest.Response;
-
+import com.azure.core.util.BinaryData;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
+import com.azure.messaging.eventgrid.systemevents.AcsRecordingChunkInfoProperties;
+import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class SimpleIvr {
-    private static ConfigurationManager configurationManager = ConfigurationManager.getInstance();
-    private static CallConnection callConnection = null;
-    
     private CallAutomationAsyncClient client;
     private String connectionString = "<resource_connection_string>"; // noted from pre-requisite step
     private String callbackBaseUri = "<public_url_generated_by_ngrok>";
@@ -64,6 +59,7 @@ public class SimpleIvr {
     private String salesAudio = "/audio/sales.wav";
     private String applicationPhoneNumber = "<phone_number_acquired_as_prerequisite>";
     private String phoneNumberToAddToCall = "<phone_number_to_add_to_call>"; // in format of +1...
+    Logger logger =  Logger.getLogger(SimpleIvr.class.getName());
 
     private CallAutomationAsyncClient getCallAutomationAsyncClient() {
         if (client == null) {
@@ -118,15 +114,24 @@ public class SimpleIvr {
         List<CallAutomationEventBase> acsEvents = EventHandler.parseEventList(requestBody);
         
         PlaySource playSource = null;
-
+        callerId = callerId.replaceAll("\\s", "");
         for (CallAutomationEventBase acsEvent : acsEvents) {
             if (acsEvent instanceof CallConnected) {
                 CallConnected event = (CallConnected) acsEvent;
 
                 // Call was answered and is now established
                 String callConnectionId = event.getCallConnectionId();
-                CommunicationIdentifier target = CommunicationIdentifier.fromRawId(callerId);
 
+                // Start recording
+                ServerCallLocator serverCallLocator = new ServerCallLocator(getCallAutomationAsyncClient().getCallConnectionAsync(callConnectionId)
+                        .getCallProperties().block().getServerCallId());
+                StartRecordingOptions recordingOptions = new StartRecordingOptions(serverCallLocator);
+                Response<RecordingStateResult> response = getCallAutomationAsyncClient()
+                .getCallRecordingAsync().startRecordingWithResponse(recordingOptions).block();
+                logger.log(Level.INFO, "Start Recording with recording ID: " + response.getValue().getRecordingId());
+
+                CommunicationIdentifier target = CommunicationIdentifier.fromRawId(callerId);
+                
                 // Play audio then recognize 1-digit DTMF input with pound (#) stop tone
                 playSource = new FileSource().setUri(callbackBaseUri + mainmenuAudio);
                 CallMediaRecognizeDtmfOptions recognizeOptions = new CallMediaRecognizeDtmfOptions(target, 1);
@@ -168,8 +173,12 @@ public class SimpleIvr {
                                 .setSourceCallerId(new PhoneNumberIdentifier(applicationPhoneNumber));
                         Response<AddParticipantsResult> addParticipantsResultResponse = callConnectionAsync
                                 .addParticipantsWithResponse(addParticipantsOptions).block();
+                        
+                        logger.log(Level.INFO, String.format("addParticipants Response %s", getResponse(addParticipantsResultResponse)));
+
                     } else if (tone == DtmfTone.FIVE) {
-                        hangupAsync();
+                        hangupAsync(event.getCallConnectionId());
+                        break;
                     } else {
                         playSource = new FileSource().setUri(callbackBaseUri + invalidAudio);
                     }
@@ -184,19 +193,93 @@ public class SimpleIvr {
                 getCallAutomationAsyncClient().getCallConnectionAsync(callConnectionId)
                         .getCallMediaAsync().playToAllWithResponse(playSource, new PlayOptions()).block();
             } else if (acsEvent instanceof PlayCompleted){
-                hangupAsync();
+                hangupAsync(acsEvent.getCallConnectionId());
             }
 
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
-    
-    private static void hangupAsync() {
-        Logger.logMessage(Logger.MessageType.INFORMATION, "Performing Hangup operation");
 
-        HangUpOptions hangUpOptions = new HangUpOptions(true);
-        Response<Void> response = callConnection.hangUpWithResponse(hangUpOptions, null);
-        Logger.logMessage(Logger.MessageType.INFORMATION, "hangupWithResponse -- > " + getResponse(response));
+    @PostMapping(value = "/api/recording", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<?> getRecordingFile(@RequestBody String requestBody) {
+
+        List<EventGridEvent> eventGridEvents = EventGridEvent.fromString(requestBody);
+        for (EventGridEvent eventGridEvent : eventGridEvents) {
+            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
+                try {
+
+                    SubscriptionValidationEventData subscriptionValidationEvent = eventGridEvent.getData()
+                            .toObject(SubscriptionValidationEventData.class);
+                    SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();
+                    responseData.setValidationResponse(subscriptionValidationEvent.getValidationCode());
+
+                    return new ResponseEntity<>(responseData, HttpStatus.OK);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
+            if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED)) {
+                try {
+                    AcsRecordingFileStatusUpdatedEventData event = eventGridEvent
+                            .getData()
+                            .toObject(AcsRecordingFileStatusUpdatedEventData.class);
+
+                    AcsRecordingChunkInfoProperties recordingChunk = event
+                            .getRecordingStorageInfo()
+                            .getRecordingChunks().get(0);
+
+                    String fileName = String.format("%s.mp4", recordingChunk.getDocumentId());
+                    Response<BinaryData> downloadResponse = getCallAutomationAsyncClient().getCallRecordingAsync()
+                        .downloadContentWithResponse(recordingChunk.getContentLocation(), null).block();
+                    
+                    FileOutputStream fos = new FileOutputStream(new File(fileName));
+                    fos.write(downloadResponse.getValue().toBytes());
+
+                    logger.log(Level.INFO,
+                            String.format("Download media response --> %s", getResponse(downloadResponse)));
+                    logger.log(Level.INFO,
+                            String.format("successfully downloaded recording file here: %s ", fileName));
+
+                    return new ResponseEntity<>(true, HttpStatus.OK);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    logger.log(Level.SEVERE, e.getMessage());
+                    return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            } else {
+                return new ResponseEntity<>(eventGridEvent.getEventType() + " is not handled.",
+                        HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        return new ResponseEntity<>("Event count is not available.", HttpStatus.BAD_REQUEST);
+    }
+    
+    @RequestMapping("/audio/{fileName}")
+	public ResponseEntity<Object> loadFile(@PathVariable(value = "fileName", required = false) String fileName) {
+		String filePath = "src/main/java/com/communication/simpleivr/audio/" + fileName;
+		File file = new File(filePath);
+		InputStreamResource resource = null;
+
+		try {
+			resource = new InputStreamResource(new FileInputStream(file));
+		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Cache-Control", "no-cache, no-store, must-revalidate");
+		headers.add("Pragma", "no-cache");
+
+		return ResponseEntity.ok().headers(headers).contentLength(file.length())
+				.contentType(MediaType.parseMediaType("audio/x-wav")).body(resource);
+	}
+    
+    private void hangupAsync(String callConnectionId) {
+        logger.log(Level.INFO, "Performing Hangup operation");
+        getCallAutomationAsyncClient().getCallConnectionAsync(callConnectionId)
+                .hangUp(true).block();
     }
 
     private static String getResponse(Response<?> response) {

@@ -16,6 +16,10 @@ This sample application configured for accepting tone-1  through tone-5 , If the
 
 The application is an app service application built on java.  
 
+# Design
+
+![design](./data/simpleivr-design.png)
+
 ### Prerequisites
 
 - Create an Azure account with an active subscription. For details, see [Create an account for free](https://azure.microsoft.com/free/)

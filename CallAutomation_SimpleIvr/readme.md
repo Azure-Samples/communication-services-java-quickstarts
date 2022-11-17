@@ -42,6 +42,19 @@ The application is an app service application built on java.
 	- callbackBaseUri : Replace <public_url_generated_by_ngrok> with URI of the deployed app service or ngrok url.
 	- phoneNumberToAddToCall : Replace <phone_number_to_add_to_call> with target phone number to add as participant.
 
+### Create Webhook for Microsoft.Communication.IncomingCall event and Microsoft.Communication.RecordingFileStatusUpdated event
+IncomingCall is an Azure Event Grid event for notifying incoming calls to your Communication Services resource. To learn more about it, see [this guide](https://learn.microsoft.com/en-us/azure/communication-services/concepts/call-automation/incoming-call-notification). 
+1. Navigate to your resource on Azure portal and select `Events` from the left side menu.
+1. Select `+ Event Subscription` to create a new subscription. 
+1. Filter for Incoming Call event. 
+1. Choose endpoint type as web hook and provide the public url generated for your application by ngrok. Make sure to provide the exact api route that you programmed to receive the event previously. In this case, it would be <ngrok_url>/api/incomingCall. 
+![Screenshot of portal page to create a new event subscription.](./media/event-susbcription.png)
+![Screenshot of portal page to create a new event subscription.](./media/MicrosoftTeams-image.png)
+1. Select create to start the creation of subscription and validation of your endpoint as mentioned previously. The subscription is ready when the provisioning status is marked as succeeded. 
+1. Follow the Above steps to create Webhook for RecordingFileStatusUpdated event.
+
+This subscription currently has no filters and hence all incoming calls will be sent to your application. To filter for specific phone number or a communication user, use the Filters tab.
+
 ### Run the Application
 
 - Navigate to the directory containing the pom.xml file and use the following mvn commands:

@@ -6,10 +6,10 @@ import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
-import com.communication.MediaStreaming.WebApp.CallConfiguration;
-import com.communication.MediaStreaming.WebApp.MediaStreaming;
-import com.communication.MediaStreaming.WebApp.EventHandler.EventAuthHandler;
-import com.communication.MediaStreaming.WebApp.EventHandler.EventDispatcher;
+import com.communication.MediaStreaming.CallConfiguration;
+import com.communication.MediaStreaming.MediaStreaming;
+import com.communication.MediaStreaming.EventHandler.EventAuthHandler;
+import com.communication.MediaStreaming.EventHandler.EventDispatcher;
 
 import java.util.List;
 import com.google.gson.Gson;

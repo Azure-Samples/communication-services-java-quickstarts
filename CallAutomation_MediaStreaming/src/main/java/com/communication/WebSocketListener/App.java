@@ -1,10 +1,9 @@
-package com.communication.MediaStreaming.WebSocketListener;
+package com.communication.WebSocketListener;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -15,8 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class App {
     public static void main(String[] args) throws IOException,
@@ -63,14 +61,10 @@ public class App {
                             String decodedData = DecodeData(recvInput);
                             try {
                                 if (decodedData != null) {
-                                    Gson gson = new Gson();
-                                    JsonReader reader = new JsonReader(new StringReader(decodedData));
-                                    reader.setLenient(true);
-                                    AudioDataPackets jsonData = gson.fromJson(reader, AudioDataPackets.class);
+                                    AudioDataPackets jsonData = new ObjectMapper().readValue(decodedData, AudioDataPackets.class);
 
                                     if (jsonData != null && jsonData.kind.equals("AudioData")) {
-                                        String dataAsString = jsonData.audioData.data;
-                                        byte[] byteArray = dataAsString.getBytes();
+                                        byte[] byteArray = jsonData.audioData.data;
 
                                         // generate file name and write data into file in dictionary
                                         String fileName = String.format("%s.txt", jsonData.audioData.participantRawID)
@@ -146,13 +140,13 @@ public class App {
         return dataStream;
     }
 
-    public class AudioDataPackets {
+    public static class AudioDataPackets {
         public String kind;
         public AudioData audioData;
     }
 
-    class AudioData {
-        public String data; // Base64 Encoded audio buffer data
+    public static class AudioData {
+        public byte[] data; // Base64 Encoded audio buffer data
         public String timestamp; // In ISO 8601 format (yyyy-mm-ddThh:mm:ssZ)
         public String participantRawID;
         public boolean silent; // Indicates if the received audio buffer contains only silence.

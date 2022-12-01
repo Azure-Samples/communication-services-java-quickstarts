@@ -47,6 +47,7 @@ public class MediaStreaming {
             AnswerCallResult answerCallResult = response.getValue();
 
             Logger.logMessage(Logger.MessageType.INFORMATION, "AnswerCallWithResponse -- > " + getResponse(response));
+            Logger.logMessage(Logger.MessageType.INFORMATION, "Call Connection ID -- > " + answerCallResult.getCallConnectionProperties().getCallConnectionId());
 
             registerToCallStateChangeEvent(answerCallResult.getCallConnectionProperties().getCallConnectionId());
             //Wait for the call to get connected

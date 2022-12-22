@@ -45,9 +45,7 @@ public class IncomingCallController {
       BinaryData eventData = eventGridEvent.getData();
 
       if (
-        eventGridEvent
-          .getEventType()
-          .equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)
+        SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION.equals(eventGridEvent.getEventType()) && eventGridEvent!=null
       ) {
         try {
           SubscriptionValidationEventData subscriptionValidationEvent = eventData.toObject(

@@ -23,8 +23,11 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 - Create an [Azure Email Communication Services resource](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/email/create-email-communication-resource) to start sending emails.
 - A setup managed identity for a development environment, [see Authorize access with managed identity](https://docs.microsoft.com/azure/communication-services/quickstarts/managed-identity-from-cli).
 
+> Note: We can also send an email from our own verified domain [Add custom verified domains to Email Communication Service](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/email/add-custom-verified-domains).
 
-> Note: We can send an email from our own verified domain also [Add custom verified domains to Email Communication Service](https://docs.microsoft.com/en-us/azure/communication-services/quickstarts/email/add-custom-verified-domains).
+
+### Prerequisite check
+- To view the domains verified with your Email Communication Services resource, sign in to the [Azure portal](https://portal.azure.com/). Locate your Email Communication Services resource and open the **Provision domains** tab from the left navigation pane.
 
 ## Code Structure
 
@@ -36,15 +39,16 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 1. Open an instance of PowerShell, Windows Terminal, Command Prompt or equivalent and navigate to the directory that you'd like to clone the sample to.
 2. `git clone https://github.com/Azure-Samples/communication-services-java-quickstarts.git`
 3. Open **App.java** file to configure the following settings:
-  - `connectionstring`: Replace `<ACS_CONNECTION_STRING>` with Azure Communication Service resource's connection string.
-  - `sender`: Replace `<SENDER_EMAIL>` with the sender email obtained from Azure Communication Service.
-  - `recipient`: Replace `<RECIPIENT_EMAIL>` with the recipient email.
-  - Replace `<RECIPIENT_DISPLAY_NAME>` with recipient's display name.
-  - `content`: Either use PlainText or Html to set the message content.
+  - `connectionString`: Replace `<ACS_CONNECTION_STRING>` with rhe connection string found within the 'Keys' blade of the Azure Communication Service resource.
+  - `senderAddress`: Replace `<SENDER_EMAIL_ADDRESS>` with the sender email address obtained from the linked domain resource.
+  - `recipientAddress`: Replace `<RECIPIENT_EMAIL_ADDRESS>` with the recipient email address.
 
 
 ## Run the code
 
-1. Navigate to the directory containing the pom.xml file and compile the project by using command `mvn compile`.
-2. Build the package using command `mvn package`.
-3. Run the command to execute the app `mvn exec:java -Dexec.mainClass="com.communication.quickstart.App" -Dexec.cleanupDaemonThreads=false`.
+Run the following commands to build and execute the code.
+
+```powershell
+mvn clean compile assembly:single
+java -jar .\target\send-email-1.0-SNAPSHOT-jar-with-dependencies.jar
+```

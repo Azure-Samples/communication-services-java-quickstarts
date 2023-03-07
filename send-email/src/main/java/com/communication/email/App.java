@@ -1,81 +1,73 @@
 package com.communication.email;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Duration;
 
-import com.azure.communication.email.*;
-import com.azure.communication.email.models.EmailAddress;
-import com.azure.communication.email.models.EmailContent;
+import com.azure.communication.email.EmailClientBuilder;
+import com.azure.communication.email.EmailClient;
+import com.azure.communication.email.models.EmailSendResult;
+import com.azure.communication.email.models.EmailSendStatus;
 import com.azure.communication.email.models.EmailMessage;
-import com.azure.communication.email.models.EmailRecipients;
-import com.azure.communication.email.models.SendEmailResult;
-import com.azure.communication.email.models.SendStatus;
-import com.azure.communication.email.models.SendStatusResult;
+import com.azure.core.util.polling.SyncPoller;
+import com.azure.core.util.polling.LongRunningOperationStatus;
+import com.azure.core.util.polling.PollResponse;
+
 
 public class App 
 {
+    public static final Duration POLLER_WAIT_TIME = Duration.ofSeconds(10);
+
     public static void main( String[] args )
     {
         String connectionString = "<ACS_CONNECTION_STRING>";
+        String senderAddress = "<SENDER_EMAIL_ADDRESS>";
+        String recipientAddress = "<RECIPIENT_EMAIL_ADDRESS>";
 
-        EmailClient emailClient = new EmailClientBuilder().connectionString(connectionString).buildClient();
-    
-        String subject = "Send email quick start - java";
+        EmailClient client = new EmailClientBuilder()
+            .connectionString(connectionString)
+            .buildClient();
 
-        EmailContent emailContent = new EmailContent(subject)
-        .setPlainText("This is plain mail send test body \n Best Wishes!!")
-        .setHtml("<html><body><h1>Quick send email test</h1><br/><h4>Communication email as a service mail send app working properly</h4><p>Happy Learning!!</p></body></html>");
-        
-        String sender = "<SENDER_EMAIL>";
-        List<EmailAddress> emailAddress = new ArrayList<EmailAddress>() {
-            {
-                add(new EmailAddress("<RECIPIENT_EMAIL>").setDisplayName("<RECIPIENT_DISPLAY_NAME>"));
-            }
-        };
-
-        EmailRecipients emailRecipients = new EmailRecipients(emailAddress);
-
-        EmailMessage emailMessage = new EmailMessage(sender, emailContent)
-        .setRecipients(emailRecipients);
+        EmailMessage message = new EmailMessage()
+            .setSenderAddress(senderAddress)
+            .setToRecipients(recipientAddress)
+            .setSubject("Test email from Java Sample")
+            .setBodyPlainText("This is plaintext body of test email.")
+            .setBodyHtml("<html><h1>This is the html body of test email.</h1></html>");
 
         try
         {
-            SendEmailResult sendEmailResult = emailClient.send(emailMessage);
+            SyncPoller<EmailSendResult, EmailSendResult> poller = client.beginSend(message, null);
 
-            String messageId = sendEmailResult.getMessageId();
-            if (!messageId.isEmpty() && messageId != null)
-            {
-                System.out.printf("Email sent, MessageId = {%s} %n", messageId);
-            }
-            else
-            {
-                System.out.println("Failed to send email.");
-                return;
-            }
+            PollResponse<EmailSendResult> pollResponse = null;
 
-            long waitTime = 120*1000;
-            boolean timeout = true;
-            while (waitTime > 0)
-            {
-                SendStatusResult sendStatus = emailClient.getSendStatus(messageId);
-                System.out.printf("Send mail status for MessageId : <{%s}>, Status: [{%s}]", messageId, sendStatus.getStatus());
+            Duration timeElapsed = Duration.ofSeconds(0);
 
-                if (!sendStatus.getStatus().toString().toLowerCase().equals(SendStatus.QUEUED.toString()))
-                {
-                    timeout = false;
-                    break;
-                }
-                Thread.sleep(10000);
-                waitTime = waitTime-10000;
-            }
+             while (pollResponse == null
+                     || pollResponse.getStatus() == LongRunningOperationStatus.NOT_STARTED
+                     || pollResponse.getStatus() == LongRunningOperationStatus.IN_PROGRESS)
+             {
+                 pollResponse = poller.poll();
+                 System.out.println("Email send poller status: " + pollResponse.getStatus());
 
-            if(timeout)
-            {
-                System.out.println("Looks like we timed out for email");
-            }
+                 Thread.sleep(POLLER_WAIT_TIME.toMillis());
+                 timeElapsed = timeElapsed.plus(POLLER_WAIT_TIME);
+
+                 if (timeElapsed.compareTo(POLLER_WAIT_TIME.multipliedBy(18)) >= 0)
+                 {
+                     throw new RuntimeException("Polling timed out.");
+                 }
+             }
+
+             if (poller.getFinalResult().getStatus() == EmailSendStatus.SUCCEEDED)
+             {
+                 System.out.printf("Successfully sent the email (operation id: %s)", poller.getFinalResult().getId());
+             }
+             else
+             {
+                 throw new RuntimeException(poller.getFinalResult().getError().getMessage());
+             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            System.out.printf("Error in sending email, {%s}", ex);
+            System.out.println(exception.getMessage());
         }
     }
 }

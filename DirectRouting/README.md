@@ -4,9 +4,7 @@ languages:
 - Java
 products:
 - azure
-- azure-communication-phonenumbers
-- azure-identity
-- azure-communication-common
+- azure-communication-services
 ---
 
 

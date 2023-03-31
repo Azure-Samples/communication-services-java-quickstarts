@@ -40,7 +40,7 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 2. `git clone https://github.com/Azure-Samples/communication-services-java-quickstarts.git`
 3. Open **App.java** file to configure the following settings:
 
-   - `connectionString`: Replace `<ACS_CONNECTION_STRING>` with rhe connection string found within the 'Keys' blade of the Azure Communication Service resource.
+   - `connectionString`: Replace `<ACS_CONNECTION_STRING>` with the connection string found within the 'Keys' blade of the Azure Communication Service resource.
    - `senderAddress`: Replace `<SENDER_EMAIL_ADDRESS>` with the sender email address obtained from the linked domain resource.
    - `recipientAddress`: Replace `<RECIPIENT_EMAIL_ADDRESS>` with the recipient email address.
 

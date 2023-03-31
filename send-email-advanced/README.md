@@ -31,7 +31,7 @@ Additional documentation for this sample can be found on [Microsoft Docs](https:
 
 ## Code Structure
 
-- **./send-email/src/main/java/com/communication/email/App.java:** contains code for sending email.
+- **./sample-name/src/main/java/com/communication/email/App.java:** contains code for sending email.
 - **pom.xml:** Project's Project Object Model, or [POM](https://maven.apache.org/guides/introduction/introduction-to-the-pom.html).
 
 ## Before running sample code

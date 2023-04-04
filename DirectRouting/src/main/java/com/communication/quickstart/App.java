@@ -1,7 +1,7 @@
 package com.communication.quickstart;
 
-import com.azure.communication.phonenumbers.SipRoutingAsyncClient;
-import com.azure.communication.phonenumbers.SipRoutingClientBuilder;
+import com.azure.communication.phonenumbers.siprouting.SipRoutingAsyncClient;
+import com.azure.communication.phonenumbers.siprouting.SipRoutingClientBuilder;
 import com.azure.communication.phonenumbers.siprouting.models.SipTrunk;
 import com.azure.communication.phonenumbers.siprouting.models.SipTrunkRoute;
 import static java.util.Arrays.asList;

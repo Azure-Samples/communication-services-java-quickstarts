@@ -57,20 +57,19 @@ public class App {
         }
     }
 
-    // Please provide trunks' FQDNs
     private static void setTrunksAndRoutes(SipRoutingAsyncClient client) {
         System.out.println("Setting trunks");
         client.setTrunksWithResponse(asList(
-                new SipTrunk("<your-sbc-fqdn>", 1234),
-                new SipTrunk("<your-second-sbc-fqdn>", 1234)
+                new SipTrunk("sbc.us.contoso.com", 1234),
+                new SipTrunk("sbc.eu.contoso.com", 1234)
         )).block();
 
         System.out.println("Setting routes");
         client.setRoutes(asList(
                 new SipTrunkRoute("UsRoute", "^\\+1(\\d{10})$")
-                        .setTrunks(asList("<your-sbc-fqdn>")),
+                        .setTrunks(asList("sbc.us.contoso.com")),
                 new SipTrunkRoute("DefaultRoute", "^\\+\\d+$")
-                        .setTrunks(asList("<your-second-sbc-fqdn>", "<your-sbc-fqdn>"))
+                        .setTrunks(asList("sbc.us.contoso.com", "sbc.eu.contoso.com"))
         )).block();
     }
 }

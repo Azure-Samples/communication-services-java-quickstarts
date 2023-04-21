@@ -33,6 +33,27 @@ public class App {
             System.err.println("Setting failed");
         }
 
+        try {
+            listTrunksAndRoutes(sipRoutingAsyncClient);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Listing failed");
+        }
+
+        try {
+            updateTrunk(sipRoutingAsyncClient);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Setting failed");
+        }
+
+        try {
+            listTrunksAndRoutes(sipRoutingAsyncClient);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Listing failed");
+        }
+
         System.out.println("Finish");
     }
 
@@ -70,5 +91,10 @@ public class App {
                 new SipTrunkRoute("DefaultRoute", "^\\+\\d+$")
                         .setTrunks(asList("sbc.us.contoso.com", "sbc.eu.contoso.com"))
         )).block();
+    }
+
+    private static void updateTrunk(SipRoutingAsyncClient client) {
+        System.out.println("Updating trunk");
+        client.setTrunk(new SipTrunk("sbc.us.contoso.com", 9876)).block();
     }
 }

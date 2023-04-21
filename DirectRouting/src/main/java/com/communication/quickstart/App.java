@@ -26,13 +26,12 @@ public class App {
             System.err.println("Listing failed");
         }
 
-        /*
         try {
             setTrunksAndRoutes(sipRoutingAsyncClient);
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Setting failed");
-        }*/
+        }
 
         System.out.println("Finish");
     }

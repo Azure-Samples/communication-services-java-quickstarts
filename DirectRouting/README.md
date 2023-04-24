@@ -17,7 +17,9 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 - An Azure account with an active subscription. [Create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F). 
 - [Java Development Kit (JDK)](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install) version 8 or above
 - [Apache Maven](https://maven.apache.org/download.cgi)
-- An deployed Communication Services resource and connection string. For details, see [Create a Communication Services resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource).
+- A deployed Communication Services resource and connection string. For details, see [Create a Communication Services resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource).
+- Fully Qualified Domain Name (FQDN) and port number of a Session Border Controller (SBC) in operational telephony system.
+- [Verified domain name](https://learn.microsoft.com/en-us/azure/communication-services/how-tos/telephony/domain-validation) of the SBC FQDN.
 
 ## Code Structure
 
@@ -30,6 +32,7 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 2. `git clone https://github.com/Azure-Samples/communication-services-java-quickstarts.git`
 3.  With the Communication Services procured in pre-requisites, add connection string in the code at line no 13
     ```String connectionString = "https://<RESOURCE_NAME>.communication.azure.com/;accesskey=<ACCESS_KEY>";```. 
+4. Replace FQDNs of contoso.com domain with your FQDNs
 
 
 ## Run the code

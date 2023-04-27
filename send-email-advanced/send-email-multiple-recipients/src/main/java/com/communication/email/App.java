@@ -20,6 +20,7 @@ public class App
         String connectionString = "<ACS_CONNECTION_STRING>";
         String senderAddress = "<SENDER_EMAIL_ADDRESS>";
         String recipientAddress = "<RECIPIENT_EMAIL_ADDRESS>";
+        String replyToAddress = "<REPLYTO_EMAIL_ADDRESS>";
 
         EmailClient client = new EmailClientBuilder()
             .connectionString(connectionString)
@@ -30,6 +31,7 @@ public class App
             .setToRecipients(recipientAddress, recipientAddress)
             .setCcRecipients(recipientAddress)
             .setBccRecipients(recipientAddress)
+            .setReplyTo(replyToAddress)
             .setSubject("Test email from Java Sample")
             .setBodyPlainText("This is plaintext body of test email.")
             .setBodyHtml("<html><h1>This is the html body of test email.</h1></html>");

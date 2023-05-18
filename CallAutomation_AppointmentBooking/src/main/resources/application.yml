@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: AppointmentBooking
+
+server:
+  port: 9099
+
+acs:
+  connectionstring: 
+  basecallbackuri: https://9b93-173-176-165-160.ngrok.io
+  timeoutms: 30000
+  mediarecordingstarted: "/mediafiles/recordingstarted.wav"
+  mediamainmenu: "/mediafiles/mainmenu.wav"
+  mediaretry: "/mediafiles/retry.wav"
+  mediagoodbye: "/mediafiles/goodbye.wav"
+  mediachoice1: "/mediafiles/choice1.wav"
+  mediachoice2: "/mediafiles/choice2.wav"
+  mediachoice3: "/mediafiles/choice3.wav"

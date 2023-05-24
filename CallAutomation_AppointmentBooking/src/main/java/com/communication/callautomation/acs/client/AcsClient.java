@@ -62,12 +62,10 @@ public class AcsClient implements CallAutomationService {
             Response<RecordingStateResult> response = callAutomationClientFactory.getCallAutomationClient().getCallRecording().startWithResponse(recordingOptions, Context.NONE);
             String recordingId = response.getValue().getRecordingId();
             log.info("Start Recording with recording ID: {}", recordingId);
-
-            return recordingId;
+            return "Start Recording operation finished";
         } catch(Exception e) {
-            throw new AzureCallAutomationException(String.format(
-                    Locale.ROOT, "Attempt to start recording failed !",
-                    e.getMessage(), e));
+            log.error("Recording operation failed {} {}", e.getMessage(), e.getCause());
+            throw new AzureCallAutomationException(e.getMessage(), e);
         }
     }
 
@@ -76,39 +74,39 @@ public class AcsClient implements CallAutomationService {
         List<CommunicationIdentifier> listTargets = Arrays.asList(CommunicationIdentifier.fromRawId(target));
         PlaySource playSource = new FileSource().setUrl(acsConfig.getMediaUri(prompt));
         PlayOptions playOptions = new PlayOptions(playSource, listTargets);
-        Response response;
-
+        log.info("Play audio operation started");
         try {
-            response = callAutomationClientFactory.getCallAutomationClient().getCallConnection(callconnectionId).getCallMedia().playWithResponse(playOptions, Context.NONE);
+            Response response = callAutomationClientFactory.getCallAutomationClient()
+                    .getCallConnection(callconnectionId)
+                    .getCallMedia()
+                    .playWithResponse(playOptions, Context.NONE);
+            return "Play audio operation finished";
         } catch(Exception e) {
-            throw new AzureCallAutomationException(String.format(
-                    Locale.ROOT, "Attempt to play to target participant failed !",
-                    e.getMessage(), e));
+            log.error("Error when Playing audio to participant {} {}", e.getMessage(), e.getCause());
+            throw new AzureCallAutomationException(e.getMessage(), e);
         }
-        return response.getValue().toString();
     }
 
     @Override
     public String singleDigitDtmfRecognitionWithPrompt(final String callconnectionId, final String target, final String prompt) {
         CommunicationIdentifier rectarget = CommunicationIdentifier.fromRawId(target);
-        PlaySource playSource = new FileSource().setUrl(acsConfig.getBasecallbackuri() + prompt);
+        PlaySource playSource = new FileSource().setUrl(acsConfig.getMediaUri(prompt));
         CallMediaRecognizeDtmfOptions recognizeDtmfOptions = new CallMediaRecognizeDtmfOptions(rectarget, 1);
         recognizeDtmfOptions.setInterToneTimeout(Duration.ofSeconds(10))
-                .setInitialSilenceTimeout(Duration.ofSeconds(5))
+                .setInitialSilenceTimeout(Duration.ofSeconds(15))
                 .setInterruptPrompt(true)
                 .setPlayPrompt(playSource);
-        Response response;
+        log.info("DTMF Recognition operation started");
         try {
-            response = callAutomationClientFactory.getCallAutomationClient()
+            Response response = callAutomationClientFactory.getCallAutomationClient()
                     .getCallConnection(callconnectionId)
                     .getCallMedia()
                     .startRecognizingWithResponse(recognizeDtmfOptions, Context.NONE);
+            return "DTMF Recognition operation ended";
         } catch(Exception e) {
-            throw new AzureCallAutomationException(String.format(
-                    Locale.ROOT, "Attempt to recognize single dtmf tones failed !",
-                    e.getMessage(), e));
+            log.error("DTMF Recognition operation failed {} {}", e.getMessage(), e.getCause());
+            throw new AzureCallAutomationException(e.getMessage(), e);
         }
-        return response.getValue().toString();
     }
 
     @Override
@@ -116,11 +114,10 @@ public class AcsClient implements CallAutomationService {
         log.info("Terminating the call");
         try {
             callAutomationClientFactory.getCallAutomationClient().getCallConnection(callconnectionId).hangUp(true);
+            return "HangUp call for all participants operation ended";
         } catch(Exception e) {
-            throw new AzureCallAutomationException(String.format(
-                    Locale.ROOT, "Attempt to terminate the call for all participants failed !",
-                    e.getMessage(), e));
+            log.error("HangUp call for all participants operation failed {} {}", e.getMessage(), e.getCause());
+            throw new AzureCallAutomationException(e.getMessage(), e);
         }
-        return null;
     }
 }

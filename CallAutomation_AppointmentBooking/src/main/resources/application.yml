@@ -6,8 +6,8 @@ server:
   port: 9099
 
 acs:
-  connectionstring: 
-  basecallbackuri: https://d3e0-173-176-165-160.ngrok.io
+  connectionstring: <YOUR ACS CONNECTION STRING>
+  basecallbackuri: https://1c78-173-176-165-160.ngrok.io
   timeoutms: 30000
   mediarecordingstarted: "/mediafiles/recordingstarted.wav"
   mediamainmenu: "/mediafiles/mainmenu.wav"

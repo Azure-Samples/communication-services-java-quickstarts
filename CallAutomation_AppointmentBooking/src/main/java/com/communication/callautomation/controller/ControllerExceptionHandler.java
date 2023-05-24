@@ -21,19 +21,19 @@ public class ControllerExceptionHandler {
     @ExceptionHandler(value = InvalidEventPayloadException.class)
     public ResponseEntity<String> handleInvalidEventPayloadException(final Exception exception) {
         log.warn("Invalid payload : {}", exception.getMessage());
-        return buildExceptionResponse("Missing information in payload !", HttpStatus.CONFLICT);
+        return buildExceptionResponse("Missing information in payload !", HttpStatus.OK);
     }
 
     @ExceptionHandler(value = AzureCallAutomationException.class)
     public ResponseEntity<String> handleAzureCallAutomationException(final Exception exception) {
         log.warn("Remote server error : {}", exception.getMessage());
-        return buildExceptionResponse("An error occurred while talking to a remote server !", HttpStatus.BAD_GATEWAY);
+        return buildExceptionResponse("An error occurred while talking to a remote server !", HttpStatus.OK);
     }
 
     @ExceptionHandler(value = MediaLoadingException.class)
     public ResponseEntity<String> handleMediaLoadingException(final Exception exception) {
         log.warn("Server error : {}", exception.getMessage());
-        return buildExceptionResponse("An error occurred in server IO operation !", HttpStatus.INTERNAL_SERVER_ERROR);
+        return buildExceptionResponse("An error occurred in server IO operation !", HttpStatus.OK);
     }
 
     @ExceptionHandler(value = Exception.class)

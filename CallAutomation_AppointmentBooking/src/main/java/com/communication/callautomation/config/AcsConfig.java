@@ -48,10 +48,10 @@ public class AcsConfig {
     }
 
     public String getCallbackUri(String callerId){
-        return basecallbackuri + String.format("/%s/calls/ongoing/%s?callerId=%s", ApiVersion.CURRENT, UUID.randomUUID(), callerId);
+        return basecallbackuri + String.format("%s/calls/ongoing/%s?callerId=%s", ApiVersion.CURRENT, UUID.randomUUID(), callerId);
     }
 
     public String getMediaUri(String filename){
-        return basecallbackuri + String.format("/%s/calls/media/%s", ApiVersion.CURRENT, filename);
+        return basecallbackuri + String.format("%s/calls/media/%s", ApiVersion.CURRENT, filename);
     }
 }

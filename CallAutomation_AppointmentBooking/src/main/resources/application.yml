@@ -7,7 +7,7 @@ server:
 
 acs:
   connectionstring: 
-  basecallbackuri: https://9b93-173-176-165-160.ngrok.io
+  basecallbackuri: https://d3e0-173-176-165-160.ngrok.io
   timeoutms: 30000
   mediarecordingstarted: "/mediafiles/recordingstarted.wav"
   mediamainmenu: "/mediafiles/mainmenu.wav"

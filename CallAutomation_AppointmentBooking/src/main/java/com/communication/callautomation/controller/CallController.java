@@ -51,7 +51,7 @@ public class CallController {
         return eventsHandler.handleOngoingEvents(reqBody);
     }
 
-    @PostMapping(path = "/media/{filename}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/media/{filename}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> mediaLoadingEndpoint(@PathVariable final String filename) {
         log.trace("Media loading events received at CallController");
         return eventsHandler.handleMediaLoadingEvents(filename);

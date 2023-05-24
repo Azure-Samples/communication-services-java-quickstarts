@@ -43,9 +43,8 @@ public class AcsClient implements CallAutomationService {
                    .answerCall(incomingCallContext, callbackUri);
            return answerCallResponse.getCallConnectionProperties().getCallConnectionId();
         } catch(Exception e) {
-            throw new AzureCallAutomationException(String.format(
-                    Locale.ROOT, "Answering media call failed !",
-                    e.getMessage(), e));
+            log.error("Error occurred when Answering the call");
+            throw new AzureCallAutomationException(e.getMessage(), e);
         }
     }
 

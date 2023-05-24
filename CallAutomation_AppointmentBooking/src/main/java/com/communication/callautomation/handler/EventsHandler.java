@@ -79,6 +79,7 @@ public class EventsHandler {
                                 .incomingCallContext(incomingCallContext)
                                 .fromId(callerId)
                                 .build());
+                        log.info("DEBUG HANDLER {}", response);
                         break;
 
                     default:

@@ -13,4 +13,5 @@ public class EventInfo {
     private String topic;
     private String fromId;
     private String callConnectionId;
+    private String correlationId;
 }

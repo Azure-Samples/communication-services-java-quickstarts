@@ -35,11 +35,12 @@ public class AcsClient implements CallAutomationService {
     public String answerCall(final EventInfo eventInfo) {
         String incomingCallContext = eventInfo.getIncomingCallContext();
         String callbackUri = acsConfig.getCallbackUri(eventInfo.getFromId());
+        String correlationId = eventInfo.getCorrelationId();
 
         log.info("Answering media call with following callbackuri: {}", callbackUri);
 
         try{
-           AnswerCallResult answerCallResponse = callAutomationClientFactory.getCallAutomationClient()
+           AnswerCallResult answerCallResponse = callAutomationClientFactory.getCallAutomationClient(correlationId)
                    .answerCall(incomingCallContext, callbackUri);
            return answerCallResponse.getCallConnectionProperties().getCallConnectionId();
         } catch(Exception e) {
@@ -49,17 +50,19 @@ public class AcsClient implements CallAutomationService {
     }
 
     @Override
-    public String startRecording(final String callConnectionId) {
+    public String startRecording(final EventInfo eventInfo) {
         try {
             ServerCallLocator serverCallLocator = new ServerCallLocator(callAutomationClientFactory
-                    .getCallAutomationClient()
-                    .getCallConnection(callConnectionId)
+                    .getCallAutomationClient(eventInfo.getCorrelationId())
+                    .getCallConnection(eventInfo.getCallConnectionId())
                     .getCallProperties()
                     .getServerCallId());
 
             StartRecordingOptions recordingOptions = new StartRecordingOptions(serverCallLocator);
 
-            Response<RecordingStateResult> response = callAutomationClientFactory.getCallAutomationClient().getCallRecording().startWithResponse(recordingOptions, Context.NONE);
+            Response<RecordingStateResult> response = callAutomationClientFactory.getCallAutomationClient(eventInfo.getCorrelationId())
+                    .getCallRecording()
+                    .startWithResponse(recordingOptions, Context.NONE);
             String recordingId = response.getValue().getRecordingId();
             log.info("Start Recording with recording ID: {}", recordingId);
             return "Start Recording operation finished";
@@ -70,14 +73,14 @@ public class AcsClient implements CallAutomationService {
     }
 
     @Override
-    public String playAudio(final String callconnectionId, final String target, final String prompt) {
-        List<CommunicationIdentifier> listTargets = Arrays.asList(CommunicationIdentifier.fromRawId(target));
+    public String playAudio(final EventInfo eventInfo, final String prompt) {
+        List<CommunicationIdentifier> listTargets = Arrays.asList(CommunicationIdentifier.fromRawId(eventInfo.getFromId()));
         PlaySource playSource = new FileSource().setUrl(acsConfig.getMediaUri(prompt));
         PlayOptions playOptions = new PlayOptions(playSource, listTargets);
         log.info("Play audio operation started");
         try {
-            Response response = callAutomationClientFactory.getCallAutomationClient()
-                    .getCallConnection(callconnectionId)
+            Response response = callAutomationClientFactory.getCallAutomationClient(eventInfo.getCorrelationId())
+                    .getCallConnection(eventInfo.getCallConnectionId())
                     .getCallMedia()
                     .playWithResponse(playOptions, Context.NONE);
             return "Play audio operation finished";
@@ -88,8 +91,8 @@ public class AcsClient implements CallAutomationService {
     }
 
     @Override
-    public String singleDigitDtmfRecognitionWithPrompt(final String callconnectionId, final String target, final String prompt) {
-        CommunicationIdentifier rectarget = CommunicationIdentifier.fromRawId(target);
+    public String singleDigitDtmfRecognitionWithPrompt(final EventInfo eventInfo, final String prompt) {
+        CommunicationIdentifier rectarget = CommunicationIdentifier.fromRawId(eventInfo.getFromId());
         PlaySource playSource = new FileSource().setUrl(acsConfig.getMediaUri(prompt));
         CallMediaRecognizeDtmfOptions recognizeDtmfOptions = new CallMediaRecognizeDtmfOptions(rectarget, 1);
         recognizeDtmfOptions.setInterToneTimeout(Duration.ofSeconds(10))
@@ -98,8 +101,8 @@ public class AcsClient implements CallAutomationService {
                 .setPlayPrompt(playSource);
         log.info("DTMF Recognition operation started");
         try {
-            Response response = callAutomationClientFactory.getCallAutomationClient()
-                    .getCallConnection(callconnectionId)
+            Response response = callAutomationClientFactory.getCallAutomationClient(eventInfo.getCorrelationId())
+                    .getCallConnection(eventInfo.getCallConnectionId())
                     .getCallMedia()
                     .startRecognizingWithResponse(recognizeDtmfOptions, Context.NONE);
             return "DTMF Recognition operation ended";
@@ -110,10 +113,12 @@ public class AcsClient implements CallAutomationService {
     }
 
     @Override
-    public String terminateCall(final String callconnectionId) {
+    public String terminateCall(final EventInfo eventInfo) {
         log.info("Terminating the call");
         try {
-            callAutomationClientFactory.getCallAutomationClient().getCallConnection(callconnectionId).hangUp(true);
+            callAutomationClientFactory.getCallAutomationClient(eventInfo.getCorrelationId())
+                    .getCallConnection(eventInfo.getCallConnectionId())
+                    .hangUp(true);
             return "HangUp call for all participants operation ended";
         } catch(Exception e) {
             log.error("HangUp call for all participants operation failed {} {}", e.getMessage(), e.getCause());

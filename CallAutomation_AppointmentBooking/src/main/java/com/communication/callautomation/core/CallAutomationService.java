@@ -10,11 +10,11 @@ public interface CallAutomationService {
 
     String answerCall(final EventInfo eventInfo);
 
-    String startRecording(final String callConnectionId);
+    String startRecording(final EventInfo eventInfo);
 
-    String playAudio(final String callconnectionId, final String target, final String prompt);
+    String playAudio(final EventInfo eventInfo, final String prompt);
 
-    String singleDigitDtmfRecognitionWithPrompt(final String callconnectionId, final String target, final String prompt);
+    String singleDigitDtmfRecognitionWithPrompt(final EventInfo eventInfo, final String prompt);
 
-    String terminateCall(final String callconnectionId);
+    String terminateCall(final EventInfo eventInfo);
 }

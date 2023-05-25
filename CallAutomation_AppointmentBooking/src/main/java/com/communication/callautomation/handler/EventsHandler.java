@@ -77,6 +77,7 @@ public class EventsHandler {
                         response = handleIncomingCallEvent(EventInfo.builder()
                                 .incomingCallContext(incomingCallContext)
                                 .fromId(callerId)
+                                .correlationId(correlationId)
                                 .build());
                         break;
 
@@ -160,25 +161,33 @@ public class EventsHandler {
                 if (correlationId == null || callConnectionId == null) {
                     throw new InvalidEventPayloadException("Missing correlationId in CallConnected event !");
                 }
+                if (target == null) {
+                    throw new RuntimeException("Unknown error when retrieving target from memory cache");
+                }
+                EventInfo eventInfo = EventInfo.builder()
+                        .correlationId(correlationId)
+                        .fromId(target)
+                        .callConnectionId(callConnectionId)
+                        .build();
 
                 if (acsEvent instanceof CallConnected) {
                     //Start Recording
                     CallState.setCallState(CallState.CallStateEnum.STARTED);
                     CallState.resetCount();
-                    String recordingId = callAutomationService.startRecording(callConnectionId);
+                    String recordingId = callAutomationService.startRecording(eventInfo);
                     log.info("Started to record the call, Record ID: {}", recordingId);
 
                     //PlayAudio
-                    String responsePlay = callAutomationService.playAudio(callConnectionId, target, Prompts.RECORDINGSTARTED.getMediafile());
+                    String responsePlay = callAutomationService.playAudio(eventInfo, Prompts.RECORDINGSTARTED.getMediafile());
                     log.info("Played Recording Started to caller: {}", responsePlay);
                 }
                 else if(acsEvent instanceof PlayCompleted) {
                     //Single-digit DTMF recognition
                     if (CallState.getCurrentState() == CallState.CallStateEnum.FINISHED) {
-                        callAutomationService.terminateCall(callConnectionId);
+                        callAutomationService.terminateCall(eventInfo);
                         log.info("Call hangup executed");
                     } else {
-                        String responseDtmfRec = callAutomationService.singleDigitDtmfRecognitionWithPrompt(callConnectionId, target, Prompts.MAINMENU.getMediafile());
+                        String responseDtmfRec = callAutomationService.singleDigitDtmfRecognitionWithPrompt(eventInfo, Prompts.MAINMENU.getMediafile());
                         CallState.setCallState(CallState.CallStateEnum.STARTED);
                         log.info("Started single digit DTMF Recognition: {}", responseDtmfRec);
                     }
@@ -191,27 +200,27 @@ public class EventsHandler {
                     switch(tone.convertToString()){
                         case "1":
                             log.info("Playing option 1 based on DMTF received from caller");
-                            callAutomationService.playAudio(callConnectionId, target, Prompts.CHOICE1.getMediafile());
+                            callAutomationService.playAudio(eventInfo, Prompts.CHOICE1.getMediafile());
                             CallState.setCallState(CallState.CallStateEnum.FINISHED);
                             break;
                         case "2":
                             log.info("Playing option 2 based on DMTF received from caller");
-                            callAutomationService.playAudio(callConnectionId, target, Prompts.CHOICE2.getMediafile());
+                            callAutomationService.playAudio(eventInfo, Prompts.CHOICE2.getMediafile());
                             CallState.setCallState(CallState.CallStateEnum.FINISHED);
                             break;
                         case "3":
                             log.info("Playing option 3 based on DMTF received from caller");
-                            callAutomationService.playAudio(callConnectionId, target, Prompts.CHOICE3.getMediafile());
+                            callAutomationService.playAudio(eventInfo, Prompts.CHOICE3.getMediafile());
                             CallState.setCallState(CallState.CallStateEnum.FINISHED);
                             break;
                         default:
                             log.info("Choosen DMTF triggered a retry");
                             if (CallState.getIncrementRetryCount() > 2) {
                                 log.info("Retry exceed maximum amount set, ending the call");
-                                callAutomationService.playAudio(callConnectionId, target, Prompts.GOODBYE.getMediafile());
+                                callAutomationService.playAudio(eventInfo, Prompts.GOODBYE.getMediafile());
                                 CallState.setCallState(CallState.CallStateEnum.FINISHED);
                             } else {
-                                callAutomationService.singleDigitDtmfRecognitionWithPrompt(callConnectionId, target, Prompts.RETRY.getMediafile());
+                                callAutomationService.singleDigitDtmfRecognitionWithPrompt(eventInfo, Prompts.RETRY.getMediafile());
                                 CallState.setCallState(CallState.CallStateEnum.ONRETRY);
                                 CallState.incrementRetryCount();
                             }
@@ -222,13 +231,13 @@ public class EventsHandler {
                     RecognizeFailed event = (RecognizeFailed) acsEvent;
                     String reasonFailed = event.getResultInformation().getMessage();
                     log.error("Recognize failed with following error message: {}", reasonFailed);
-                    callAutomationService.terminateCall(callConnectionId);
+                    callAutomationService.terminateCall(eventInfo);
                 }
                 else if (acsEvent instanceof PlayFailed) {
                     PlayFailed event = (PlayFailed) acsEvent;
                     String reasonFailed = event.getResultInformation().getMessage();
                     log.error("Play audio to participant failed with following error message: {}", reasonFailed);
-                    callAutomationService.terminateCall(callConnectionId);
+                    callAutomationService.terminateCall(eventInfo);
                 }
                 else {
                     log.debug("Received unhandled event");

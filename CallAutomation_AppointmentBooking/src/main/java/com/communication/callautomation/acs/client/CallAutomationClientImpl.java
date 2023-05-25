@@ -26,25 +26,25 @@ public class CallAutomationClientImpl implements CallAutomationClientFactory {
         this.azureHttpClient = azureHttpClient;
     }
     @Override
-    public CallAutomationClient getCallAutomationClient() {
+    public CallAutomationClient getCallAutomationClient(final String correlationId) {
         log.debug("Start: getCallAutomationClient");
         String connectionString = acsConfig.getConnectionString();
         CallAutomationClient callAutomationClient;
-        callAutomationClient = clientMap.get(connectionString);
+        callAutomationClient = clientMap.get(correlationId);
         if (callAutomationClient == null) {
-            callAutomationClient = createCallAutomationClient(connectionString);
+            callAutomationClient = createCallAutomationClient(connectionString, correlationId);
         }
         log.debug("End: getCallAutomationClient");
         return callAutomationClient;
     }
 
-    private synchronized CallAutomationClient createCallAutomationClient(final String connectionString) {
+    private synchronized CallAutomationClient createCallAutomationClient(final String connectionString, final String correlationId) {
         log.debug("Start: createCallAutomationClient");
         CallAutomationClientBuilder callAutomationClientBuilder = new CallAutomationClientBuilder()
                 .httpClient(azureHttpClient)
                 .connectionString(connectionString);
         CallAutomationClient callAutomationClient = callAutomationClientBuilder.buildClient();
-        clientMap.put(connectionString, callAutomationClient);
+        clientMap.put(correlationId, callAutomationClient);
         log.debug("End: createCallAutomationClient");
         return callAutomationClient;
     }

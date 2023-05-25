@@ -144,7 +144,7 @@ public class App {
             for (CommunicationRoom room : rooms) {
                 System.out.println("\nRoom ID: " + room.getRoomId());
 
-                if (count >= 3) {
+                if (count >= 1) {
                     break;
                 }
             }
@@ -194,7 +194,7 @@ public class App {
     public static void listParticipants(String roomId) {
         try {
             System.out.print("Listing participant(s)...\n");
-            
+
             PagedIterable<RoomParticipant> participants = roomsClient.listParticipants(roomId);
 
             for (RoomParticipant participant : participants) {

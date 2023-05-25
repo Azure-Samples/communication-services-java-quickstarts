@@ -139,12 +139,11 @@ public class App {
             int count = 0;
             
             System.out.print("Listing all rooms");
-            System.out.println("For this demo only 3 rooms will be printed.");
 
             for (CommunicationRoom room : rooms) {
-                System.out.println("\nFirst room ID in the list of rooms: " + room.getRoomId());
+                System.out.println("\nFirst two room ID's in the list of rooms: " + room.getRoomId());
                 count++;
-                if (count >= 1) {
+                if (count >= 2) {
                     break;
                 }
             }

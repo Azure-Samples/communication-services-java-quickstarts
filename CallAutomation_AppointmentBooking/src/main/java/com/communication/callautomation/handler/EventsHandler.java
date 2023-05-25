@@ -1,7 +1,7 @@
 package com.communication.callautomation.handler;
 
 import com.azure.communication.callautomation.models.DtmfResult;
-import com.azure.communication.callautomation.models.events.CallAutomationEventBase;
+import com.azure.communication.callautomation.models.events.*;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.communication.callautomation.core.CallAutomationService;
 import com.communication.callautomation.core.model.CallState;
@@ -9,9 +9,6 @@ import com.communication.callautomation.core.model.EventInfo;
 import com.communication.callautomation.core.model.Prompts;
 import com.communication.callautomation.exceptions.AzureCallAutomationException;
 import com.communication.callautomation.exceptions.InvalidEventPayloadException;
-import com.azure.communication.callautomation.models.events.CallConnected;
-import com.azure.communication.callautomation.models.events.PlayCompleted;
-import com.azure.communication.callautomation.models.events.RecognizeCompleted;
 import com.azure.communication.callautomation.models.DtmfTone;
 import com.azure.communication.callautomation.CallAutomationEventParser;
 import com.communication.callautomation.exceptions.MediaLoadingException;
@@ -220,6 +217,18 @@ public class EventsHandler {
                             }
                             break;
                     }
+                }
+                else if (acsEvent instanceof RecognizeFailed) {
+                    RecognizeFailed event = (RecognizeFailed) acsEvent;
+                    String reasonFailed = event.getResultInformation().getMessage();
+                    log.error("Recognize failed with following error message: {}", reasonFailed);
+                    callAutomationService.terminateCall(callConnectionId);
+                }
+                else if (acsEvent instanceof PlayFailed) {
+                    PlayFailed event = (PlayFailed) acsEvent;
+                    String reasonFailed = event.getResultInformation().getMessage();
+                    log.error("Play audio to participant failed with following error message: {}", reasonFailed);
+                    callAutomationService.terminateCall(callConnectionId);
                 }
                 else {
                     log.debug("Received unhandled event");

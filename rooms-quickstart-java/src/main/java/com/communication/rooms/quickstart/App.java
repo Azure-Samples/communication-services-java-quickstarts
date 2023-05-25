@@ -18,24 +18,43 @@ import com.azure.communication.rooms.models.RoomParticipant;
 import com.azure.communication.rooms.models.UpdateRoomOptions;
 import com.azure.communication.rooms.implementation.models.CommunicationErrorResponseException;
 import com.azure.communication.common.CommunicationIdentifier;
-import com.azure.communication.common.CommunicationUserIdentifier;
+import com.azure.communication.common.implementation.CommunicationConnectionString;
 import com.azure.communication.rooms.RoomsClient;
 import com.azure.communication.rooms.RoomsClientBuilder;
+import com.azure.communication.identity.CommunicationIdentityClient;
+import com.azure.communication.identity.CommunicationIdentityClientBuilder;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.util.Context;
+import com.azure.core.credential.AzureKeyCredential;
+
 
 public class App {
-    static String USER_ID_1 = "<communication-user-id-1>";
-    static String USER_ID_2 = "<communication-user-id-2>";
-    static String USER_ID_3 = "<communication-user-id-3>";
+    static String CONNECTION_STRING = "<connection-string>";
+    static RoomParticipant participant_1;
+    static RoomParticipant participant_2;
+    static RoomParticipant participant_3;
+
     static RoomsClient roomsClient;
+    static CommunicationIdentityClient communicationClient;
 
     public static RoomsClient createRoomsClientWithConnectionString() {
-        String connectionString = "<connection-string>";
+        RoomsClient roomsClient = new RoomsClientBuilder().connectionString(CONNECTION_STRING).buildClient();
 
-        RoomsClient roomsClient = new RoomsClientBuilder().connectionString(connectionString).buildClient();
         return roomsClient;
     }
+
+    
+    public static CommunicationIdentityClientBuilder getCommunicationIdentityClientBuilder() {
+        CommunicationIdentityClientBuilder builder = new CommunicationIdentityClientBuilder();
+        CommunicationConnectionString connectionStringObject = new CommunicationConnectionString(CONNECTION_STRING);
+        String endpoint = connectionStringObject.getEndpoint();
+        String accessKey = connectionStringObject.getAccessKey();
+        builder.endpoint(endpoint)
+                .credential(new AzureKeyCredential(accessKey));
+
+        return builder;
+    }
+
 
     public static CommunicationRoom createRoom() {
         OffsetDateTime validFrom = OffsetDateTime.now();
@@ -43,9 +62,8 @@ public class App {
 
         List<RoomParticipant> roomParticipants = new ArrayList<RoomParticipant>();
 
-        roomParticipants.add(new RoomParticipant(new CommunicationUserIdentifier(USER_ID_1)));
-        roomParticipants
-                .add(new RoomParticipant(new CommunicationUserIdentifier(USER_ID_2)).setRole(ParticipantRole.CONSUMER));
+        roomParticipants.add(participant_1);
+        roomParticipants.add(participant_2.setRole(ParticipantRole.CONSUMER));
 
         CreateRoomOptions roomOptions = new CreateRoomOptions()
                 .setValidFrom(validFrom)
@@ -107,9 +125,16 @@ public class App {
     public static void listRooms() {
         try {
             PagedIterable<CommunicationRoom> rooms = roomsClient.listRooms();
+
+            int count = 0;
+            System.out.println("For this demo only 3 rooms will be printed.");
+
             for (CommunicationRoom room : rooms) {
                 System.out.println("\nRoom ID: " + room.getRoomId());
 
+                if (count >= 3) {
+                    break;
+                }
             }
         } catch (Exception ex) {
             System.out.println(ex);
@@ -120,12 +145,11 @@ public class App {
         try {
             List<RoomParticipant> participantsToAddAndUpdate = new ArrayList<>();
 
-            participantsToAddAndUpdate.add(
-                    new RoomParticipant(new CommunicationUserIdentifier(USER_ID_3)).setRole(ParticipantRole.CONSUMER));
+            // Adding new participant
+            participantsToAddAndUpdate.add(participant_3.setRole(ParticipantRole.CONSUMER));
 
             // Updating current participant
-            participantsToAddAndUpdate.add(
-                    new RoomParticipant(new CommunicationUserIdentifier(USER_ID_2)).setRole(ParticipantRole.PRESENTER));
+            participantsToAddAndUpdate.add(participant_2.setRole(ParticipantRole.PRESENTER));
 
             AddOrUpdateParticipantsResult addOrUpdateParticipantsResult = roomsClient.addOrUpdateParticipants(roomId,
                     participantsToAddAndUpdate);
@@ -140,7 +164,7 @@ public class App {
         try {
             List<CommunicationIdentifier> participantsToRemove = new ArrayList<>();
 
-            participantsToRemove.add(new CommunicationUserIdentifier(USER_ID_2));
+            participantsToRemove.add(participant_3.getCommunicationIdentifier());
 
             RemoveParticipantsResult removeParticipantsResult = roomsClient.removeParticipants(roomId,
                     participantsToRemove);
@@ -167,6 +191,11 @@ public class App {
 
     public static void main(String[] args) {
         roomsClient = createRoomsClientWithConnectionString();
+        communicationClient = getCommunicationIdentityClientBuilder().buildClient();
+        participant_1 = new RoomParticipant(communicationClient.createUser());
+        participant_2 = new RoomParticipant(communicationClient.createUser());
+        participant_3 = new RoomParticipant(communicationClient.createUser());
+    
         int selection;
         Set<String> roomIds = new HashSet<>();
 
@@ -180,14 +209,15 @@ public class App {
                 System.out.println("3. Delete a room");
                 System.out.println("4. Get room details");
                 System.out.println("5. List room ids created in this session");
-                System.out.println("6. Add or Update participants");
-                System.out.println("7. List rooms in resource");
+                System.out.println("6. List rooms in resource");
+                System.out.println("7. Add or Update participants");
                 System.out.println("8. Remove a participant");
                 System.out.println("9. List participants");
                 System.out.println("10. Exit");
                 selection = Integer.parseInt(br.readLine());
                 switch (selection) {
                     case 1:
+                        System.out.print("Creating room...\n");
                         CommunicationRoom roomResult = createRoom();
                         getRoom(roomResult.getRoomId());
                         roomIds.add(roomResult.getRoomId());
@@ -195,12 +225,16 @@ public class App {
                     case 2: {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
+                        
+                        System.out.print("Updating room...\n");
                         updateRoom(roomId);
                         break;
                     }
                     case 3: {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
+                        
+                        System.out.print("Removing room...\n");
                         if (deleteRoom(roomId)) {
                             roomIds.remove(roomId);
                         }
@@ -209,32 +243,39 @@ public class App {
                     case 4: {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
+                        
+                        System.out.print("Getting room...\n");
                         getRoom(roomId);
 
                         break;
                     }
                     case 5: {
+                        System.out.print("Listing room ids...\n");
                         for (String room : roomIds) {
                             System.out.println(room);
                         }
                         break;
                     }
                     case 6: {
-                        System.out.print("RoomId:");
-                        String roomId = br.readLine();
-                        addOrUpdateParticipants(roomId);
+                        System.out.print("Listing all rooms");
+                        listRooms();
 
                         break;
                     }
                     case 7: {
-                        System.out.print("Listing all rooms");
-                        listRooms();
+                        System.out.print("RoomId:");
+                        String roomId = br.readLine();
+                        
+                        System.out.print("Adding/Updating participants())...\n");
+                        addOrUpdateParticipants(roomId);
 
                         break;
                     }
                     case 8: {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
+                        
+                        System.out.print("Removing participant(s)...\n");
                         removeParticipant(roomId);
 
                         break;
@@ -242,12 +283,13 @@ public class App {
                     case 9: {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
+                        
+                        System.out.print("Listing participant(s)...\n");
                         listParticipants(roomId);
 
                         break;
                     }
                     case 10:
-
                         System.out.println("Deleting all rooms");
                         for (String room : roomIds) {
                             System.out.println("Deleting:" + room);

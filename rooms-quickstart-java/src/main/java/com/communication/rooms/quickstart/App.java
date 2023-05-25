@@ -143,7 +143,7 @@ public class App {
 
             for (CommunicationRoom room : rooms) {
                 System.out.println("\nRoom ID: " + room.getRoomId());
-
+                count++;
                 if (count >= 1) {
                     break;
                 }

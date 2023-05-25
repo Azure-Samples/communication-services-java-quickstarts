@@ -64,6 +64,8 @@ public class App {
 
         roomParticipants.add(participant_1);
         roomParticipants.add(participant_2.setRole(ParticipantRole.CONSUMER));
+        
+        System.out.print("Creating room...\n");
 
         CreateRoomOptions roomOptions = new CreateRoomOptions()
                 .setValidFrom(validFrom)
@@ -77,6 +79,7 @@ public class App {
     public static boolean deleteRoom(String roomId) {
         try {
             System.out.println(roomId);
+            System.out.print("Removing room...\n");
             roomsClient.deleteRoomWithResponse(roomId, Context.NONE);
         } catch (CommunicationErrorResponseException ex) {
             if (ex.getResponse().getStatusCode() == 404) {
@@ -90,6 +93,8 @@ public class App {
 
     public static void getRoom(String roomId) {
         try {
+            System.out.print("Getting room...\n");
+
             CommunicationRoom roomResult = roomsClient.getRoom(roomId);
             System.out.println("RoomId: " + roomResult.getRoomId());
             System.out.println("Create at: " + roomResult.getCreatedAt());
@@ -103,6 +108,7 @@ public class App {
     }
 
     public static void updateRoom(String roomId) {
+
         try {
             OffsetDateTime validFrom = OffsetDateTime.now().plusDays(1);
             OffsetDateTime validUntil = validFrom.plusDays(1);
@@ -111,7 +117,11 @@ public class App {
                     .setValidFrom(validFrom)
                     .setValidUntil(validUntil);
 
+                    
+            System.out.print("Updating room...\n");
+
             CommunicationRoom roomResult = roomsClient.updateRoom(roomId, roomUpdateOptions);
+            
 
             System.out.println("RoomId: " + roomResult.getRoomId());
             System.out.println("Create at: " + roomResult.getCreatedAt());
@@ -127,6 +137,8 @@ public class App {
             PagedIterable<CommunicationRoom> rooms = roomsClient.listRooms();
 
             int count = 0;
+            
+            System.out.print("Listing all rooms");
             System.out.println("For this demo only 3 rooms will be printed.");
 
             for (CommunicationRoom room : rooms) {
@@ -151,6 +163,8 @@ public class App {
             // Updating current participant
             participantsToAddAndUpdate.add(participant_2.setRole(ParticipantRole.PRESENTER));
 
+            System.out.print("Adding/Updating participants())...\n");
+
             AddOrUpdateParticipantsResult addOrUpdateParticipantsResult = roomsClient.addOrUpdateParticipants(roomId,
                     participantsToAddAndUpdate);
 
@@ -165,6 +179,8 @@ public class App {
             List<CommunicationIdentifier> participantsToRemove = new ArrayList<>();
 
             participantsToRemove.add(participant_3.getCommunicationIdentifier());
+            
+            System.out.print("Removing participant(s)...\n");
 
             RemoveParticipantsResult removeParticipantsResult = roomsClient.removeParticipants(roomId,
                     participantsToRemove);
@@ -177,6 +193,8 @@ public class App {
 
     public static void listParticipants(String roomId) {
         try {
+            System.out.print("Listing participant(s)...\n");
+            
             PagedIterable<RoomParticipant> participants = roomsClient.listParticipants(roomId);
 
             for (RoomParticipant participant : participants) {
@@ -217,7 +235,6 @@ public class App {
                 selection = Integer.parseInt(br.readLine());
                 switch (selection) {
                     case 1:
-                        System.out.print("Creating room...\n");
                         CommunicationRoom roomResult = createRoom();
                         getRoom(roomResult.getRoomId());
                         roomIds.add(roomResult.getRoomId());
@@ -226,7 +243,6 @@ public class App {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
                         
-                        System.out.print("Updating room...\n");
                         updateRoom(roomId);
                         break;
                     }
@@ -234,7 +250,6 @@ public class App {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
                         
-                        System.out.print("Removing room...\n");
                         if (deleteRoom(roomId)) {
                             roomIds.remove(roomId);
                         }
@@ -244,7 +259,6 @@ public class App {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
                         
-                        System.out.print("Getting room...\n");
                         getRoom(roomId);
 
                         break;
@@ -257,7 +271,6 @@ public class App {
                         break;
                     }
                     case 6: {
-                        System.out.print("Listing all rooms");
                         listRooms();
 
                         break;
@@ -266,7 +279,6 @@ public class App {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
                         
-                        System.out.print("Adding/Updating participants())...\n");
                         addOrUpdateParticipants(roomId);
 
                         break;
@@ -275,7 +287,6 @@ public class App {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
                         
-                        System.out.print("Removing participant(s)...\n");
                         removeParticipant(roomId);
 
                         break;
@@ -284,7 +295,6 @@ public class App {
                         System.out.print("RoomId:");
                         String roomId = br.readLine();
                         
-                        System.out.print("Listing participant(s)...\n");
                         listParticipants(roomId);
 
                         break;

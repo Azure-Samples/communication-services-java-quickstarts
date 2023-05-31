@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: CallAutomation_OutboundCalling
+
+server:
+  port: 9099
+
+acs:
+  connectionstring: <YOUR ACS CONNECTION STRING>
+  basecallbackuri: <YOUR NGROK ENDPOINT> ex. https://2275-173-176-165-160.ngrok.io
+  callerphonenumber: <YOUR ACS PHONE NUMBER>
+  targetphonenumber: <YOUR TARGET PHONE NUMBER>

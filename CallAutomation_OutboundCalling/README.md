@@ -1,6 +1,6 @@
-|page_type| languages                               |products
-|---|-----------------------------------------|---|
-|sample| <table><tr><td>Python</tr></td></table> |<table><tr><td>azure</td><td>azure-communication-services</td></tr></table>|
+|page_type| languages                             |products
+|---|---------------------------------------|---|
+|sample| <table><tr><td>Java</tr></td></table> |<table><tr><td>azure</td><td>azure-communication-services</td></tr></table>|
 
 # Call Automation - Quick Start Sample
 
@@ -11,7 +11,7 @@ This sample application is also capable of making multiple concurrent outbound c
 
 # Design
 
-![design](./data/OutboundCallDesign.png)
+![design](./static/OutboundCallDesign.png)
 
 ## Prerequisites
 

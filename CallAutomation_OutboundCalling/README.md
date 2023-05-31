@@ -7,7 +7,7 @@
 This sample application shows how the Azure Communication Services  - Call Automation SDK can be used to build IVR related solutions. 
 It makes an outbound call to a phone number, performs DTMF recognition, plays a different audio message based on the key pressed by the callee and hangs-up the call. 
 This sample application configured for accepting tone 1 (tone1), 2 (tone2) , If the callee pressed any other key than expected, the call will be disconnected.
-This sample application is also capable of making multiple concurrent outbound calls. The application is a web-based application built on Python's Flask framework.
+This sample application is also capable of making multiple concurrent outbound calls. The application is a web-based application built on Java's Spring framework.
 
 # Design
 
@@ -18,43 +18,28 @@ This sample application is also capable of making multiple concurrent outbound c
 - An Azure account with an active subscription. [Create an account for free](https://azure.microsoft.com/free/?WT.mc_id=A261C142F). 
 - A deployed Communication Services resource. [Create a Communication Services resource](https://docs.microsoft.com/azure/communication-services/quickstarts/create-communication-resource).
 - A [phone number](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/telephony/get-phone-number) in your Azure Communication Services resource that can make outbound calls. NB: phone numbers are not available in free subscriptions.
-- Create and host a Azure Dev Tunnel. Instructions [here](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started)
-- [Python](https://www.python.org/downloads/) 3.7 or above.
+- Create an Azure account with an active subscription. For details, see [Create an account for free](https://azure.microsoft.com/free/)
+- [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install)
+- [Apache Maven](https://maven.apache.org/download.cgi)
+- Download and install [Ngrok](https://www.ngrok.com/download). As the sample is run locally, Ngrok will enable the receiving of all the events.
 
 ## Before running the sample for the first time
 
-1. Open an instance of PowerShell, Windows Terminal, Command Prompt or equivalent and navigate to the directory that you would like to clone the sample to.
-2. git clone `https://github.com/Azure-Samples/communication-services-python-quickstarts.git`.
-3. Navigate to `callautomation-outboundcalling` folder and open `main.py` file.
+- Start ngrok in a terminal using the following command: `ngrok http 9099`, and copy the forwarding URL (`https://<ID>.grok.io`).
+- Open the application.yml file in the resources folder to configure the following settings
 
-### Setup the Python environment
+    - `connectionstring`: Azure Communication Service resource's connection string.
+    - `callerphonenumber`: Phone number associated with the Azure Communication Service resource.
+    - `targetphonenumber`: Target Phone number.
 
-Create and activate python virtual environment and install required packages using following command 
-```
-pip install -r requirements.txt
-```
+      Format: "OutboundTarget(Phone Number)".
 
-### Setup and host your Azure DevTunnel
+          For e.g. "+1425XXXAAAA"
+    - `basecallbackuri`: Ngrok Forwarding URL.
 
-[Azure DevTunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/overview) is an Azure service that enables you to share local web services hosted on the internet. Use the commands below to connect your local development environment to the public internet. This creates a tunnel with a persistent endpoint URL and which allows anonymous access. We will then use this endpoint to notify your application of calling events from the ACS Call Automation service.
+### Run the application
 
-```bash
-devtunnel create --allow-anonymous
-devtunnel port create -p 8080
-devtunnel host
-```
-
-### Configuring application
-
-Open `main.py` file to configure the following settings
-
-1. `ACS_CONNECTION_STRING`: Azure Communication Service resource's connection string.
-2. `ACS_PHONE_NUMBER`: Phone number associated with the Azure Communication Service resource. For e.g. "+1425XXXAAAA"
-3. `TARGET_PHONE_NUMBER`: Target phone number to add in the call. For e.g. "+1425XXXAAAA"
-4. `CALLBACK_URI_HOST`: Base url of the app. (For local development use dev tunnel url)
-
-## Run app locally
-
-1. Navigate to `callautomation-outboundcalling` folder and run `main.py` in debug mode or use command `python ./main.py` to run it from PowerShell, Command Prompt or Unix Terminal
-2. Open `http://127.0.0.1:8080` or your dev tunnel url in browser and should get option to `Make outbound call`
-3. To initiate the call, click on `Make outbound call` link or make a Http get request to `https://<CALLBACK_URI_HOST>/api/outboundCall`
+- Navigate to the directory containing the pom.xml file and use the following mvn commands:
+    - Compile the application: mvn compile
+    - Build the package: mvn package
+    - Execute the app: mvn exec:java

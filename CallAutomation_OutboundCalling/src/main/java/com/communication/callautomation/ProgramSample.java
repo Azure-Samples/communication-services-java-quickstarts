@@ -63,18 +63,21 @@ public class ProgramSample {
                 switch(selectedTone.convertToString()) {
                     case "1":
                         log.info("Received DTMF tone 1.");
-                        log.info("Played media file with {}", playTo(callConnectionId, "Confirmed.wav"));
+                        log.info("Played media file with {}", playToAll(callConnectionId, "Confirmed.wav"));
                         break;
 
                     case "2":
                         log.info("Received DTMF tone 2.");
-                        log.info("Played media file with {}", playTo(callConnectionId, "Goodbye.wav"));
-                        log.info("{}", hangUp(callConnectionId));
+                        log.info("Played media file with {}", playToAll(callConnectionId, "Goodbye.wav"));
                         break;
 
                     default:
                         log.info("Another DTMF received. {}.", hangUp(callConnectionId));
+                        break;
                 }
+            }
+            else if(event instanceof PlayCompleted) {
+                log.info("Received Play Completed event: {}", hangUp(callConnectionId));
             }
             else if(event instanceof RecognizeFailed || event instanceof PlayFailed) {
                 log.error("Received failed event: {}", ((CallAutomationEventBaseWithReasonCode) event)
@@ -143,18 +146,14 @@ public class ProgramSample {
         }
     }
 
-    private String playTo(final String callConnectionId, final String mediaFile) {
+    private String playToAll(final String callConnectionId, final String mediaFile) {
         try {
-            List<CommunicationIdentifier> target = Arrays.asList(CommunicationIdentifier
-                    .fromRawId("4:" + appConfig.getTargetphonenumber()));
             PlaySource playSource = new FileSource()
                     .setUrl(appConfig.getBasecallbackuri() + "/" + mediaFile)
                     .setPlaySourceCacheId(mediaFile);
-            PlayOptions playOptions = new PlayOptions(playSource, target);
-            Response response = asyncClient.getCallConnectionAsync(callConnectionId)
-                    .getCallMediaAsync()
-                    .playWithResponse(playOptions).block();
-            return "Response status code:" + response.getStatusCode();
+            asyncClient.getCallConnectionAsync(callConnectionId)
+                    .getCallMediaAsync().playToAll(playSource).block();
+            return "Play to all finished";
         } catch (Exception e) {
             log.error("Error occurred when playing media to participant {} {}",
                     e.getMessage(),

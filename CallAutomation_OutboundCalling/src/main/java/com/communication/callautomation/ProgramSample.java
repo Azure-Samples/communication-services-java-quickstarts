@@ -83,8 +83,8 @@ public class ProgramSample {
                 String callRecordingId = callRecording(callConnectionId);
                 log.info("Call recording started with ID: {}", callRecordingId);
                 // recognize tones
-                String statusCode = recognizeDtmfTones(callConnectionId, "MainMenu.wav");
-                log.info("DTMF recognition started. Request status code {}", statusCode);
+                recognizeDtmfTones(callConnectionId, "MainMenu.wav");
+                log.info("DTMF recognition started.");
             }
             else if (event instanceof RecognizeCompleted) {
                 log.info("Recognize Completed event received");
@@ -178,7 +178,7 @@ public class ProgramSample {
         }
     }
 
-    private String recognizeDtmfTones(final String callConnectionId, final String mediaFile) {
+    private void recognizeDtmfTones(final String callConnectionId, final String mediaFile) {
         try {
             PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
             CallMediaRecognizeDtmfOptions recognizeDtmfOptions = new CallMediaRecognizeDtmfOptions(target, 1);
@@ -188,43 +188,38 @@ public class ProgramSample {
             recognizeDtmfOptions.setPlayPrompt(playSource)
                     .setInterruptPrompt(true)
                     .setInitialSilenceTimeout(Duration.ofSeconds(15));
-            Response response = client.getCallConnection(callConnectionId)
+            client.getCallConnection(callConnectionId)
                     .getCallMedia()
                     .startRecognizingWithResponse(recognizeDtmfOptions, Context.NONE);
-            return "Response status code: " + response.getStatusCode();
         } catch (Exception e) {
             log.error("Error occurred when attempting to recognize DTMF tones {} {}",
                     e.getMessage(),
                     e.getCause());
-            return "";
         }
     }
 
-    private String playToAll(final String callConnectionId, final String mediaFile) {
+    private void playToAll(final String callConnectionId, final String mediaFile) {
         try {
             PlaySource playSource = new FileSource()
                     .setUrl(appConfig.getBasecallbackuri() + "/" + mediaFile)
                     .setPlaySourceCacheId(mediaFile);
             client.getCallConnection(callConnectionId)
                     .getCallMedia().playToAll(playSource);
-            return "Play to all finished";
         } catch (Exception e) {
             log.error("Error occurred when playing media to participant {} {}",
                     e.getMessage(),
                     e.getCause());
-            return "";
         }
     }
 
-    private String hangUp(final String callConnectionId) {
+    private void hangUp(final String callConnectionId) {
         try {
             client.getCallConnection(callConnectionId).hangUp(true);
-            return "Terminated call";
+            log.info("Terminated call");
         } catch (Exception e) {
             log.error("Error when terminating the call for all participants {} {}",
                     e.getMessage(),
                     e.getCause());
-            return "";
         }
     }
 
@@ -233,11 +228,12 @@ public class ProgramSample {
             log.info("Downloading recorded audio from {}",
                     new URI(recordingLocation));
 
+            String uui = UUID.randomUUID().toString();
             client.getCallRecording()
                     .downloadTo(new URI(recordingLocation).toString(),
-                            Paths.get("testfile-"+ UUID.randomUUID() +".wav"));
+                            Paths.get("testfile-"+ uui +".wav"));
 
-            return ResponseEntity.ok().body(null);
+            return ResponseEntity.ok().body("Downloaded media file at testfile-" + uui);
         } catch (URISyntaxException e) {
             log.error("Error when downloading recording {} {}",
                     e.getMessage(),

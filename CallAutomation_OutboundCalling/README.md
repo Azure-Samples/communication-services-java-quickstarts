@@ -24,7 +24,6 @@ This sample application is also capable of making multiple concurrent outbound c
 
 ## Before running the sample for the first time
 
-- Start ngrok in a terminal using the following command: `ngrok http 9099`, and copy the forwarding URL (`https://<ID>.grok.io`).
 - Open the application.yml file in the resources folder to configure the following settings
 
     - `connectionstring`: Azure Communication Service resource's connection string.

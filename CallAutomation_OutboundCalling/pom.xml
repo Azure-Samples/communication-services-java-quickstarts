@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>com.communication.callautomation</groupId>
-    <artifactId>AppointmentBooking</artifactId>
+    <artifactId>Quickstart_OutboundCalling</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <name>AppointmentBooking</name>
+    <name>Quickstart_OutboundCalling</name>
     <description>CallAutomation Sample application for instructional usage</description>
 
     <properties>
@@ -89,7 +89,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-messaging-eventgrid</artifactId>
-            <version>4.15.1</version>
+            <version>4.16.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>

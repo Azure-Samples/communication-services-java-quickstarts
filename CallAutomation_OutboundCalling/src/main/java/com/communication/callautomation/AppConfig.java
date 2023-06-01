@@ -26,4 +26,8 @@ public class AppConfig {
     public String getCallBackUri() {
         return basecallbackuri + "/api/callback";
     }
+
+    public String getCallBackUriForRecordingApis() {
+        return basecallbackuri + "/api/recordingcallback";
+    }
 }

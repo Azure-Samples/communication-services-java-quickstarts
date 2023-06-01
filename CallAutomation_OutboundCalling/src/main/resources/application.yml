@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: CallAutomation_OutboundCalling
+
+server:
+  port: 8080
+
+acs:
+  connectionstring: <YOUR ACS CONNECTION STRING>
+  basecallbackuri: <YOUR DEV TUNNEL ENDPOINT>
+  callerphonenumber: <YOUR ACS PHONE NUMBER>
+  targetphonenumber: <YOUR TARGET PHONE NUMBER>

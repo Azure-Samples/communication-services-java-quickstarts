@@ -20,7 +20,7 @@ This sample application is also capable of making multiple concurrent outbound c
 - A [phone number](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/telephony/get-phone-number) in your Azure Communication Services resource that can make outbound calls. NB: phone numbers are not available in free subscriptions.
 - [Java Development Kit (JDK) version 11 or above](https://docs.microsoft.com/azure/developer/java/fundamentals/java-jdk-install)
 - [Apache Maven](https://maven.apache.org/download.cgi)
-- Download and install [Ngrok](https://www.ngrok.com/download). As the sample is run locally, Ngrok will enable the receiving of all the events.
+- Create and host a Azure Dev Tunnel. Instructions [here](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started)
 
 ## Before running the sample for the first time
 
@@ -34,7 +34,18 @@ This sample application is also capable of making multiple concurrent outbound c
       Format: "OutboundTarget(Phone Number)".
 
           For e.g. "+1425XXXAAAA"
-    - `basecallbackuri`: Ngrok Forwarding URL.
+    - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
+
+
+### Setup and host your Azure DevTunnel
+
+[Azure DevTunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/overview) is an Azure service that enables you to share local web services hosted on the internet. Use the commands below to connect your local development environment to the public internet. This creates a tunnel with a persistent endpoint URL and which allows anonymous access. We will then use this endpoint to notify your application of calling events from the ACS Call Automation service.
+
+```bash
+devtunnel create --allow-anonymous
+devtunnel port create -p 8080
+devtunnel host
+```
 
 ### Run the application
 

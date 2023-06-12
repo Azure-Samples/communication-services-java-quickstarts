@@ -70,7 +70,7 @@ public class RecordingsController  {
         recordingDataMap = new HashMap<>();
     }
 
-    @GetMapping("/OutboundCall")
+    @GetMapping("/outboundCall")
     public String OutboundCall() {
         try {            
             var callerId = new PhoneNumberIdentifier(ACSAcquiredPhoneNumber);
@@ -88,7 +88,7 @@ public class RecordingsController  {
         }
 
     }
-    @GetMapping("/StartRecording")
+    @GetMapping("/startRecording")
     public String startRecording(String serverCallId) {        
         try {
             _serverCallId = Strings.isNullOrEmpty(serverCallId) ? callAutomationClient.getCallConnection(_callConnectionId).getCallProperties().getServerCallId():serverCallId;
@@ -104,7 +104,7 @@ public class RecordingsController  {
         }
     }
 
-    @GetMapping("/PauseRecording")
+    @GetMapping("/pauseRecording")
     public void pauseRecording(String  recordingId){
         _recordingId = Strings.isNullOrEmpty(recordingId)? _recordingId : recordingId;
             Response<Void> response = this.callAutomationClient.getCallRecording().pauseWithResponse(_recordingId, null);
@@ -112,7 +112,7 @@ public class RecordingsController  {
         
     }
 
-    @GetMapping("/ResumeRecording")
+    @GetMapping("/resumeRecording")
     public void resumeRecording(String serverCallId, String  recordingId){
         _recordingId = Strings.isNullOrEmpty(recordingId)? _recordingId : recordingId;
             Response<Void> response = this.callAutomationClient.getCallRecording().resumeWithResponse(_recordingId, null);
@@ -120,7 +120,7 @@ public class RecordingsController  {
         
     }
 
-    @GetMapping("/StopRecording")
+    @DeleteMapping("/stopRecording")
     public void stopRecording(String  recordingId){      
             _recordingId = Strings.isNullOrEmpty(recordingId)? _recordingId : recordingId;
             Response<Void> response = this.callAutomationClient.getCallRecording().stopWithResponse(_recordingId, null);
@@ -128,7 +128,7 @@ public class RecordingsController  {
         
     }
 
-    @GetMapping("/GetRecordingState")
+    @GetMapping("/getRecordingState")
     public RecordingState getRecordingState(String recordingId) {
         try {
             _recordingId = Strings.isNullOrEmpty(recordingId)? _recordingId : recordingId;
@@ -142,7 +142,7 @@ public class RecordingsController  {
         }
     }
 
-    @GetMapping("DownloadRecording")
+    @GetMapping("downloadRecording")
     public void DownloadRecording() {
         try {
             var callRecording = callAutomationClient.getCallRecording();
@@ -154,7 +154,7 @@ public class RecordingsController  {
            
         }
     } 
-    @DeleteMapping("DeleteRecording")
+    @DeleteMapping("deleteRecording")
     public void DeleteRecording() {
         try {
              callAutomationClient.getCallRecording().delete(_deleteLocation);                       

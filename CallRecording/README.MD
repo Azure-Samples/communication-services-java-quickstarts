@@ -10,7 +10,6 @@ products:
 # Recording APIs Sample
 
 This is a sample application to show how the Azure Communication Services Call Automation SDK can be used to build a call recording feature.
-
 It's a Java web application powered by Spring Boot to connect this application with Azure Communication Services.
 
 ## Prerequisites
@@ -65,7 +64,25 @@ It's a Java web application powered by Spring Boot to connect this application w
 	mvn spring-boot:run
 	```
 
-3. To send http request from [Postman](https://www.postman.com/) or any debugging tool, use Base URl as ngrok Url (https://95b6-43-230-212-228.ngrok-free.app).	
+3. Import `call-recording\data\Recordings API.postman_collection.json` file into postman, you get `Recordings API` collection. For details, see [Importing and exporting data](https://learning.postman.com/docs/getting-started/importing-and-exporting-data/)
+
+4. Select `Recordings API`, under Variables, update `HOST_URL` and `TARGET_PHONE_NUMBER` before making calls.
+
+## Step by step guid for testing recording APIs via postman.
+
+Once App is running locally,
+1. Create webhook (Follow "Create Webhook for Microsoft.Communication.RecordingFileStatus event" section below )
+2. Start a call by invoking Qutbound Call request. 
+	- Accept the call on Target PSTN Phone number, Keep call running.
+5. Send Request to StartRecording.
+	- Recording would be started.
+6. (Optional) PauseRecording, ResumeRecording and GetRecordingState.
+7. Send Request for StopRecording.
+8. Send Request for DownloadRecording from server, only last recorded file will be downloaded.
+9. Send Request for DeleteRecording at server.
+
+ For complete details on how to build a client application using ACS calling SDK, refer to https://learn.microsoft.com/en-us/azure/communication-services/samples/calling-hero-sample?pivots=platform-web
+
 
 ## Create Webhook for Microsoft.Communication.RecordingFileStatus event
 
@@ -78,111 +95,11 @@ Call Recording enables you to record multiple calling scenarios available in Azu
 6. Click `Create` to complete the event grid subscription. The subscription is ready when the provisioning status is marked as succeeded.  
 **Note:** Application should be running to able to create the `Web Hook` successfully.
 
-# Step by step guid for testing recording APIs via postman.
-
-Once App is running locally,
-1. Import the postman collection with RecordingAPIs.postman_collection.json file. For details, see [Importing and exporting data](https://learning.postman.com/docs/getting-started/importing-and-exporting-data/)
-2. Replace imported collection Request urls with, your CallbackUri.
-3. Start a call invoke outboundCall. 
-	- Accept the call on Target PSTN Phone number, Keep call running.
-4. Send Request to startRecording.
-	- Recording would be started.
-5. (Optional) pauseRecording and then resumeRecording,getRecordingState.
-6. Send Request for stopRecording.
-7. Send Request for downloadRecording from server, only last recorded file will be downloaded.
-8. Send Request for deleteRecording at server.
-
- For complete details on how to build a client application using ACS calling SDK, refer to https://learn.microsoft.com/en-us/azure/communication-services/samples/calling-hero-sample?pivots=platform-web
-
 ### Troubleshooting
 
 1. Solution doesn\'t build / It throws errors during MVN installation/build
-
-	-  Check if all the config keys are present, and rebuild with `mvn package`, then `mvn clean install`
-
+	- Check if all the config keys are present, and rebuild with `mvn package`, then `mvn clean install`
 	- After installing the JDK and building, if you see "invalid target release: 11", verify that your JAVA_HOME variable does in fact point to your Java 11 installation (as opposed to a previous installation).
-
-## Publish to Azure
-
-1. Build java code :
-
-	```bash
-	mvn clean install  
-	```
-
-1. Run app locally using :
-
-	```bash
-	mvn spring-boot:run
- 	```
-
-1. Configure Maven to build image to your Azure Container Registry.
-
- 	- Navigate to the completed project directory for your Spring Boot application and open the pom.xml file with a text editor.
- 	- Update the <properties> collection in the pom.xml file with the latest version of [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin), login server value, and access settings for your Azure Container Registry created using [Create container registry](https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-an-azure-container-registry-to-use-as-a-private-docker-registry). For example:
-
-		```xml
-		<properties>
-			<jib-maven-plugin.version>2.5.2</jib-maven-plugin.version>
-			<docker.image.prefix>{docker.image.prefix}</docker.image.prefix>
-			<java.version>1.8</java.version>
-		</properties>
-		```
-  	- Add [jib-maven-plugin](https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin) to the <plugins> collection in the pom.xml file. This example uses version 2.5.2.
-
-		Specify the base image at ```<from>/<image>```, here ```mcr.microsoft.com/java/jre:11-zulu-alpine```. Specify the name of the final image to be built from the base in ```<to>/<image>```.
-
-		The {docker.image.prefix} is the Login server of Azure Container Registry. The {project.artifactId} is the name and version number of the JAR file from the first Maven build of the project.
-
-		```xml
-		<plugin>
-		<artifactId>jib-maven-plugin</artifactId>
-		<groupId>com.google.cloud.tools</groupId>
-		<version>${jib-maven-plugin.version}</version>
-		<configuration>
-			<from>
-				<image>mcr.microsoft.com/java/jre:11-zulu-alpine</image>
-			</from>
-			<to>
-				<image>${docker.image.prefix}/${project.artifactId}</image>
-			</to>
-		</configuration>
-		</plugin>
-
-		```
-
-
-1. Login to Azure.
-
-	```azurecli
-	az login
-	```
-
-1. Login to Azure Container Registry.
-
-	```azurecli
-	az acr login --name <registryName>
-	```
-
-1. Build docker image.
-
-	```bash
-	mvn compile jib:dockerBuild  
-	```
-
-1. Run image locally to validate.
-
-	```bash
-	docker run -it --rm -p 8080:8080   <registryName>.azurecr.io/<dockerImageName>
-	```
-
-1. Push docker image to Azure Container Registry.
-
-	```bash
-	docker push <registryName>.azurecr.io/<dockerImageName>
-	```
-
-1. Create web app by following steps in link : [Create Web App](https://learn.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-linux#create-a-web-app-on-linux-on-azure-app-service-using-your-container-image)
 
 ## Additional Reading
 

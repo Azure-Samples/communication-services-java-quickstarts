@@ -1,7 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
-package com.acsrecording.api;
+package com.communication.callrecording;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;

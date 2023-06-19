@@ -1,14 +1,11 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
+package com.communication.callrecording.Controller;
 
-package com.acsrecording.api.Controller;
-
-
-import com.acsrecording.api.ConfigurationManager;
-import com.azure.communication.callautomation.CallAutomationClientBuilder ;
+import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;
+import com.azure.communication.callautomation.CallRecording;
 import com.azure.communication.callautomation.models.CallInvite;
 import com.azure.communication.callautomation.models.CreateCallOptions;
+import com.azure.communication.callautomation.models.CreateCallResult;
 import com.azure.communication.callautomation.models.RecordingState;
 import com.azure.communication.callautomation.models.ServerCallLocator;
 import com.azure.core.http.HttpHeader;
@@ -26,6 +23,7 @@ import com.azure.messaging.eventgrid.systemevents.AcsRecordingChunkInfoPropertie
 import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
+import com.communication.callrecording.ConfigurationManager;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,11 +71,11 @@ public class RecordingsController  {
     @GetMapping("/outboundCall")
     public String OutboundCall() {
         try {            
-            var callerId = new PhoneNumberIdentifier(ACSAcquiredPhoneNumber);
-            var target = new PhoneNumberIdentifier(targetPhoneNumber);
-            var callInvite = new CallInvite(target, callerId);
-            var createCallOption = new CreateCallOptions(callInvite, BaseUri + "/api/callbacks");           
-         var response = this.callAutomationClient.createCallWithResponse(createCallOption,null);
+            PhoneNumberIdentifier callerId = new PhoneNumberIdentifier(ACSAcquiredPhoneNumber);
+            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            CallInvite callInvite = new CallInvite(target, callerId);
+            CreateCallOptions createCallOption = new CreateCallOptions(callInvite, BaseUri + "/api/callbacks");           
+         Response<CreateCallResult> response = this.callAutomationClient.createCallWithResponse(createCallOption,null);
          _callConnectionId = response.getValue().getCallConnection().getCallProperties().getCallConnectionId();
          logger.log(Level.INFO, "Create call response --> " + _callConnectionId);
          return _callConnectionId;
@@ -145,7 +143,7 @@ public class RecordingsController  {
     @GetMapping("downloadRecording")
     public void DownloadRecording() {
         try {
-            var callRecording = callAutomationClient.getCallRecording();
+            CallRecording callRecording = callAutomationClient.getCallRecording();
             OutputStream out = new FileOutputStream("Recording_File.wav");
             callRecording.downloadTo( _contentLocation , out);            
             }

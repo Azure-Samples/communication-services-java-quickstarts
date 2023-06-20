@@ -53,3 +53,4 @@ devtunnel host
     - Build the package: mvn package
     - Execute the app: mvn exec:java
 - Access the Swagger UI at http://localhost:8080/swagger-ui.html
+    - Try the GET /outboundCall to run the Sample Application

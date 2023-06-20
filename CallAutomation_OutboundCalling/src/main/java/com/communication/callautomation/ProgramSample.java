@@ -55,7 +55,7 @@ public class ProgramSample {
         return handleCallRecordedMediaDownload();
     }
 
-    @PostMapping(path = "/api/recordingcallback")
+    @PostMapping(path = "/api/recordingFileStatus")
     public ResponseEntity<SubscriptionValidationResponse> recordinApiEventGridEvents(@RequestBody final String reqBody) {
         List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
         for (EventGridEvent eventGridEvent : events) {

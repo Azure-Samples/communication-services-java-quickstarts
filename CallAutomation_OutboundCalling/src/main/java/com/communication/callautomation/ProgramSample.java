@@ -42,7 +42,7 @@ public class ProgramSample {
         recordingId = "";
     }
 
-    @GetMapping(path = "/api/outbound_call")
+    @GetMapping(path = "/outboundCall")
     public ResponseEntity<String> outboundCall() {
         String callConnectionId = createOutboundCall();
         return ResponseEntity.ok().body("Target participant: "

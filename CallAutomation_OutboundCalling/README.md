@@ -52,3 +52,4 @@ devtunnel host
     - Compile the application: mvn compile
     - Build the package: mvn package
     - Execute the app: mvn exec:java
+- Access the Swagger UI at http://localhost:8080/swagger-ui.html

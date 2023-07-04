@@ -42,7 +42,7 @@ public class ProgramSample {
         recordingId = "";
     }
 
-    @GetMapping(path = "/api/outbound_call")
+    @GetMapping(path = "/outboundCall")
     public ResponseEntity<String> outboundCall() {
         String callConnectionId = createOutboundCall();
         return ResponseEntity.ok().body("Target participant: "
@@ -55,7 +55,7 @@ public class ProgramSample {
         return handleCallRecordedMediaDownload();
     }
 
-    @PostMapping(path = "/api/recordingcallback")
+    @PostMapping(path = "/api/recordingFileStatus")
     public ResponseEntity<SubscriptionValidationResponse> recordinApiEventGridEvents(@RequestBody final String reqBody) {
         List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
         for (EventGridEvent eventGridEvent : events) {

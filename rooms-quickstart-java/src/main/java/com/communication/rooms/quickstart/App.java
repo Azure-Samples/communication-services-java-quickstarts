@@ -222,7 +222,7 @@ public class App {
 
                 System.out.println("Make a selection");
                 System.out.println("1. Add a room");
-                System.out.println("2. Update a room by a day");
+                System.out.println("2. Update a room by extending validUntil by one day");
                 System.out.println("3. Delete a room");
                 System.out.println("4. Get room details");
                 System.out.println("5. List room ids created in this session");

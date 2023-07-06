@@ -301,7 +301,7 @@ public class App {
                         break;
                     }
                     case 10:
-                        System.out.println("Deleting all rooms and existing program...");
+                        System.out.println("Deleting all rooms and exiting program...");
                         for (String room : roomIds) {
                             System.out.println("Deleting:" + room);
                             deleteRoom(room);

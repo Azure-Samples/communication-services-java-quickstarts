@@ -222,13 +222,13 @@ public class App {
 
                 System.out.println("Make a selection");
                 System.out.println("1. Add a room");
-                System.out.println("2. Update a room");
+                System.out.println("2. Update a room by a day");
                 System.out.println("3. Delete a room");
                 System.out.println("4. Get room details");
                 System.out.println("5. List room ids created in this session");
                 System.out.println("6. List rooms in resource");
-                System.out.println("7. Add or Update participants");
-                System.out.println("8. Remove a participant");
+                System.out.println("7. Add or Update random participant");
+                System.out.println("8. Remove a random participant");
                 System.out.println("9. List participants");
                 System.out.println("10. Exit");
                 selection = Integer.parseInt(br.readLine());
@@ -299,11 +299,13 @@ public class App {
                         break;
                     }
                     case 10:
-                        System.out.println("Deleting all rooms");
+                        System.out.println("Deleting all rooms and existing program...");
                         for (String room : roomIds) {
                             System.out.println("Deleting:" + room);
                             deleteRoom(room);
                         }
+
+                        System.exit(0);
 
                         return;
                     default:

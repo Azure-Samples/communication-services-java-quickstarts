@@ -132,20 +132,16 @@ public class App {
         try {
             Iterable<PagedResponse<CommunicationRoom>> roomPages = roomsClient.listRooms().iterableByPage();
 
-            System.out.println("Listing the first three room IDs in the list of rooms:");
+            System.out.println("Listing all the rooms IDs in the first two pages of the list of rooms:");
 
             int count = 0;
             for (PagedResponse<CommunicationRoom> page : roomPages) {
                 for (CommunicationRoom room : page.getElements()) {
                     System.out.println("\n" + room.getRoomId());
-                    count++;
-
-                    if (count >= 3) {
-                        break;
-                    }
                 }
 
-                if (count >= 3) {
+                count++;
+                if (count >= 2) {
                     break;
                 }
             }

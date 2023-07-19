@@ -1,23 +1,30 @@
 package com.communication.jobrouter.quickstart;
 
+import com.azure.communication.jobrouter.JobRouterAdministrationClient;
+import com.azure.communication.jobrouter.JobRouterAdministrationClientBuilder;
+import com.azure.communication.jobrouter.JobRouterClient;
+import com.azure.communication.jobrouter.JobRouterClientBuilder;
 import com.azure.communication.jobrouter.models.AcceptJobOfferResult;
 import com.azure.communication.jobrouter.models.ChannelConfiguration;
+import com.azure.communication.jobrouter.models.CloseJobOptions;
+import com.azure.communication.jobrouter.models.CreateDistributionPolicyOptions;
+import com.azure.communication.jobrouter.models.CreateJobOptions;
+import com.azure.communication.jobrouter.models.CreateQueueOptions;
+import com.azure.communication.jobrouter.models.CreateWorkerOptions;
 import com.azure.communication.jobrouter.models.DistributionPolicy;
 import com.azure.communication.jobrouter.models.LabelOperator;
 import com.azure.communication.jobrouter.models.LabelValue;
 import com.azure.communication.jobrouter.models.LongestIdleMode;
-import com.azure.communication.jobrouter.models.QueueAssignment;
 import com.azure.communication.jobrouter.models.RouterJob;
+import com.azure.communication.jobrouter.models.RouterJobOffer;
+import com.azure.communication.jobrouter.models.RouterQueue;
+import com.azure.communication.jobrouter.models.RouterQueueAssignment;
 import com.azure.communication.jobrouter.models.RouterWorker;
-import com.azure.communication.jobrouter.models.options.CloseJobOptions;
-import com.azure.communication.jobrouter.models.options.CreateDistributionPolicyOptions;
-import com.azure.communication.jobrouter.models.options.CreateJobOptions;
-import com.azure.communication.jobrouter.models.options.CreateQueueOptions;
-import com.azure.communication.jobrouter.models.options.CreateWorkerOptions;
+import com.azure.communication.jobrouter.models.RouterWorkerSelector;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Hello world!
@@ -30,7 +37,8 @@ public class App
 
         // Get a connection string to our Azure Communication Services resource.
         String connectionString = "your_connection_string";
-        JobRouterAdministrationClient routerAdminClient = new JobRouterAdministrationClientBuilder().connectionString(connectionString).buildClient();
+        JobRouterAdministrationClient routerAdminClient = new JobRouterAdministrationClientBuilder()
+                .connectionString(connectionString).buildClient();
         JobRouterClient routerClient = new JobRouterClientBuilder().connectionString(connectionString).buildClient();
 
         DistributionPolicy distributionPolicy = routerAdminClient.createDistributionPolicy(
@@ -38,27 +46,20 @@ public class App
                 .setName("My distribution policy"));
 
         RouterQueue queue = routerAdminClient.createQueue(
-            new CreateQueueOptions("queue-1",distributionPolicy.getId())
-                .setName("My queue")
-        );
+            new CreateQueueOptions("queue-1",distributionPolicy.getId()).setName("My queue"));
 
-        RouterJob job = routerClient.createJob(
-            new CreateJobOptions("job-1", "voice", queue.getId())
-                .setPriority(1)
-                .setRequestedWorkerSelectors(List.of(
-                    new RouterWorkerSelector("Some-Skill", LabelOperator.GREATER_THAN, new LabelValue(10)))));
+        RouterJob job = routerClient.createJob(new CreateJobOptions("job-1", "voice", queue.getId())
+            .setPriority(1)
+            .setRequestedWorkerSelectors(List.of(new RouterWorkerSelector()
+                .setKey("Some-Skill")
+                .setLabelOperator(LabelOperator.GREATER_THAN)
+                .setValue(new LabelValue(10)))));
 
         RouterWorker worker = routerClient.createWorker(
             new CreateWorkerOptions("worker-1", 1)
-                .setQueueIds(new HashMap<String, QueueAssignment>() {{
-                    put(queue.getId(), new RouterQueueAssignment());
-                }})
-                .setLabels(new HashMap<String, LabelValue>() {{
-                    put("Some-Skill", new LabelValue(11));
-                }})
-                .setChannelConfigurations(new HashMap<String, ChannelConfiguration>() {{
-                    put("voice", new ChannelConfiguration(1));
-                }}));
+                .setQueueAssignments(Map.of(queue.getId(), new RouterQueueAssignment()))
+                .setLabels(Map.of("Some-Skill", new LabelValue(11)))
+                .setChannelConfigurations(Map.of("voice", new ChannelConfiguration().setCapacityCostPerJob(1))));
 
         Thread.sleep(3000);
         worker = routerClient.getWorker(worker.getId());
@@ -69,11 +70,10 @@ public class App
         AcceptJobOfferResult accept = routerClient.acceptJobOffer(worker.getId(), worker.getOffers().get(0).getOfferId());
         System.out.printf("Worker %s is assigned job %s", worker.getId(), accept.getJobId());
 
-        routerClient.completeJob(new CompleteJobOptions("job-1", accept.getAssignmentId()));
+        routerClient.completeJob("job-1", accept.getAssignmentId(), null);
         System.out.printf("Worker %s has completed job %s", worker.getId(), accept.getJobId());
 
-        routerClient.closeJob(new CloseJobOptions("job-1", accept.getAssignmentId())
-                .setDispositionCode("Resolved"));
+        routerClient.closeJob(new CloseJobOptions("job-1", accept.getAssignmentId()).setDispositionCode("Resolved"));
         System.out.printf("Worker %s has closed job %s", worker.getId(), accept.getJobId());
     }
 }

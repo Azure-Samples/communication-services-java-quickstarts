@@ -59,7 +59,8 @@ public class App
             new CreateWorkerOptions("worker-1", 1)
                 .setQueueAssignments(Map.of(queue.getId(), new RouterQueueAssignment()))
                 .setLabels(Map.of("Some-Skill", new LabelValue(11)))
-                .setChannelConfigurations(Map.of("voice", new ChannelConfiguration().setCapacityCostPerJob(1))));
+                .setChannelConfigurations(Map.of("voice", new ChannelConfiguration().setCapacityCostPerJob(1)))
+                .setAvailableForOffers(true));
 
         Thread.sleep(3000);
         worker = routerClient.getWorker(worker.getId());

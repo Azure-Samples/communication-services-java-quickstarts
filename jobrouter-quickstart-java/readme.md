@@ -34,4 +34,4 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 
 1. Navigate to the directory containing the pom.xml file and compile the project by using command `mvn compile`.
 2. Build the package using command `mvn package`.
-3. Run the command to execute the app `mvn exec:java -Dexec.mainClass="com.communication.jobrouter.quickstart.App" -Dexec.cleanupDaemonThreads=false`.
+3. Run the command (in command prompt or bash) to execute the app `mvn exec:java -Dexec.mainClass="com.communication.jobrouter.quickstart.App" -Dexec.cleanupDaemonThreads=false`.

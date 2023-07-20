@@ -48,6 +48,9 @@ public class App
         RouterQueue queue = routerAdminClient.createQueue(
             new CreateQueueOptions("queue-1",distributionPolicy.getId()).setName("My queue"));
 
+        // Clean up the Job `job-1` from previous executions if needed
+        routerClient.deleteJob("job-1");
+
         RouterJob job = routerClient.createJob(new CreateJobOptions("job-1", "voice", queue.getId())
             .setPriority(1)
             .setRequestedWorkerSelectors(List.of(new RouterWorkerSelector()
@@ -65,16 +68,16 @@ public class App
         Thread.sleep(3000);
         worker = routerClient.getWorker(worker.getId());
         for (RouterJobOffer offer : worker.getOffers()) {
-            System.out.printf("Worker %s has an active offer for job %s", worker.getId(), offer.getJobId());
+            System.out.printf("Worker %s has an active offer for job %s\n", worker.getId(), offer.getJobId());
         }
 
         AcceptJobOfferResult accept = routerClient.acceptJobOffer(worker.getId(), worker.getOffers().get(0).getOfferId());
-        System.out.printf("Worker %s is assigned job %s", worker.getId(), accept.getJobId());
+        System.out.printf("Worker %s is assigned job %s\n", worker.getId(), accept.getJobId());
 
         routerClient.completeJob("job-1", accept.getAssignmentId(), null);
-        System.out.printf("Worker %s has completed job %s", worker.getId(), accept.getJobId());
+        System.out.printf("Worker %s has completed job %s\n", worker.getId(), accept.getJobId());
 
         routerClient.closeJob(new CloseJobOptions("job-1", accept.getAssignmentId()).setDispositionCode("Resolved"));
-        System.out.printf("Worker %s has closed job %s", worker.getId(), accept.getJobId());
+        System.out.printf("Worker %s has closed job %s\n", worker.getId(), accept.getJobId());
     }
 }

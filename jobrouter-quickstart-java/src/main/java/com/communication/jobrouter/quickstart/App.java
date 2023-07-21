@@ -63,7 +63,7 @@ public class App
                 .setChannelConfigurations(Map.of("voice", new ChannelConfiguration().setCapacityCostPerJob(1)))
                 .setAvailableForOffers(true));
 
-        Thread.sleep(5000);
+        Thread.sleep(10000);
         worker = routerClient.getWorker(worker.getId());
         for (RouterJobOffer offer : worker.getOffers()) {
             System.out.printf("Worker %s has an active offer for job %s\n", worker.getId(), offer.getJobId());

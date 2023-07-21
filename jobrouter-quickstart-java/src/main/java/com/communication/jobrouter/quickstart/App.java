@@ -7,6 +7,7 @@ import com.azure.communication.jobrouter.JobRouterClientBuilder;
 import com.azure.communication.jobrouter.models.AcceptJobOfferResult;
 import com.azure.communication.jobrouter.models.ChannelConfiguration;
 import com.azure.communication.jobrouter.models.CloseJobOptions;
+import com.azure.communication.jobrouter.models.CompleteJobOptions;
 import com.azure.communication.jobrouter.models.CreateDistributionPolicyOptions;
 import com.azure.communication.jobrouter.models.CreateJobOptions;
 import com.azure.communication.jobrouter.models.CreateQueueOptions;
@@ -16,6 +17,7 @@ import com.azure.communication.jobrouter.models.LabelOperator;
 import com.azure.communication.jobrouter.models.LabelValue;
 import com.azure.communication.jobrouter.models.LongestIdleMode;
 import com.azure.communication.jobrouter.models.RouterJob;
+import com.azure.communication.jobrouter.models.RouterJobMatchingMode;
 import com.azure.communication.jobrouter.models.RouterJobOffer;
 import com.azure.communication.jobrouter.models.RouterQueue;
 import com.azure.communication.jobrouter.models.RouterQueueAssignment;
@@ -27,8 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Hello world!
- *
+ * Azure Communication Services - Job Router Quickstart
  */
 public class App 
 {
@@ -47,9 +48,6 @@ public class App
 
         RouterQueue queue = routerAdminClient.createQueue(
             new CreateQueueOptions("queue-1",distributionPolicy.getId()).setName("My queue"));
-
-        // Clean up the Job `job-1` from previous executions if needed
-        routerClient.deleteJob("job-1");
 
         RouterJob job = routerClient.createJob(new CreateJobOptions("job-1", "voice", queue.getId())
             .setPriority(1)
@@ -74,10 +72,13 @@ public class App
         AcceptJobOfferResult accept = routerClient.acceptJobOffer(worker.getId(), worker.getOffers().get(0).getOfferId());
         System.out.printf("Worker %s is assigned job %s\n", worker.getId(), accept.getJobId());
 
-        routerClient.completeJob("job-1", accept.getAssignmentId(), null);
+        routerClient.completeJob(new CompleteJobOptions(accept.getJobId(), accept.getAssignmentId()));
         System.out.printf("Worker %s has completed job %s\n", worker.getId(), accept.getJobId());
 
-        routerClient.closeJob(new CloseJobOptions("job-1", accept.getAssignmentId()).setDispositionCode("Resolved"));
+        routerClient.closeJob(new CloseJobOptions(accept.getJobId(), accept.getAssignmentId()).setDispositionCode("Resolved"));
         System.out.printf("Worker %s has closed job %s\n", worker.getId(), accept.getJobId());
+
+        routerClient.deleteJob(accept.getJobId());
+        System.out.printf("Deleted job %s\n", accept.getJobId());
     }
 }

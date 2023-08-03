@@ -1,20 +1,20 @@
 package com.communication.callautomation;
 
-import com.azure.communication.callautomation.CallAutomationAsyncClient;
 import com.azure.communication.callautomation.CallAutomationClient;
 import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;
 import com.azure.communication.callautomation.CallConnection;
-import com.azure.communication.callautomation.CallConnectionAsync;
 import com.azure.communication.callautomation.CallMedia;
-import com.azure.communication.callautomation.CallMediaAsync;
 import com.azure.communication.callautomation.models.*;
 import com.azure.communication.callautomation.models.events.*;
 import com.azure.communication.common.PhoneNumberIdentifier;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
@@ -39,7 +39,7 @@ public class ProgramSample {
         client.createCall(callInvite, appConfig.getCallBackUri());
         log.info("createCall");
 
-        return ResponseEntity.ok().body("");
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create("/index.html")).build();
     }
 
     @PostMapping(path = "/api/callback")

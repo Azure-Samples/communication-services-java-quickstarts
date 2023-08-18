@@ -107,8 +107,7 @@ public class ProgramSample {
                 else
                 {
                     if (((CallAutomationEventBaseWithReasonCode) event)
-                            .getResultInformation().getMessage()
-                            .contains("Action failed, initial silence timeout reached"))
+                            .getResultInformation().getSubCode() == 8510)
                     {
                         log.error("Silence timeout triggered for Call Connection ID: {} {}", callConnectionId, ((CallAutomationEventBaseWithReasonCode) event)
                                 .getResultInformation().getMessage());

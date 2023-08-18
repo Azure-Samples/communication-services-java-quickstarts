@@ -130,6 +130,8 @@ public class ProgramSample {
             else if(event instanceof PlayFailed) {
                 log.error("Received Play Failed event: {}", ((CallAutomationEventBaseWithReasonCode) event)
                         .getResultInformation().getMessage());
+                recognizeFails.remove(callConnectionId);
+                hangUp(callConnectionId);
             }
             else if(event instanceof CallDisconnected) {
                 log.info("Received Call Disconnected event for Call Connection ID: {}", callConnectionId);

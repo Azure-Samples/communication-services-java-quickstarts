@@ -107,7 +107,8 @@ public class ProgramSample {
                 else
                 {
                     if (((CallAutomationEventBaseWithReasonCode) event)
-                            .getResultInformation().getSubCode() == 8510)
+                            .getResultInformation().getSubCode().toString()
+                            .equals(ReasonCode.Recognize.INITIAL_SILENCE_TIMEOUT.toString()))
                     {
                         log.error("Silence timeout triggered for Call Connection ID: {} {}", callConnectionId, ((CallAutomationEventBaseWithReasonCode) event)
                                 .getResultInformation().getMessage());
@@ -193,7 +194,7 @@ public class ProgramSample {
                 Duration.ofSeconds(5))
                 .setInterruptPrompt(false)
                 .setPlayPrompt(textSource)
-                .setOperationContext("GetFreeFormText")
+                .setOperationContext("OpenAISample")
                 .setInitialSilenceTimeout(Duration.ofSeconds(15));
         try
         {
@@ -258,7 +259,7 @@ public class ProgramSample {
                 Duration.ofSeconds(5))
                 .setInterruptPrompt(false)
                 .setPlayPrompt(textSource)
-                .setOperationContext("GetFreeFormText")
+                .setOperationContext("OpenAISample")
                 .setInitialSilenceTimeout(Duration.ofSeconds(15));
         try
         {

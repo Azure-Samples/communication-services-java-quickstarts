@@ -127,7 +127,7 @@ public class App {
             
 
             System.out.println("RoomId: " + roomResult.getRoomId());
-            System.out.println("Create at: " + roomResult.getCreatedAt());
+            System.out.println("Created at: " + roomResult.getCreatedAt());
             System.out.println("ValidFrom: " + roomResult.getValidFrom());
             System.out.println("ValidUntil: " + roomResult.getValidUntil());
             System.out.println("PstnDialOutEnabled: " + roomResult.isPstnDialOutEnabled());

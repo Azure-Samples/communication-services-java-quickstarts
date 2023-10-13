@@ -68,6 +68,7 @@ public class App {
         CreateRoomOptions roomOptions = new CreateRoomOptions()
                 .setValidFrom(validFrom)
                 .setValidUntil(validUntil)
+                .setPstnDialOutEnabled(false)
                 .setParticipants(roomParticipants);
 
         return roomsClient.createRoom(roomOptions);
@@ -95,10 +96,11 @@ public class App {
 
             CommunicationRoom roomResult = roomsClient.getRoom(roomId);
             System.out.println("RoomId: " + roomResult.getRoomId());
-            System.out.println("Create at: " + roomResult.getCreatedAt());
+            System.out.println("Created at: " + roomResult.getCreatedAt());
 
             System.out.println("ValidFrom: " + roomResult.getValidFrom());
             System.out.println("ValidUntil: " + roomResult.getValidUntil());
+            System.out.println("PstnDialOutEnabled: " + roomResult.isPstnDialOutEnabled());
         } catch (Exception ex) {
             System.out.println(ex);
         }
@@ -113,16 +115,18 @@ public class App {
 
             UpdateRoomOptions roomUpdateOptions = new UpdateRoomOptions()
                     .setValidFrom(validFrom)
-                    .setValidUntil(validUntil);
+                    .setValidUntil(validUntil)
+                    .setPstnDialOutEnabled(true);
 
             System.out.print("Updating room...\n");
 
             CommunicationRoom roomResult = roomsClient.updateRoom(roomId, roomUpdateOptions);
             
             System.out.println("RoomId: " + roomResult.getRoomId());
-            System.out.println("Create at: " + roomResult.getCreatedAt());
+            System.out.println("Created at: " + roomResult.getCreatedAt());
             System.out.println("ValidFrom: " + roomResult.getValidFrom());
             System.out.println("ValidUntil: " + roomResult.getValidUntil());
+            System.out.println("PstnDialOutEnabled: " + roomResult.isPstnDialOutEnabled());
         } catch (Exception ex) {
             System.out.println(ex);
         }

@@ -6,13 +6,13 @@
 
   <groupId>com.communication.rooms.quickstart</groupId>
   <artifactId>rooms-quickstart</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1.0-beta.1-SNAPSHOT</version>
 
   <name>rooms-quickstart</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
-  <repositories>
+<repositories>
     <repository>
         <id>azure-communication-rooms</id>
         <url>file://${project.basedir}\azure-communication-rooms</url>
@@ -50,7 +50,7 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-communication-rooms</artifactId>
-      <version>1.0.0</version>
+      <version>1.1.0-beta.1</version>
     </dependency>
     <dependency>
     <groupId>com.azure</groupId>

@@ -157,7 +157,8 @@ public class ProgramSample {
             PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
             CallInvite callInvite = new CallInvite(target, caller);
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, appConfig.getCallBackUri());
-            createCallOptions = createCallOptions.setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions().setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint());
+            createCallOptions = createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
             return result.getValue().getCallConnectionProperties().getCallConnectionId();
         } catch (CommunicationErrorResponseException e) {

@@ -4,24 +4,7 @@ import com.azure.communication.jobrouter.JobRouterAdministrationClient;
 import com.azure.communication.jobrouter.JobRouterAdministrationClientBuilder;
 import com.azure.communication.jobrouter.JobRouterClient;
 import com.azure.communication.jobrouter.JobRouterClientBuilder;
-import com.azure.communication.jobrouter.models.AcceptJobOfferResult;
-import com.azure.communication.jobrouter.models.ChannelConfiguration;
-import com.azure.communication.jobrouter.models.CloseJobOptions;
-import com.azure.communication.jobrouter.models.CompleteJobOptions;
-import com.azure.communication.jobrouter.models.CreateDistributionPolicyOptions;
-import com.azure.communication.jobrouter.models.CreateJobOptions;
-import com.azure.communication.jobrouter.models.CreateQueueOptions;
-import com.azure.communication.jobrouter.models.CreateWorkerOptions;
-import com.azure.communication.jobrouter.models.DistributionPolicy;
-import com.azure.communication.jobrouter.models.LabelOperator;
-import com.azure.communication.jobrouter.models.LabelValue;
-import com.azure.communication.jobrouter.models.LongestIdleMode;
-import com.azure.communication.jobrouter.models.RouterJob;
-import com.azure.communication.jobrouter.models.RouterJobOffer;
-import com.azure.communication.jobrouter.models.RouterQueue;
-import com.azure.communication.jobrouter.models.RouterQueueAssignment;
-import com.azure.communication.jobrouter.models.RouterWorker;
-import com.azure.communication.jobrouter.models.RouterWorkerSelector;
+import com.azure.communication.jobrouter.models.*;
 
 import java.time.Duration;
 import java.util.List;
@@ -51,13 +34,14 @@ public class App
         RouterJob job = routerClient.createJob(new CreateJobOptions("job-1", "voice", queue.getId())
             .setPriority(1)
             .setRequestedWorkerSelectors(List.of(
-                new RouterWorkerSelector("Some-Skill", LabelOperator.GREATER_THAN, new LabelValue(10)))));
+                new RouterWorkerSelector("Some-Skill", LabelOperator.GREATER_THAN)
+                        .setValue(new RouterValue(10)))));
 
         RouterWorker worker = routerClient.createWorker(
             new CreateWorkerOptions("worker-1", 1)
-                .setQueueAssignments(Map.of(queue.getId(), new RouterQueueAssignment()))
-                .setLabels(Map.of("Some-Skill", new LabelValue(11)))
-                .setChannelConfigurations(Map.of("voice", new ChannelConfiguration(1)))
+                .setQueues(List.of(queue.getId()))
+                .setLabels(Map.of("Some-Skill", new RouterValue(11)))
+                .setChannels(List.of(new RouterChannel("voice", 1)))
                 .setAvailableForOffers(true));
 
         Thread.sleep(10000);
@@ -69,10 +53,10 @@ public class App
         AcceptJobOfferResult accept = routerClient.acceptJobOffer(worker.getId(), worker.getOffers().get(0).getOfferId());
         System.out.printf("Worker %s is assigned job %s\n", worker.getId(), accept.getJobId());
 
-        routerClient.completeJob(new CompleteJobOptions(accept.getJobId(), accept.getAssignmentId()));
+        routerClient.completeJobWithResponse(accept.getJobId(), accept.getAssignmentId(), null);
         System.out.printf("Worker %s has completed job %s\n", worker.getId(), accept.getJobId());
 
-        routerClient.closeJob(new CloseJobOptions(accept.getJobId(), accept.getAssignmentId()).setDispositionCode("Resolved"));
+        routerClient.closeJobWithResponse(accept.getJobId(), accept.getAssignmentId(), null);
         System.out.printf("Worker %s has closed job %s\n", worker.getId(), accept.getJobId());
 
         routerClient.deleteJob(accept.getJobId());

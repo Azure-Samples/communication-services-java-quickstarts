@@ -10,18 +10,6 @@
         <version>3.0.6</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <repositories>
-        <repository>
-        <id>azure-sdk-for-java</id>
-        <url>https://pkgs.dev.azure.com/azure-sdk/public/_packaging/azure-sdk-for-java/maven/v1</url>
-        <releases>
-            <enabled>true</enabled>
-        </releases>
-        <snapshots>
-            <enabled>true</enabled>
-        </snapshots>
-    </repository>
-    </repositories>
     
     <groupId>com.communication.callautomation</groupId>
     <artifactId>Quickstart_OutboundCalling</artifactId>
@@ -83,7 +71,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-communication-callautomation</artifactId>
-            <version>1.1.0-alpha.20231109.1</version>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>

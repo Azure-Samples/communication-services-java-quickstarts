@@ -28,18 +28,47 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.time.Duration;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @Slf4j
 public class ProgramSample {
     private final AppConfig appConfig;
     private final CallAutomationClient client;
+    private final OpenAIClient aiClient;
     Set<String> recognizeFails = new HashSet<>(){};
     private static final String INCOMING_CALL_CONTEXT = "incomingCallContext";
+
+    private final String answerPromptSystemTemplate = """ 
+    You are an assisant designed to answer the customer query and analyze the sentiment score from the customer tone. 
+    You also need to determine the intent of the customer query and classify it into categories such as sales, marketing, shopping, etc.
+    Use a scale of 1-10 (10 being highest) to rate the sentiment score. Use the below format, replacing the text in brackets with the result.
+    Do not include the brackets in the output:
+    Content:[Answer the customer query briefly and clearly in two lines and ask if there is anything else you can help with] 
+    Score:[Sentiment score of the customer tone] 
+    Intent:[Determine the intent of the customer query] 
+    Category:[Classify the intent into one of the categories]
+    """;
+
+    private final String helloPrompt = "Hello, thank you for calling! How can I help you today?";
+   // private final String timeoutSilencePrompt = "I’m sorry, I didn’t hear anything. If you need assistance please let me know how I can help you.";
+   // private final String goodbyePrompt = "Thank you for calling! I hope I was able to assist you. Have a great day!";
+    private final String connectAgentPrompt = "I'm sorry, I was not able to assist you with your request. Let me transfer you to an agent who can help you further. Please hold the line and I'll connect you shortly.";
+    private final String callTransferFailurePrompt = "It looks like all I can’t connect you to an agent right now, but we will get the next available agent to call you back as soon as possible.";
+    private final String agentPhoneNumberEmptyPrompt = "I’m sorry, we're currently experiencing high call volumes and all of our agents are currently busy. Our next available agent will call you back as soon as possible.";
+    private final String EndCallPhraseToConnectAgent = "Sure, please stay on the line. I’m going to transfer you to an agent.";
+
+    private final String transferFailedContext = "TransferFailed";
+    private final String connectAgentContext = "ConnectAgent";
+
+   // private final String agentPhonenumber = builder.Configuration.GetValue<string>("AgentPhoneNumber");
+   // private final String chatResponseExtractPattern = "\s*Content:(.*)\s*Score:(.*\d+)\s*Intent:(.*)\s*Category:(.*)";
 
     public ProgramSample(final AppConfig appConfig) {
         this.appConfig = appConfig;
         client = initClient();
+        aiClient = initOpenAIClient();
     }
 
     @GetMapping(path = "/")
@@ -73,23 +102,52 @@ public class ProgramSample {
             String callConnectionId = event.getCallConnectionId();
             if (event instanceof CallConnected) {
                 log.info("Call connected performing recognize for Call Connection ID: {}", callConnectionId);
-                handleRecognizeRequest("Hello. How can I help?", callConnectionId, callerId);
+                handleRecognizeRequest(helloPrompt, callConnectionId, callerId);
             }
             else if (event instanceof RecognizeCompleted) {
                 log.info("Recognize Completed event received for Call Connection ID: {}", callConnectionId);
                 RecognizeCompleted recognizeEvent = (RecognizeCompleted) event;
                 SpeechResult speechResult = (SpeechResult) recognizeEvent
                         .getRecognizeResult().get();
-
                 if (!speechResult.getSpeech().isEmpty())
                 {
                     String question = speechResult.getSpeech();
                     log.info("Speech recognized: {}", question);
-                    String chatResponse = getChatGptResponse(question);
-                    handleChatGptResponse(
-                            chatResponse,
-                            callConnectionId,
-                            callerId);
+                    if(DetectEscalateToAgentIntent(question))
+                    {
+                        handlePlayTo(EndCallPhraseToConnectAgent, connectAgentContext, callConnectionId, callerId);
+                    }
+                    else
+                    {
+                        String chatResponse = getChatGptResponse(question);
+                        log.info("Chat GPT response: {}", chatResponse);
+                        Pattern pattern = Pattern.compile("\\s*Content:(.*)\\s*Score:(.*\\d+)\\s*Intent:(.*)\\s*Category:(.*)");
+                        Matcher match = pattern.matcher(chatResponse);
+                        if(match.find())
+                        {
+                            String answer = match.group(1);
+                            String sentimentScore = match.group(2);
+                            String intent = match.group(3);
+                            String category = match.group(4);
+                            log.info("Chat GPT Answer={}, Sentiment Rating={}, Intent={}, Category={}",
+                            answer, sentimentScore,intent , category);
+                            int score = GetSentimentScore(sentimentScore);
+                            log.info("Sentiment Score={}", score);
+                            if(score > -1 && score < 5)
+                            {
+                                handlePlayTo(connectAgentPrompt, connectAgentContext, callConnectionId, callerId);
+                            }
+                            else
+                            {
+                                handleRecognizeRequest(answer, callConnectionId, callerId);
+                            }
+                        }
+                        else
+                        {
+                            log.info("No match found", chatResponse);
+                            handleChatGptResponse(chatResponse, callConnectionId, callerId);
+                        }
+                    }
                 }
                 else
                 {
@@ -102,7 +160,7 @@ public class ProgramSample {
                 if (recognizeFails.contains(callConnectionId))
                 {
                     log.error("No input was recognized, hanging up call: {}", callConnectionId);
-                    handlePlayTo(callConnectionId, callerId);
+                    handlePlayTo(EndCallPhraseToConnectAgent, connectAgentContext, callConnectionId, callerId);
                 }
                 else
                 {
@@ -121,6 +179,18 @@ public class ProgramSample {
                         handleRecognizeRequest("Something went wrong. Want to try it again? How can I help?", callConnectionId, callerId);
                     }
                 }
+            }
+            else if (event instanceof CallTransferAccepted)
+            {
+                log.info("Call transfer accepted event received for connection id:{}", callConnectionId);
+            }
+            else if (event instanceof CallTransferFailed)
+            {
+                log.info("Call transfer failed event received for connection id:{}", callConnectionId);
+                ResultInformation resultInformation = ((CallTransferFailed)event).getResultInformation();
+                log.info("Encountered error during call transfer, message={msg}, code={code}, subCode={subCode}", 
+                resultInformation.getMessage(), resultInformation.getCode(), resultInformation.getSubCode());
+                handlePlayTo(callTransferFailurePrompt, transferFailedContext, callConnectionId, callerId);
             }
             else if(event instanceof PlayCompleted) {
                 log.info("Received Play Completed event. Terminating call");
@@ -152,8 +222,9 @@ public class ProgramSample {
                     UUID.randomUUID(),
                     data.getJSONObject("from").getString("rawId"));
             cognitiveServicesUrl = new URI(appConfig.getCognitiveServicesUrl()).toString();
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions().setCognitiveServicesEndpoint(appConfig.getCognitiveServicesUrl());
             options = new AnswerCallOptions(data.getString(INCOMING_CALL_CONTEXT),
-                    callbackUri).setCognitiveServicesEndpoint(cognitiveServicesUrl);
+                    callbackUri).setCallIntelligenceOptions(callIntelligenceOptions);
             Response<AnswerCallResult> answerCallResponse = client.answerCallWithResponse(options, Context.NONE);
 
             log.info("Incoming call answered. Cognitive Services Url: {}\nCallbackUri: {}\nCallConnectionId: {}",
@@ -212,31 +283,25 @@ public class ProgramSample {
         }
     }
 
-    private String getChatGptResponse(final String speech)
-    {
-        String key;
-        String openAiModelName;
-        String endpoint;
-        OpenAIClient aiClient;
+    private int GetSentimentScore(String sentimentScore){
+        Pattern pattern = Pattern.compile("(\\d)+");
+        Matcher match = pattern.matcher(sentimentScore);
+        return (match.find()) ? Integer.parseInt(match.group(1))  : -1;
+    }
+
+    private String GetChatCompletionsAsync(final String systemPrompt, final String userPrompt){
         ChatCompletionsOptions chatCompletionsOptions;
         List<ChatMessage> chatMessages = new ArrayList<>(){};
+        String openAiModelName;
         try
         {
-            key = appConfig.getAzureOpenAiServiceKey();
-            endpoint = appConfig.getAzureOpenAiServiceEndpoint();
-            openAiModelName = appConfig.getOpenAiModelName();
-            aiClient = new OpenAIClientBuilder()
-                    .endpoint(new URI(endpoint).toString())
-                    .credential(new AzureKeyCredential(key))
-                    .buildClient();
-            chatMessages.add(new ChatMessage(ChatRole.SYSTEM, "You are a helpful assistant."));
-            chatMessages.add(new ChatMessage(ChatRole.USER, String.format("In less than 200 characters: respond to this question: %s", speech)));
+            chatMessages.add(new ChatMessage(ChatRole.SYSTEM, systemPrompt));
+            chatMessages.add(new ChatMessage(ChatRole.USER, userPrompt));
             chatCompletionsOptions = new ChatCompletionsOptions(chatMessages).setMaxTokens(1000);
-
+            openAiModelName = appConfig.getOpenAiModelName();
             ChatCompletions chatCompletion = aiClient
                     .getChatCompletions(openAiModelName,
                             chatCompletionsOptions);
-
             return chatCompletion.getChoices().get(0).getMessage().getContent();
         } catch (Exception e)
         {
@@ -245,6 +310,27 @@ public class ProgramSample {
                     e.getCause());
             return null;
         }
+    }
+
+    private Boolean DetectEscalateToAgentIntent(String speechText) 
+    {
+        return HasIntentAsync(speechText, "talk to agent");
+    }
+
+    private Boolean HasIntentAsync(String userQuery, String intentDescription)
+    {
+        String systemPrompt = "You are a helpful assistant";
+        String baseUserPrompt = "In 1 word: does %s have similar meaning as %s?";
+        var combinedPrompt = String.format(baseUserPrompt, userQuery, intentDescription);
+        String response = GetChatCompletionsAsync(systemPrompt, combinedPrompt);
+        var isMatch = response.toLowerCase().contains("yes");
+        log.info("OpenAI results: isMatch={}, customerQuery='{}', intentDescription='{}'", isMatch, userQuery, intentDescription);
+        return isMatch;
+    }
+
+    private String getChatGptResponse(final String speech)
+    {
+        return GetChatCompletionsAsync(answerPromptSystemTemplate ,speech);
     }
 
     private void handleChatGptResponse(final String chatResponse,
@@ -276,20 +362,23 @@ public class ProgramSample {
         }
     }
 
-    private void handlePlayTo(
+    private void handlePlayTo(final String textToPlay,
+        final String context,
             final String callConnectionId,
             final String callerId) {
 
         String tParticipant = callerId.replaceAll("\\s", "+");
-        PlaySource playSource = new TextSource()
-                .setText("Goodbye!")
-                .setVoiceName("en-US-NancyNeural");
         CommunicationIdentifier targetParticipant = CommunicationIdentifier.fromRawId(tParticipant);
-
+         PlaySource playSource = new TextSource()
+                .setText(textToPlay)
+                .setVoiceName("en-US-NancyNeural");
+        PlayOptions playOptions = new PlayOptions(playSource, new ArrayList<>(List.of(targetParticipant)))
+        .setOperationContext(context);
+       
         try {
             client.getCallConnection(callConnectionId)
                     .getCallMedia()
-                    .play(playSource, new ArrayList<>(List.of(targetParticipant)));
+                   .playWithResponse(playOptions, Context.NONE);
         } catch (Exception e) {
             log.error("Error occurred when playing media to participant {} {}",
                     e.getMessage(),
@@ -305,6 +394,30 @@ public class ProgramSample {
             log.error("Error when terminating the call for all participants {} {}",
                     e.getMessage(),
                     e.getCause());
+        }
+    }
+
+    private OpenAIClient initOpenAIClient(){
+        OpenAIClient aiClient;
+        String key;
+        String endpoint;
+        try
+        {
+            key = appConfig.getAzureOpenAiServiceKey();
+            endpoint = appConfig.getAzureOpenAiServiceEndpoint();
+            aiClient = new OpenAIClientBuilder()
+                    .endpoint(new URI(endpoint).toString())
+                    .credential(new AzureKeyCredential(key))
+                    .buildClient();
+            return aiClient;
+        } catch (NullPointerException e) {
+            log.error("Please verify if Application config is properly set up");
+            return null;
+        } catch (Exception e) {
+            log.error("Error occurred when initializing open ai Async Client: {} {}",
+                    e.getMessage(),
+                    e.getCause());
+            return null;
         }
     }
 

@@ -13,6 +13,7 @@ public class AppConfig {
     private final String azureOpenAiServiceKey;
     private final String azureOpenAiServiceEndpoint;
     private final String openAiModelName;
+    private final String agentPhoneNumber;
 
     @ConstructorBinding
     AppConfig(final String connectionString,
@@ -20,13 +21,15 @@ public class AppConfig {
               final String cognitiveServicesUrl,
               final String azureOpenAiServiceKey,
               final String azureOpenAiServiceEndpoint,
-              final String openAiModelName) {
+              final String openAiModelName,
+              final String agentPhoneNumber) {
         this.connectionString = connectionString;
         this.basecallbackuri = basecallbackuri;
         this.cognitiveServicesUrl = cognitiveServicesUrl;
         this.azureOpenAiServiceKey = azureOpenAiServiceKey;
         this.azureOpenAiServiceEndpoint = azureOpenAiServiceEndpoint;
         this.openAiModelName = openAiModelName;
+        this.agentPhoneNumber = agentPhoneNumber;
     }
 
     public String getCallBackUri() {

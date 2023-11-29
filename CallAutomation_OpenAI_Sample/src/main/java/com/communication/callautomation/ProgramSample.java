@@ -12,6 +12,7 @@ import com.azure.communication.callautomation.CallAutomationEventParser;
 import com.azure.communication.callautomation.models.*;
 import com.azure.communication.callautomation.models.events.*;
 import com.azure.communication.common.CommunicationIdentifier;
+import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
@@ -40,11 +41,11 @@ public class ProgramSample {
     Set<String> recognizeFails = new HashSet<>(){};
     private static final String INCOMING_CALL_CONTEXT = "incomingCallContext";
 
-    private final String answerPromptSystemTemplate = """ 
+    private static final String answerPromptSystemTemplate = """ 
     You are an assisant designed to answer the customer query and analyze the sentiment score from the customer tone. 
     You also need to determine the intent of the customer query and classify it into categories such as sales, marketing, shopping, etc.
-    Use a scale of 1-10 (10 being highest) to rate the sentiment score. Use the below format, replacing the text in brackets with the result.
-    Do not include the brackets in the output:
+    Use a scale of 1-10 (10 being highest) to rate the sentiment score. 
+    Use the below format, replacing the text in brackets with the result. Do not include the brackets in the output: 
     Content:[Answer the customer query briefly and clearly in two lines and ask if there is anything else you can help with] 
     Score:[Sentiment score of the customer tone] 
     Intent:[Determine the intent of the customer query] 
@@ -52,8 +53,8 @@ public class ProgramSample {
     """;
 
     private final String helloPrompt = "Hello, thank you for calling! How can I help you today?";
-   // private final String timeoutSilencePrompt = "I’m sorry, I didn’t hear anything. If you need assistance please let me know how I can help you.";
-   // private final String goodbyePrompt = "Thank you for calling! I hope I was able to assist you. Have a great day!";
+    private final String timeoutSilencePrompt = "I’m sorry, I didn’t hear anything. If you need assistance please let me know how I can help you.";
+    private final String goodbyePrompt = "Thank you for calling! I hope I was able to assist you. Have a great day!";
     private final String connectAgentPrompt = "I'm sorry, I was not able to assist you with your request. Let me transfer you to an agent who can help you further. Please hold the line and I'll connect you shortly.";
     private final String callTransferFailurePrompt = "It looks like all I can’t connect you to an agent right now, but we will get the next available agent to call you back as soon as possible.";
     private final String agentPhoneNumberEmptyPrompt = "I’m sorry, we're currently experiencing high call volumes and all of our agents are currently busy. Our next available agent will call you back as soon as possible.";
@@ -61,6 +62,8 @@ public class ProgramSample {
 
     private final String transferFailedContext = "TransferFailed";
     private final String connectAgentContext = "ConnectAgent";
+    private final String goodbyeContext ="GoodBye";
+    private final String chatResponseExtractPattern = "\\s*Content:(.*)\\s*Score:(.*\\d+)\\s*Intent:(.*)\\s*Category:(.*)";
 
    // private final String agentPhonenumber = builder.Configuration.GetValue<string>("AgentPhoneNumber");
    // private final String chatResponseExtractPattern = "\s*Content:(.*)\s*Score:(.*\d+)\s*Intent:(.*)\s*Category:(.*)";
@@ -121,17 +124,17 @@ public class ProgramSample {
                     {
                         String chatResponse = getChatGptResponse(question);
                         log.info("Chat GPT response: {}", chatResponse);
-                        Pattern pattern = Pattern.compile("\\s*Content:(.*)\\s*Score:(.*\\d+)\\s*Intent:(.*)\\s*Category:(.*)");
+                        Pattern pattern = Pattern.compile(chatResponseExtractPattern);
                         Matcher match = pattern.matcher(chatResponse);
                         if(match.find())
                         {
                             String answer = match.group(1);
-                            String sentimentScore = match.group(2);
+                            String sentimentScore = match.group(2).trim();
                             String intent = match.group(3);
                             String category = match.group(4);
                             log.info("Chat GPT Answer={}, Sentiment Rating={}, Intent={}, Category={}",
                             answer, sentimentScore,intent , category);
-                            int score = GetSentimentScore(sentimentScore);
+                            int score = getSentimentScore(sentimentScore);
                             log.info("Sentiment Score={}", score);
                             if(score > -1 && score < 5)
                             {
@@ -160,7 +163,7 @@ public class ProgramSample {
                 if (recognizeFails.contains(callConnectionId))
                 {
                     log.error("No input was recognized, hanging up call: {}", callConnectionId);
-                    handlePlayTo(EndCallPhraseToConnectAgent, connectAgentContext, callConnectionId, callerId);
+                    handlePlayTo(goodbyePrompt, goodbyeContext, callConnectionId, callerId);
                 }
                 else
                 {
@@ -171,7 +174,7 @@ public class ProgramSample {
                         log.error("Silence timeout triggered for Call Connection ID: {} {}", callConnectionId, ((CallAutomationEventBaseWithReasonCode) event)
                                 .getResultInformation().getMessage());
                         recognizeFails.add(callConnectionId);
-                        handleRecognizeRequest("Is there anybody there?", callConnectionId, callerId);
+                        handleRecognizeRequest(timeoutSilencePrompt, callConnectionId, callerId);
                     }
                     else
                     {
@@ -188,14 +191,26 @@ public class ProgramSample {
             {
                 log.info("Call transfer failed event received for connection id:{}", callConnectionId);
                 ResultInformation resultInformation = ((CallTransferFailed)event).getResultInformation();
-                log.info("Encountered error during call transfer, message={msg}, code={code}, subCode={subCode}", 
+                log.info("Encountered error during call transfer, message={}, code={}, subCode={}", 
                 resultInformation.getMessage(), resultInformation.getCode(), resultInformation.getSubCode());
                 handlePlayTo(callTransferFailurePrompt, transferFailedContext, callConnectionId, callerId);
             }
-            else if(event instanceof PlayCompleted) {
+            else if (event instanceof PlayCompleted) {
                 log.info("Received Play Completed event. Terminating call");
-                recognizeFails.remove(callConnectionId);
-                hangUp(callConnectionId);
+                if (!event.getOperationContext().isEmpty() && ( event.getOperationContext().equals(connectAgentContext) || 
+                event.getOperationContext().equals(connectAgentContext) )) {
+                    var agentPhoneNumber = appConfig.getAgentPhoneNumber();
+                    if(agentPhoneNumber.isEmpty()) {
+                        log.info("Empty agent phone number");
+                        handlePlayTo(agentPhoneNumberEmptyPrompt, transferFailedContext, callConnectionId, callerId);
+                    } else {
+                        client.getCallConnection(callConnectionId).transferCallToParticipant(new PhoneNumberIdentifier(agentPhoneNumber));
+                    }
+
+                } else if (!event.getOperationContext().isEmpty() && event.getOperationContext().equals(transferFailedContext)) {
+                    recognizeFails.remove(callConnectionId);
+                    hangUp(callConnectionId);
+                }
             }
             else if(event instanceof PlayFailed) {
                 log.error("Received Play Failed event: {}", ((CallAutomationEventBaseWithReasonCode) event)
@@ -283,13 +298,25 @@ public class ProgramSample {
         }
     }
 
-    private int GetSentimentScore(String sentimentScore){
-        Pattern pattern = Pattern.compile("(\\d)+");
-        Matcher match = pattern.matcher(sentimentScore);
-        return (match.find()) ? Integer.parseInt(match.group(1))  : -1;
+    private int getSentimentScore(String sentimentScore){
+        String pattern = "(\\d)+";
+        Pattern regex = Pattern.compile(pattern);
+        Matcher matcher = regex.matcher(sentimentScore);
+
+        if (matcher.find()) {
+            try {
+                return Integer.parseInt(matcher.group());
+            } catch (NumberFormatException e) {
+                System.out.println("Parsing failed");
+                return -1;
+            }
+        } else {
+            System.out.println("No match found");
+            return -1;
+        }
     }
 
-    private String GetChatCompletionsAsync(final String systemPrompt, final String userPrompt){
+    private String getChatCompletionsAsync(final String systemPrompt, final String userPrompt){
         ChatCompletionsOptions chatCompletionsOptions;
         List<ChatMessage> chatMessages = new ArrayList<>(){};
         String openAiModelName;
@@ -322,7 +349,7 @@ public class ProgramSample {
         String systemPrompt = "You are a helpful assistant";
         String baseUserPrompt = "In 1 word: does %s have similar meaning as %s?";
         var combinedPrompt = String.format(baseUserPrompt, userQuery, intentDescription);
-        String response = GetChatCompletionsAsync(systemPrompt, combinedPrompt);
+        String response = getChatCompletionsAsync(systemPrompt, combinedPrompt);
         var isMatch = response.toLowerCase().contains("yes");
         log.info("OpenAI results: isMatch={}, customerQuery='{}', intentDescription='{}'", isMatch, userQuery, intentDescription);
         return isMatch;
@@ -330,7 +357,7 @@ public class ProgramSample {
 
     private String getChatGptResponse(final String speech)
     {
-        return GetChatCompletionsAsync(answerPromptSystemTemplate ,speech);
+        return getChatCompletionsAsync(answerPromptSystemTemplate ,speech);
     }
 
     private void handleChatGptResponse(final String chatResponse,

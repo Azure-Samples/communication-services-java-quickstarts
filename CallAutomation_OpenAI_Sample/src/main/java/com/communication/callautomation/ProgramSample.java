@@ -207,7 +207,8 @@ public class ProgramSample {
                         client.getCallConnection(callConnectionId).transferCallToParticipant(new PhoneNumberIdentifier(agentPhoneNumber));
                     }
 
-                } else if (!event.getOperationContext().isEmpty() && event.getOperationContext().equals(transferFailedContext)) {
+                } else if (!event.getOperationContext().isEmpty() && (event.getOperationContext().equals(transferFailedContext) 
+                || event.getOperationContext().equals(goodbyeContext))) {
                     recognizeFails.remove(callConnectionId);
                     hangUp(callConnectionId);
                 }

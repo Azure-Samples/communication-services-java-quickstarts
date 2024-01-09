@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: CallAutomation_LiveTranscription
+
+server:
+  port: 8080
+
+acs:
+  connectionstring: <CONNECTION_STRING>
+  basecallbackuri: <CALLBACK_URI>
+  cognitiveServicesUrl: <COGNITIVE_SERVICES_URL>
+  transportUrl: <TRANSPORT URL>
+  acsPhoneNumber: <ACS_PHONENUMBER>
+  agentPhoneNumber: <AGENT_PHONENUMBER>
+  locale: "en-CA"

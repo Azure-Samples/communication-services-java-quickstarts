@@ -6,10 +6,10 @@ server:
   port: 8080
 
 acs:
-  connectionstring: <CONNECTION_STRING>
-  basecallbackuri: <CALLBACK_URI>
-  cognitiveServicesUrl: <COGNITIVE_SERVICES_URL>
-  transportUrl: <TRANSPORT URL>
-  acsPhoneNumber: <ACS_PHONENUMBER>
-  agentPhoneNumber: <AGENT_PHONENUMBER>
-  locale: "en-CA"
+  connectionstring: <ENTER YOUR ACS CONNECTION STRING>
+  basecallbackuri: <ENTER YOUR DEV TUNNEL BASE URL>
+  cognitiveServicesUrl: <ENTER YOUR COGNITIVE SERVICE URL>
+  transportUrl: <ENTER TRANSPORTS URL>
+  acsPhoneNumber: <ENTER ACS PHONE NUMBER>
+  agentPhoneNumber: <ENTER AGENT PHONE NUMBER>
+  locale: <ENTER LOCALE>

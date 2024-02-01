@@ -2,11 +2,10 @@
 |---|---------------------------------------|---|
 |sample| <table><tr><td>Java</tr></td></table> |<table><tr><td>azure</td><td>azure-communication-services</td></tr></table>|
 
-# Call Automation - Quick Start Sample
+# Call Live Transcription - Quick Start Sample
 
-This sample application shows how the Azure Communication Services  - Call Automation SDK can be used with Azure OpenAI Service to enable intelligent conversational agents. 
-It answers an inbound call, does a speech recognition with the recognize API and Cognitive Services, uses OpenAi Services with the input speech and responds to the caller through Cognitive Services' Text to Speech. 
-This sample application configured for accepting input speech until the caller terminates the call or a long silence is detected.
+This sample application shows how the Azure Communication Services  - Call Automation SDK can be used generate the live transcription between PSTN calls. 
+It accepts an incoming call from a phone number, performs DTMF recognition, and transfer the call to agent. You can see the live transcription in websocket during the conversation between agent and user
 This sample application is also capable of making multiple concurrent inbound calls. The application is a web-based application built on Java's Spring framework.
 
 
@@ -17,30 +16,44 @@ This sample application is also capable of making multiple concurrent inbound ca
 - A [phone number](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/telephony/get-phone-number) in your Azure Communication Services resource that can make outbound calls. NB: phone numbers are not available in free subscriptions.
 - [Java Development Kit (JDK) Microsoft.OpenJDK.17](https://learn.microsoft.com/en-us/java/openjdk/download)
 - [Apache Maven](https://maven.apache.org/download.cgi)
-- Create and host a Azure Dev Tunnel. Instructions [here](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started)
-- Create an Azure Cognitive Services resource. For details, see Create an Azure Cognitive Services Resource.
-- An Azure OpenAI Resource and Deployed Model. See https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal.
+- Install ngrok. Instructions [here](https://ngrok.com/)
+- Create Azure AI Multi Service resource. For details, see [Create an Azure AI Multi service](https://learn.microsoft.com/en-us/azure/cognitive-services/cognitive-services-apis-create-account).
 
 ## Before running the sample for the first time
+
+### Setup and host ngrok
+
+You can run multiple tunnels on ngrok by changing ngrok.yml file as follows:
+
+1. Open the ngrok.yml file from a powershell using the command ngrok config edit
+2. Update the ngrok.yml file as follows:
+    authtoken: xxxxxxxxxxxxxxxxxxxxxxxxxx
+    version: "2"
+    region: us
+    tunnels:
+    first:
+        addr: 8080
+        proto: http 
+        host_header: localhost:8080
+    second:
+        proto: http
+        addr: 5001
+        host_header: localhost:5001
+NOTE: Make sure the "addr:" field has only the port number, not the localhost url.
+3. Start all ngrok tunnels configured using the following command on a powershell - ngrok start --all
+4. Once you have setup the websocket server, note down the the ngrok url on your server's port as the websocket url in this application for incoming call scenario. Just replace the https:// with wss:// and update in the application.yml file.
+
+### Configuring application
 
 - Open the application.yml file in the resources folder to configure the following settings
 
     - `connectionstring`: Azure Communication Service resource's connection string.
     - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
     - `cognitiveServicesUrl`: The Cognitive Services endpoint
+    - `transportUrl`: Ngrok url for the server port (in this example port 5001) make sure to replace https:// with wss://
     - `acsPhoneNumber`: Acs Phone Number
     - `agentPhoneNumber`: Agent Phone Number
-
-
-### Setup and host your Azure DevTunnel
-
-[Azure DevTunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/overview) is an Azure service that enables you to share local web services hosted on the internet. Use the commands below to connect your local development environment to the public internet. This creates a tunnel with a persistent endpoint URL and which allows anonymous access. We will then use this endpoint to notify your application of calling events from the ACS Call Automation service.
-
-```bash
-devtunnel create --allow-anonymous
-devtunnel port create -p 8080
-devtunnel host
-```
+    - `locale`: Transcription locale
 
 ### Run the application
 
@@ -49,4 +62,4 @@ devtunnel host
     - Build the package: mvn package
     - Execute the app: mvn exec:java
 - Access the Swagger UI at http://localhost:8080/swagger-ui.html
-    - Try the GET /outboundCall to run the Sample Application
+    - Test this application by giving a call to ACS phone number

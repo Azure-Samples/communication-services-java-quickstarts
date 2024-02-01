@@ -1,26 +1,19 @@
 package com.communication.callautomation;
 
-import com.azure.ai.openai.OpenAIClient;
-import com.azure.ai.openai.OpenAIClientBuilder;
-import com.azure.ai.openai.models.ChatCompletions;
-import com.azure.ai.openai.models.ChatCompletionsOptions;
-import com.azure.ai.openai.models.ChatMessage;
-import com.azure.ai.openai.models.ChatRole;
 import com.azure.communication.callautomation.CallAutomationClient;
 import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;
 import com.azure.communication.callautomation.CallConnection;
-import com.azure.communication.callautomation.CallRecording;
 import com.azure.communication.callautomation.models.*;
 import com.azure.communication.callautomation.models.events.*;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
-import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
+import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
 
@@ -30,8 +23,8 @@ import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.*;
@@ -43,7 +36,6 @@ import java.util.regex.Pattern;
 public class ProgramSample {
     private final AppConfig appConfig;
     private final CallAutomationClient client;
-    //private final OpenAIClient aiClient;
     Set<String> recognizeFails = new HashSet<>(){};    
     
     private final String helpIVRPrompt = "Welcome to the Contoso Utilities. To access your account, we need to verify your identity. Please enter your date of birth in the format DDMMYYYY using the keypad on your phone. Once we’ve validated your identity we will connect you to the next available agent. Please note this call will be recorded!";
@@ -58,7 +50,7 @@ public class ProgramSample {
     private final String  addParticipantFailureContext = "FailedToAddParticipant";
     private static final String INCOMING_CALL_CONTEXT = "incomingCallContext";
     private final String  DobRegex = "^(0[1-9]|[12][0-9]|3[01])(0[1-9]|1[012])[12][0-9]{3}$";
-    Boolean isTrasncriptionActive = false;
+    Boolean isTranscriptionActive = false;
     int maxTimeout = 2;
     
     private String recordingId = "";
@@ -73,7 +65,7 @@ public class ProgramSample {
 
     @GetMapping(path = "/")
     public ResponseEntity<String> hello() {
-        return ResponseEntity.ok().body("Hello! ACS CallAutomation OpenAI Sample!");
+        return ResponseEntity.ok().body("Hello! ACS CallAutomation Live Transcription Sample!");
     }
     
     @PostMapping(path = "/api/incomingCall")
@@ -85,9 +77,6 @@ public class ProgramSample {
             }
             else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
                 handleIncomingCall(eventGridEvent.getData());
-            }
-            else {
-                log.debug("Unhandled event.");
             }
         }
         return ResponseEntity.ok().body(null);
@@ -156,12 +145,6 @@ public class ProgramSample {
                     }
                 }
             }
-            else if(event instanceof AddParticipantSucceeded){
-
-            }
-            else if(event instanceof ParticipantsUpdated){
-            
-            }
             else if(event instanceof AddParticipantFailed){
                 AddParticipantFailed addParticipantFailedEvent =   (AddParticipantFailed)event;               
                 log.error("Received Add Participants Failed Message: {}, Subcode: {}", 
@@ -206,6 +189,7 @@ public class ProgramSample {
                 log.info("Received transcription resumed event");
             }
             else if(event instanceof TranscriptionStopped) {
+                isTranscriptionActive=false;
                 log.info("Received transcription stopped event");
             }
             else if(event instanceof TranscriptionFailed) {
@@ -216,6 +200,36 @@ public class ProgramSample {
         }
 
         return ResponseEntity.ok().body("");
+    }
+
+    @PostMapping("/api/recordingFileStatus")
+    public ResponseEntity<SubscriptionValidationResponse> handleRecordingFileStatus(@RequestBody String reqBody) {
+        List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+        for (EventGridEvent eventGridEvent : events) {
+            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
+                return handleSubscriptionValidation(eventGridEvent.getData());
+            } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED)) {
+                log.info("The event received for recording file status update");
+                 AcsRecordingFileStatusUpdatedEventData recordingFileStatusUpdatedEventData = eventGridEvent.getData().toObject(AcsRecordingFileStatusUpdatedEventData.class);
+                 recordingLocation = recordingFileStatusUpdatedEventData.getRecordingStorageInfo().getRecordingChunks().get(0).getContentLocation();
+                 log.info("The recording location is : {}", recordingLocation);
+
+            } else {
+                log.debug("Unhandled event.");
+            }
+        }
+        
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<Void> callRecordingDownload() {
+        try {
+            client.getCallRecording().downloadTo(recordingLocation, new FileOutputStream("testfile.wav"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.ok().build();
     }
 
     private void handleIncomingCall(final BinaryData eventData) {
@@ -316,12 +330,15 @@ public class ProgramSample {
     }
 
     private void initiateTranscription(final String callConnectionId) {
-        StartTranscriptionOptions startTranscriptionOptions = new StartTranscriptionOptions()
-        .setLocale(appConfig.getLocale())
-        .setOperationContext("StartTranscription");
+        if(!isTranscriptionActive){
+            StartTranscriptionOptions startTranscriptionOptions = new StartTranscriptionOptions()
+            .setLocale(appConfig.getLocale())
+            .setOperationContext("StartTranscription");
             client.getCallConnection(callConnectionId)
             .getCallMedia()
             .startTranscriptionWithResponse(startTranscriptionOptions, Context.NONE);
+            isTranscriptionActive = true;
+        }
     }
 
     private void hangUp(final String callConnectionId) {
@@ -338,8 +355,7 @@ public class ProgramSample {
     private CallAutomationClient initClient() {
         CallAutomationClient client;
         try {
-            client = new CallAutomationClientBuilder()
-                    //.pmaEndpoint("https://nextpma.plat.skype.com:6448/")        
+            client = new CallAutomationClientBuilder()     
                     .connectionString(appConfig.getConnectionString())
                     .buildClient();
             return client;
@@ -355,7 +371,7 @@ public class ProgramSample {
     }
 
     private void pauseOrStopTranscriptionAndRecording(String callConnectionId, Boolean stopRecording, String recordingId) {
-        if(isTrasncriptionActive) {
+        if(isTranscriptionActive) {
             client.getCallConnection(callConnectionId).getCallMedia().stopTranscription();
             log.info("Transcription stopped.");
         }
@@ -370,10 +386,10 @@ public class ProgramSample {
     }
 
     private void resumeTranscriptionAndRecording(String callConnectionId, String recordingId) {
-            initiateTranscription(callConnectionId);
-            log.info("Transcription reinitiated");
+        initiateTranscription(callConnectionId);
+        log.info("Transcription reinitiated");
 
-            client.getCallRecording().resume(recordingId);
-            log.info("Recording resumed. RecordingId: {}", recordingId);
+        client.getCallRecording().resume(recordingId);
+        log.info("Recording resumed. RecordingId: {}", recordingId);
     }
 }

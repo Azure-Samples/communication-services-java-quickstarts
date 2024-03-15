@@ -22,7 +22,7 @@ public class App
             .buildClient();
 
         ArrayList<String> phoneNumbers = new ArrayList<String>();
-        phoneNumbers.add("+13154805277");
+        phoneNumbers.add("<target-phone-number>");
 
         // Use the free number lookup functionality to get number formatting information
         OperatorInformationResult formattingResult = phoneNumberClient.searchOperatorInformation(phoneNumbers);

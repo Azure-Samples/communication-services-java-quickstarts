@@ -30,8 +30,7 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 1. Open an instance of PowerShell, Windows Terminal, Command Prompt or equivalent and navigate to the directory that you'd like to clone the sample to.
 2. `git clone https://github.com/Azure-Samples/communication-services-java-quickstarts.git`
 3.  With the Communication Services procured in pre-requisites, add connection string as an environment variable named `COMMUNICATION_SERVICES_CONNECTION_STRING`
-4.  Update line 25 with the phone number you want to look up.
-5.  Decide which lookup you would like to perform, and keep in mind that looking up all the operator details incurs a cost, while looking up only number formatting is free.
+4.  Decide which lookup you would like to perform, and keep in mind that looking up all the operator details incurs a cost, while looking up only number formatting is free.
 
 > [!WARNING]
 > If you want to avoid incurring a charge, comment out lines 36-48
@@ -40,4 +39,4 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 
 1. Navigate to the directory containing the pom.xml file and compile the project by using command `mvn compile`.
 2. Then, build the package using command `mvn package`.
-3. Run the command to execute the app `mvn exec:java -D"exec.mainClass"="com.communication.lookup.quickstart.App" -D"exec.cleanupDaemonThreads"="false"`.
+3. Run the command to execute the app `mvn exec:java -D"exec.mainClass"="com.communication.lookup.quickstart.App" -D"exec.cleanupDaemonThreads"="false" -D"exec.args"="<target-phone-number>"`.  Replace `<target-phone-number>` with the number you want to use.

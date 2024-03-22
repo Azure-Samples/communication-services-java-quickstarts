@@ -13,6 +13,12 @@ public class App
     public static void main( String[] args ) throws IOException
     {
         System.out.println("Azure Communication Services - Number Lookup Quickstart");
+        
+        if (args == null || args.length == 0)
+        {
+            throw new IOException("missing phone number argument");
+        }
+        String phoneNumber = args[0];
 
         // This code retrieves your connection string from an environment variable
         String connectionString = System.getenv("COMMUNICATION_SERVICES_CONNECTION_STRING");
@@ -22,7 +28,7 @@ public class App
             .buildClient();
 
         ArrayList<String> phoneNumbers = new ArrayList<String>();
-        phoneNumbers.add("<target-phone-number>");
+        phoneNumbers.add(phoneNumber);
 
         // Use the free number lookup functionality to get number formatting information
         OperatorInformationResult formattingResult = phoneNumberClient.searchOperatorInformation(phoneNumbers);

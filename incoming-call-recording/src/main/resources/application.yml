@@ -6,16 +6,16 @@ server:
   port: 8080
 
 acs:
-  connectionstring: endpoint=https://dacsrecordingtest.unitedstates.communication.azure.com/;accesskey=P03pgjuvw8Yo9nlRkdgjrm/TmT0yIkYt3fXowddBQ0QbOYZ6GbDaAir6om8N8sHOt7ifhJqT20aOsy4EDulO+A==
-  basecallbackuri:  https://5lcklqjg.inc1.devtunnels.ms:8080
-  cognitiveServicesUrl: https://cognitive-service-waferwire.cognitiveservices.azure.com/
-  agentPhoneNumber: "+919182134399"
+  connectionstring: 
+  basecallbackuri: 
+  cognitiveServicesUrl: 
+  agentPhoneNumber: ""
   isPauseOnStart": "false"
   isByos": "false"
-  bringYourOwnStorageUrl: "https://waferwirestorage.blob.core.windows.net/javarec"
+  bringYourOwnStorageUrl: ""
   teamsComplianceUserId: ""
   isTeamsComplianceUser: "false"
-  acsPhonenumber: "+18772119545"
-  targetPhonenumber: "+919704000034"
+  acsPhonenumber: ""
+  targetPhonenumber: ""
   isRejectCall: "false"
   isCancelAddParticipant: "false"

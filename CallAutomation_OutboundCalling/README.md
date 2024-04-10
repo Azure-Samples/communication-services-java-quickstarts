@@ -37,7 +37,6 @@ In this quickstart, we cover how you can use Call Automation SDK to make an outb
     - `targetTeamsUserId`: (Optional) update field with the Microsoft Teams user Id you would like to add to the call. See [Use Graph API to get Teams user Id](../../../how-tos/call-automation/teams-interop-call-automation.md#step-2-use-the-graph-api-to-get-microsoft-entra-object-id-for-teams-users-and-optionally-check-their-presence).  Uncomment the below snippet in ProgramSample.java to enable Teams Interop scenario.
       ```
       client.getCallConnection(callConnectionId).addParticipant(
-                {
                         new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
                                 .setSourceDisplayName("Jack (Contoso Tech Support)"));
       ```

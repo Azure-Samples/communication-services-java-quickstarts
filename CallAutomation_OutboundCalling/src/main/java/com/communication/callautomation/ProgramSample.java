@@ -65,8 +65,7 @@ public class ProgramSample {
             if (event instanceof CallConnected) {
                 // (Optional) Add a Microsoft Teams user to the call.  Uncomment the below snippet to enable Teams Interop scenario.
                 // client.getCallConnection(callConnectionId).addParticipant(
-                // {        
-				//       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
+                //       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
                 //                 .setSourceDisplayName("Jack (Contoso Tech Support)"));
                 
                 // prepare recognize tones

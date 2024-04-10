@@ -19,6 +19,7 @@ In this quickstart, we cover how you can use Call Automation SDK to make an outb
 - [Java Development Kit (JDK) Microsoft.OpenJDK.17](https://learn.microsoft.com/en-us/java/openjdk/download)
 - [Apache Maven](https://maven.apache.org/download.cgi)
 - Create and host a Azure Dev Tunnel. Instructions [here](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started)
+- (Optional) A Microsoft Teams user with a phone license. Teams phone license is required to add Teams users to the call. Learn more about Teams licenses [here](https://www.microsoft.com/microsoft-teams/compare-microsoft-teams-bundle-options).
 
 ## Before running the sample for the first time
 
@@ -33,6 +34,7 @@ In this quickstart, we cover how you can use Call Automation SDK to make an outb
           For e.g. "+1425XXXAAAA"
     - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
     - `cognitiveServiceEndpoint`: Cognitive Service Endpoint.
+    - `targetTeamsUserId`: (Optional) update field with the Microsoft Teams user Id you would like to add to the call. See [Use Graph API to get Teams user Id](../../../how-tos/call-automation/teams-interop-call-automation.md#step-2-use-the-graph-api-to-get-microsoft-entra-object-id-for-teams-users-and-optionally-check-their-presence).
 
 
 ### Setup and host your Azure DevTunnel

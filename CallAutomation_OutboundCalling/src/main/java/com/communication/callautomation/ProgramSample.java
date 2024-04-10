@@ -5,6 +5,7 @@ import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;
 import com.azure.communication.callautomation.models.*;
 import com.azure.communication.callautomation.models.events.*;
+import com.azure.communication.common.MicrosoftTeamsUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.communication.identity.implementation.models.CommunicationErrorResponseException;
 import com.azure.core.http.rest.Response;
@@ -62,7 +63,10 @@ public class ProgramSample {
                     event.getServerCallId());
 
             if (event instanceof CallConnected) {
-               // prepare recognize tones
+                client.getCallConnection(callConnectionId).addParticipant(
+                        new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
+                                .setSourceDisplayName("Jack (Contoso Tech Support)"));
+                // prepare recognize tones
                 startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
             }
             else if (event instanceof RecognizeCompleted) {

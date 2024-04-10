@@ -34,8 +34,7 @@ public class App
         RouterJob job = routerClient.createJob(new CreateJobOptions("job-1", "voice", queue.getId())
             .setPriority(1)
             .setRequestedWorkerSelectors(List.of(
-                new RouterWorkerSelector("Some-Skill", LabelOperator.GREATER_THAN)
-                        .setValue(new RouterValue(10)))));
+                new RouterWorkerSelector("Some-Skill", LabelOperator.GREATER_THAN, new RouterValue(10)))));
 
         RouterWorker worker = routerClient.createWorker(
             new CreateWorkerOptions("worker-1", 1)

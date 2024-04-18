@@ -6,7 +6,7 @@
 
   <groupId>com.communication.rooms.quickstart</groupId>
   <artifactId>rooms-quickstart</artifactId>
-  <version>1.1.0-beta.1-SNAPSHOT</version>
+  <version>1.1.0</version>
 
   <name>rooms-quickstart</name>
   <!-- FIXME change it to the project's website -->
@@ -50,7 +50,7 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-communication-rooms</artifactId>
-      <version>1.1.0-beta.1</version>
+      <version>1.1.0</version>
     </dependency>
     <dependency>
     <groupId>com.azure</groupId>

@@ -35,4 +35,4 @@ This quickstart will help you get started with Azure Communication Services Room
 
 1. Navigate to the directory containing the pom.xml file and compile the project by using command `mvn compile`.
 2. Build the package using command `mvn package`.
-3. Run the command to execute the app `mvn exec:java -Dexec.mainClass="com.communication.quickstart.App" -Dexec.cleanupDaemonThreads=false`.
+3. Run the command to execute the app `mvn -e exec:java -D"exec.mainClass"="com.communication.rooms.quickstart.App" -D"exec.cleanupDaemonThreads"=false`.

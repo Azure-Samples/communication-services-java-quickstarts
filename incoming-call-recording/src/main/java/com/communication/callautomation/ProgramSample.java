@@ -146,19 +146,20 @@ public class ProgramSample {
             String callConnectionId = event.getCallConnectionId();
             if (event instanceof CallConnected) {
                 log.info("Call connected, call connection Id:--> {}", callConnectionId);
-                callConnection = callAutomationClient.getCallConnection(callConnectionId);
+                callConnection = callAutomationClient.getCallConnection(callConnectionId);                  
                 String serverCallId = callConnection.getCallProperties().getServerCallId();
                 StartRecordingOptions recordingOptions = new StartRecordingOptions(new ServerCallLocator(
                         serverCallId))
                         .setRecordingContent(RecordingContent.AUDIO)
                         .setRecordingChannel(RecordingChannel.UNMIXED)
-                        .setRecordingFormat(RecordingFormat.WAV);
-                // .setPauseOnStart(Boolean.parseBoolean(appConfig.getIsPauseOnStart()))
-                // .setExternalStorage(Boolean.parseBoolean(appConfig.getIsByos())
-                // && appConfig.getBringYourOwnStorageUrl() != null
-                // ? new BlobStorage(appConfig.getBringYourOwnStorageUrl())
-                // : null);
-                // log.info("Pause On Start-->: " + recordingOptions.getPauseOnStart());
+                        .setRecordingFormat(RecordingFormat.WAV)
+                 .setPauseOnStart(Boolean.parseBoolean(appConfig.getIsPauseOnStart()))
+                 .setRecordingStorage(Boolean.parseBoolean(appConfig.getIsByos())
+                 && appConfig.getBringYourOwnStorageUrl() != null
+                 ? new AzureBlobContainerRecordingStorage(appConfig.getBringYourOwnStorageUrl())
+                 : null);
+
+                 log.info("Pause On Start-->: " + recordingOptions.isPauseOnStart());
 
                 recordingId = callAutomationClient.getCallRecording().startWithResponse(recordingOptions, Context.NONE)
                         .getValue().getRecordingId();

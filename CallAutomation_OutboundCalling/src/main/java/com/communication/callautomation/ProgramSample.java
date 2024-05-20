@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,12 +25,11 @@ public class ProgramSample {
     private AppConfig appConfig;
     private CallAutomationClient client;
 
-    private String MainMenu =
-    """ 
-    Hello this is Contoso Bank, we’re calling in regard to your appointment tomorrow 
-    at 9am to open a new account. Please say confirm if this time is still suitable for you or say cancel 
-    if you would like to cancel this appointment.
-    """;
+    private String MainMenu = """
+            Hello this is Contoso Bank, we’re calling in regard to your appointment tomorrow
+            at 9am to open a new account. Please say confirm if this time is still suitable for you or say cancel
+            if you would like to cancel this appointment.
+            """;
     private String confirmLabel = "Confirm";
     private String cancelLabel = "Cancel";
     private String confirmedText = "Thank you for confirming your appointment tomorrow at 9am, we look forward to meeting with you.";
@@ -63,51 +63,80 @@ public class ProgramSample {
                     event.getServerCallId());
 
             if (event instanceof CallConnected) {
-                // (Optional) Add a Microsoft Teams user to the call.  Uncomment the below snippet to enable Teams Interop scenario.
+                // (Optional) Add a Microsoft Teams user to the call. Uncomment the below
+                // snippet to enable Teams Interop scenario.
                 // client.getCallConnection(callConnectionId).addParticipant(
-                //       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
-                //                 .setSourceDisplayName("Jack (Contoso Tech Support)"));
-                
+                // new CallInvite(new
+                // MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
+                // .setSourceDisplayName("Jack (Contoso Tech Support)"));
+
                 // prepare recognize tones
-                startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
-            }
-            else if (event instanceof RecognizeCompleted) {
-                log.info("Recognize Completed event received");
-                RecognizeCompleted acsEvent = (RecognizeCompleted) event; 
-                var choiceResult = (ChoiceResult) acsEvent.getRecognizeResult().get();
-                String labelDetected = choiceResult.getLabel();
-                String phraseDetected = choiceResult.getRecognizedPhrase();
-                log.info("Recognition completed, labelDetected=" + labelDetected + ", phraseDetected=" + phraseDetected + ", context=" + event.getOperationContext());
-                String textToPlay = labelDetected.equals(confirmLabel) ? confirmedText  : cancelText;
-                handlePlay(callConnectionId, textToPlay);
-            }
-            else if(event instanceof RecognizeFailed ) {
+                startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(),
+                        "mainmenu");
+            } else if (event instanceof RecognizeCompleted) {
+                // log.info("Recognize Completed event received");
+                // RecognizeCompleted acsEvent = (RecognizeCompleted) event;
+                // var choiceResult = (ChoiceResult) acsEvent.getRecognizeResult().get();
+                // String labelDetected = choiceResult.getLabel();
+                // String phraseDetected = choiceResult.getRecognizedPhrase();
+                // log.info("Recognition completed, labelDetected=" + labelDetected + ",
+                // phraseDetected=" + phraseDetected
+                // + ", context=" + event.getOperationContext());
+                // String textToPlay = labelDetected.equals(confirmLabel) ? confirmedText :
+                // cancelText;
+                // handlePlay(callConnectionId, textToPlay);
+
+                RecognizeCompleted acsEvent = (RecognizeCompleted) event;
+                RecognizeResult recognizeResult = acsEvent.getRecognizeResult().get();
+                if (recognizeResult instanceof DtmfResult) {
+                    // Take action on collect tones
+                    DtmfResult dtmfResult = (DtmfResult) recognizeResult;
+                    List<DtmfTone> tones = dtmfResult.getTones();
+                    log.info("Recognition completed, tones=" + tones + ", context=" + event.getOperationContext());
+                    handlePlay(callConnectionId, confirmedText);
+                } else if (recognizeResult instanceof ChoiceResult) {
+                    ChoiceResult collectChoiceResult = (ChoiceResult) recognizeResult;
+                    String labelDetected = collectChoiceResult.getLabel();
+                    String phraseDetected = collectChoiceResult.getRecognizedPhrase();
+                    log.info("Recognition completed, labelDetected=" + labelDetected + ", phraseDetected="
+                            + phraseDetected + ", context=" + event.getOperationContext());
+                    handlePlay(callConnectionId, confirmedText);
+                } else if (recognizeResult instanceof SpeechResult) {
+                    SpeechResult speechResult = (SpeechResult) recognizeResult;
+                    String text = speechResult.getSpeech();
+                    log.info("Recognition completed, text=" + text + ", context=" + event.getOperationContext());
+                    handlePlay(callConnectionId, confirmedText);
+                } else {
+                    log.info("Recognition completed, result=" + recognizeResult + ", context="
+                            + event.getOperationContext());
+                    handlePlay(callConnectionId, "good bye");
+                }
+
+            } else if (event instanceof RecognizeFailed) {
                 log.error("Received failed event: {}", ((CallAutomationEventBaseWithReasonCode) event)
                         .getResultInformation().getMessage());
                 var recognizeFailedEvent = (RecognizeFailed) event;
-                var context =recognizeFailedEvent.getOperationContext();
-                if(context != null && context.equals(retryContext)){
+                var context = recognizeFailedEvent.getOperationContext();
+                if (context != null && context.equals(retryContext)) {
                     handlePlay(callConnectionId, noResponse);
-                }
-                else
-                {
+                } else {
                     var resultInformation = recognizeFailedEvent.getResultInformation();
                     log.error("Encountered error during recognize, message={}, code={}, subCode={}",
-                    resultInformation.getMessage(),
-                    resultInformation.getCode(),
-                    resultInformation.getSubCode());
+                            resultInformation.getMessage(),
+                            resultInformation.getCode(),
+                            resultInformation.getSubCode());
 
                     var reasonCode = recognizeFailedEvent.getReasonCode();
                     String replyText = reasonCode == ReasonCode.Recognize.PLAY_PROMPT_FAILED ||
-                        reasonCode == ReasonCode.Recognize.INITIAL_SILENCE_TIMEOUT ? customerQueryTimeout : 
-                        reasonCode== ReasonCode.Recognize.INCORRECT_TONE_DETECTED ? invalidAudio: 
-                        customerQueryTimeout;
-                    
-                        // prepare recognize tones
-                    startRecognizingWithChoiceOptions(callConnectionId, replyText, appConfig.getTargetphonenumber(), retryContext);
-                } 
-            }
-            else if(event instanceof PlayCompleted || event instanceof PlayFailed) {
+                            reasonCode == ReasonCode.Recognize.INITIAL_SILENCE_TIMEOUT ? customerQueryTimeout
+                                    : reasonCode == ReasonCode.Recognize.INCORRECT_TONE_DETECTED ? invalidAudio
+                                            : customerQueryTimeout;
+
+                    // prepare recognize tones
+                    startRecognizingWithChoiceOptions(callConnectionId, replyText, appConfig.getTargetphonenumber(),
+                            retryContext);
+                }
+            } else if (event instanceof PlayCompleted || event instanceof PlayFailed) {
                 log.info("Received Play Completed event. Terminating call");
                 hangUp(callConnectionId);
             }
@@ -121,7 +150,8 @@ public class ProgramSample {
             PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
             CallInvite callInvite = new CallInvite(target, caller);
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, appConfig.getCallBackUri());
-            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions().setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                    .setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint());
             createCallOptions = createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
             return result.getValue().getCallConnectionProperties().getCallConnectionId();
@@ -133,40 +163,67 @@ public class ProgramSample {
         }
     }
 
-    private void handlePlay(final String  callConnectionId, String textToPlay) {
+    private void handlePlay(final String callConnectionId, String textToPlay) {
         var textPlay = new TextSource()
-                .setText(textToPlay) 
+                .setText(textToPlay)
                 .setVoiceName("en-US-NancyNeural");
 
         client.getCallConnection(callConnectionId)
-        .getCallMedia()
-        .playToAll(textPlay);
+                .getCallMedia()
+                .playToAll(textPlay);
     }
 
-    private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
-    {
-        var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+    private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content,
+            final String targetParticipant, final String context) {
+        // var playSource = new
+        // TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        List<PlaySource> playPrompts = new ArrayList<PlaySource>();
+        playPrompts.add(new TextSource().setText("Hi, press one to continue.").setVoiceName("en-US-NancyNeural"));
+        playPrompts.add(new TextSource().setText("Hi, please confirm or cancel.").setVoiceName("en-US-NancyNeural"));
+        playPrompts.add(new FileSource()
+                .setUrl(appConfig.getBasecallbackuri() + "/" + "MainMenu.wav")
+                .setPlaySourceCacheId("MainMenu.wav"));
 
-        var recognizeOptions = new CallMediaRecognizeChoiceOptions(new PhoneNumberIdentifier(targetParticipant),  getChoices())
-            .setInterruptCallMediaOperation(false)
-            .setInterruptPrompt(false)
-            .setInitialSilenceTimeout(Duration.ofSeconds(10))
-            .setPlayPrompt(playSource)
-            .setOperationContext(context);
+        var recognizeChoiceOptions = new CallMediaRecognizeChoiceOptions(new PhoneNumberIdentifier(targetParticipant),
+                getChoices())
+                .setInterruptCallMediaOperation(false)
+                .setInterruptPrompt(false)
+                .setInitialSilenceTimeout(Duration.ofSeconds(10))
+                .setPlayPrompts(playPrompts)
+                .setOperationContext("OpenQuestionChoice");
+
+        var recognizeDtmfOptions = new CallMediaRecognizeDtmfOptions(new PhoneNumberIdentifier(targetParticipant), 2)
+                .setInitialSilenceTimeout(Duration.ofSeconds(30))
+                .setPlayPrompts(playPrompts)
+                .setInterruptPrompt(true)
+                .setOperationContext("OpenQuestionDtmf");
+
+        var recognizeSpeechOptions = new CallMediaRecognizeSpeechOptions(new PhoneNumberIdentifier(targetParticipant),
+                Duration.ofMillis(1000))
+                .setPlayPrompts(playPrompts)
+                .setOperationContext("OpenQuestionSpeech");
+
+        var recognizeDtmfOrSpeechOptions = new CallMediaRecognizeSpeechOrDtmfOptions(
+                new PhoneNumberIdentifier(targetParticipant), 2, Duration.ofSeconds(30))
+                .setPlayPrompts(playPrompts)
+                .setInitialSilenceTimeout(Duration.ofSeconds(30))
+                .setInterruptPrompt(true)
+                .setOperationContext("OpenQuestionSpeechOrDtmf");
 
         client.getCallConnection(callConnectionId)
-        .getCallMedia()
-        .startRecognizing(recognizeOptions);
+                .getCallMedia()
+                .startRecognizing(recognizeDtmfOrSpeechOptions);
     }
 
-    private List<RecognitionChoice> getChoices(){
+    private List<RecognitionChoice> getChoices() {
         var choices = Arrays.asList(
-            new RecognitionChoice().setLabel(confirmLabel).setPhrases(Arrays.asList("Confirm", "First", "One")).setTone(DtmfTone.ONE),
-            new RecognitionChoice().setLabel(cancelLabel).setPhrases(Arrays.asList("Cancel", "Second", "Two")).setTone(DtmfTone.TWO)
-            );
-            return choices;
+                new RecognitionChoice().setLabel(confirmLabel).setPhrases(Arrays.asList("Confirm", "First", "One"))
+                        .setTone(DtmfTone.ONE),
+                new RecognitionChoice().setLabel(cancelLabel).setPhrases(Arrays.asList("Cancel", "Second", "Two"))
+                        .setTone(DtmfTone.TWO));
+        return choices;
     }
-    
+
     private void hangUp(final String callConnectionId) {
         try {
             client.getCallConnection(callConnectionId).hangUp(true);
@@ -182,6 +239,7 @@ public class ProgramSample {
         CallAutomationClient client;
         try {
             client = new CallAutomationClientBuilder()
+                    .endpoint("https://x-pma-uswe-04.plat.skype.com:6448")
                     .connectionString(appConfig.getConnectionString())
                     .buildClient();
             return client;

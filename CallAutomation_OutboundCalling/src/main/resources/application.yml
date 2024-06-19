@@ -6,9 +6,10 @@ server:
   port: 8080
 
 acs:
-  connectionstring: <YOUR ACS CONNECTION STRING>
-  basecallbackuri: <YOUR DEV TUNNEL ENDPOINT>
-  callerphonenumber: <YOUR ACS PHONE NUMBER ex. "+1425XXXAAAA">
-  targetphonenumber: <YOUR TARGET PHONE NUMBER ex. "+1425XXXAAAA">
-  cognitiveServiceEndpoint: <YOUR COGNITIVE SERVICE ENDPOINT>
+  connectionstring: 
+  basecallbackuri: 
+  callerphonenumber: 
+  targetphonenumber: 
+  cognitiveServiceEndpoint: 
+  webSocketUrl: 
   targetTeamsUserId: <(OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870">

@@ -13,6 +13,7 @@ public class AppConfig {
     private final String targetphonenumber;
     private final String cognitiveServiceEndpoint;
     private final String targetTeamsUserId;
+    private final String webSocketUrl;
 
     @ConstructorBinding
     AppConfig(final String connectionString,
@@ -20,6 +21,7 @@ public class AppConfig {
               final String callerphonenumber,
               final String targetphonenumber,
               final String cognitiveServiceEndpoint,
+              final String webSocketUrl,
               final String targetTeamsUserId) {
         this.connectionString = connectionString;
         this.basecallbackuri = basecallbackuri;
@@ -27,6 +29,7 @@ public class AppConfig {
         this.targetphonenumber = targetphonenumber;
         this.cognitiveServiceEndpoint = cognitiveServiceEndpoint;
         this.targetTeamsUserId = targetTeamsUserId;
+        this.webSocketUrl = webSocketUrl;
     }
 
     public String getCallBackUri() {

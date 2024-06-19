@@ -73,32 +73,32 @@ public class ProgramSample {
                 //       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
                 //                 .setSourceDisplayName("Jack (Contoso Tech Support)"));
 
-                // start Media Streaming
-                startMediaStreamingOptions(callConnectionId);
-                log.info("Start Media Streaming.....");
+                // // start Media Streaming
+                // startMediaStreamingOptions(callConnectionId);
+                // log.info("Start Media Streaming.....");
 
-                try {
-                    TimeUnit.SECONDS.sleep(5);    
-                } catch (Exception e) {
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
                     
-                }
-                // stop Media Streaming
-                stopMediaStreamingOptions(callConnectionId);
-                log.info("Stopped Media streaming....");
-                try {
-                    TimeUnit.SECONDS.sleep(5);    
-                } catch (Exception e) {
+                // }
+                // // stop Media Streaming
+                // stopMediaStreamingOptions(callConnectionId);
+                // log.info("Stopped Media streaming....");
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
                     
-                }
-                // start Media Streaming
-                startMediaStreamingOptions(callConnectionId);
-                log.info("Start Media Streaming.....");
+                // }
+                // // start Media Streaming
+                // startMediaStreamingOptions(callConnectionId);
+                // log.info("Start Media Streaming.....");
 
-                try {
-                    TimeUnit.SECONDS.sleep(5);    
-                } catch (Exception e) {
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
                     
-                }
+                // }
                 
 
                 // call on hold
@@ -164,34 +164,37 @@ public class ProgramSample {
                 log.info("Recognition completed, labelDetected=" + labelDetected + ", phraseDetected=" + phraseDetected + ", context=" + event.getOperationContext());
                 String textToPlay = labelDetected.equals(confirmLabel) ? confirmedText  : cancelText;
                 // stop Media Streaming
-                stopMediaStreamingOptions(callConnectionId);
-                var callConnectionProperties = client.getCallConnection(callConnectionId).getCallProperties();
-                log.info("State{}" ,callConnectionProperties.getCallConnectionState());
-                log.info("Stopped Media streaming....");
-                try {
-                    TimeUnit.SECONDS.sleep(5);    
-                } catch (Exception e) {
+                // stopMediaStreamingOptions(callConnectionId);
+                // var callConnectionProperties = client.getCallConnection(callConnectionId).getCallProperties();
+                // log.info("State{}" ,callConnectionProperties.getCallConnectionState());
+                // log.info("Stopped Media streaming....");
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
                     
-                }
-                // start Media Streaming
-                startMediaStreamingOptions(callConnectionId);
-                log.info("Start Media Streaming.....");
-                try {
-                    TimeUnit.SECONDS.sleep(5);    
-                } catch (Exception e) {
+                // }
+                // // start Media Streaming
+                // startMediaStreamingOptions(callConnectionId);
+                // log.info("Start Media Streaming.....");
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
                     
-                }
-                // stop Media Streaming
-                stopMediaStreamingOptions(callConnectionId);
-                log.info("Stopped Media streaming....");
-                try {
-                    TimeUnit.SECONDS.sleep(5);    
-                } catch (Exception e) {
+                // }
+                // // stop Media Streaming
+                // stopMediaStreamingOptions(callConnectionId);
+                // log.info("Stopped Media streaming....");
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
                     
-                }
-                handlePlay(callConnectionId, textToPlay);
-
+                // }
+                
+                // // call on Hold 
                 // hold(callConnectionId);
+                // // // var participant = client.getCallConnection(callConnectionId).getParticipant(new PhoneNumberIdentifier(appConfig.getTargetphonenumber()));
+                // // // var isParticipantHold = participant.isOnHold();
+                // // // log.info("Is participant on hold ----> {}", isParticipantHold);
                 // log.info("Call On Hold successfully");
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
@@ -199,13 +202,16 @@ public class ProgramSample {
                     
                 // }
 
+                // // Call Unhold
                 // unhold(callConnectionId);
+                // // // isParticipantHold = participant.isOnHold();
+                // // // log.info("Is participant on hold ----> {}", isParticipantHold);
                 // log.info("Call UnHolded successfully");
-                
-            
 
-                //Stop Transcription
-                //stopTranscription(callConnectionId);
+
+                 handlePlay(callConnectionId, textToPlay);
+             
+        
 
 
             }
@@ -255,6 +261,15 @@ public class ProgramSample {
             else if(event instanceof MediaStreamingFailed) {
                 log.info("MediaStreamingFailed event triggered.");
             }
+            else if(event instanceof PlayStarted) {
+                log.info("PlayStarted event triggered.");
+            }
+            else if(event instanceof CallTransferAccepted) {
+                log.info("CallTransferAccepted event triggered.");
+            }
+            else if(event instanceof CallTransferFailed) {
+                log.info("CallTransFailded event triggered.");
+            }
             else if(event instanceof PlayCompleted || event instanceof PlayFailed) {
                 log.info("Received Play Completed event. Terminating call");
                 hangUp(callConnectionId);
@@ -290,20 +305,69 @@ public class ProgramSample {
     }
 
     private void handlePlay(final String  callConnectionId, String textToPlay) {
-        
-        var textPlay = new TextSource()
-                .setText(textToPlay) 
-                .setVoiceName("en-US-NancyNeural");
-        //PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
         List<CommunicationIdentifier> playToList = Arrays.asList(
-            new PhoneNumberIdentifier(appConfig.getTargetphonenumber())
+             new PhoneNumberIdentifier(appConfig.getTargetphonenumber())
         );
-        var playOptions = new PlayOptions(textPlay, playToList);
 
+        // var textPlay = new TextSource()
+        //         .setText(textToPlay) 
+        //         .setVoiceName("en-US-NancyNeural");
+        // var playOptions = new PlayOptions(textPlay, playToList);
+
+        // client.getCallConnection(callConnectionId)
+        // .getCallMedia()
+        // .playWithResponse(playOptions, Context.NONE);
+
+        var textPlay = new TextSource()
+        .setText("First Interrupt prompt message") 
+        .setVoiceName("en-US-NancyNeural");
+        
+        var playToAllOptions = new PlayToAllOptions(textPlay)
+                    .setLoop(false)
+                    .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                    .setInterruptCallMediaOperation(false);
+        
+        //with options
         client.getCallConnection(callConnectionId)
         .getCallMedia()
-        .playWithResponse(playOptions, Context.NONE);
-    }
+        .playToAllWithResponse(playToAllOptions, Context.NONE);
+        // // with out options
+        // client.getCallConnection(callConnectionId)
+        // .getCallMedia()
+        // .playToAll(textPlay);
+
+        var textPlay1 = new TextSource()
+        .setText("Interrupt second prompt message") 
+        .setVoiceName("en-US-NancyNeural");
+        
+        var playToAllOptions1 = new PlayToAllOptions(textPlay1)
+                    .setLoop(false)
+                    .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                    .setInterruptCallMediaOperation(true);
+        
+        //with options
+        client.getCallConnection(callConnectionId)
+        .getCallMedia()
+        .playToAllWithResponse(playToAllOptions1, Context.NONE);
+
+        //File source
+        var interruptFile = new FileSource()
+                .setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+
+        var playFileOptions = new PlayToAllOptions(interruptFile)
+                .setLoop(false)
+                .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                .setInterruptCallMediaOperation(false);
+
+        //with options
+        client.getCallConnection(callConnectionId)
+                .getCallMedia()
+                .playToAllWithResponse(playFileOptions, Context.NONE);
+        // //with out options
+        // client.getCallConnection(callConnectionId)
+        //         .getCallMedia()
+        //         .playToAll(interruptFile);
+     }
 
     private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
     {
@@ -370,24 +434,32 @@ public class ProgramSample {
     }
     
     private void hold(final String callConnectionId){
-        HoldOptions holdOptions = new HoldOptions(null)
+        PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
+        HoldOptions holdOptions = new HoldOptions(target)
                                     .setOperationCallbackUrl(appConfig.getBasecallbackuri())
                                     .setOperationContext("holdPstnParticipant");
+                                    var textPlay = new TextSource()
+                                    .setText("i am on hold, please wait") 
+                                    .setVoiceName("en-US-NancyNeural");
+        holdOptions.setPlaySource(textPlay);
 
-        PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
+        //PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
         
-                                    
-        client.getCallConnection(callConnectionId).getCallMedia().hold(target);
+        // without options                           
+        //client.getCallConnection(callConnectionId).getCallMedia().hold(target);
 
-        //client.getCallConnection(callConnectionId).getCallMedia().holdWithResponse(holdOptions, Context.NONE);
+        // with options
+        client.getCallConnection(callConnectionId).getCallMedia().holdWithResponse(holdOptions, Context.NONE);
     }
 
     private void unhold(final String callConnectionId){
 
         PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
-        client.getCallConnection(callConnectionId).getCallMedia().unhold(target);
+        //without options
+        //client.getCallConnection(callConnectionId).getCallMedia().unhold(target);
 
-        //client.getCallConnection(callConnectionId).getCallMedia().unholdWithResponse(target, "unholdPstnParticipant", Context.NONE);
+        //with options
+        client.getCallConnection(callConnectionId).getCallMedia().unholdWithResponse(target, "unholdPstnParticipant", Context.NONE);
     }
 
     private void startMediaStreamingOptions(final String callConnectionId){

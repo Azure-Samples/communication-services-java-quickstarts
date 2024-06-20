@@ -31,7 +31,6 @@ This sample application is also capable of making multiple concurrent inbound ca
     - `azureOpenAiServiceKey`: Open AI's Service Key
     - `azureOpenAiServiceEndpoint`: Open AI's Service Endpoint
     - `openAiModelName`: Open AI's Model name
-    - `agentPhoneNumber`: Agent Phone Number
 
 
 ### Setup and host your Azure DevTunnel

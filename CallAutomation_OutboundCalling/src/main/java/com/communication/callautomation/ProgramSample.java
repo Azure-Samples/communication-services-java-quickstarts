@@ -56,6 +56,7 @@ public class ProgramSample {
                 ", CallConnectionId: " + callConnectionId);
     }
 
+
     @PostMapping(path = "/api/callback")
     public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) {
         List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
@@ -73,6 +74,21 @@ public class ProgramSample {
                 //       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
                 //                 .setSourceDisplayName("Jack (Contoso Tech Support)"));
 
+                //#region Transfer Call
+                PhoneNumberIdentifier caller = new PhoneNumberIdentifier(appConfig.getCallerphonenumber());
+                PhoneNumberIdentifier target = new PhoneNumberIdentifier("+xxxxxxxxxxx");
+                TransferCallToParticipantOptions transferOption = new TransferCallToParticipantOptions(target);
+                transferOption.setOperationContext("transferCallContext");
+                transferOption.setSourceCallerIdNumber(caller);
+
+                // Sending event to a non-default endpoint.
+                transferOption.setOperationCallbackUrl(appConfig.getBasecallbackuri());
+                //TransferCallResult result = client.getCallConnection(callConnectionId).transferCallToParticipant(target);
+                var result = client.getCallConnection(callConnectionId).transferCallToParticipantWithResponse(transferOption, Context.NONE);
+                log.info("Call Transferred successfully");
+                 
+                //#endregion
+                //#region Media Streaming
                 // // start Media Streaming
                 // startMediaStreamingOptions(callConnectionId);
                 // log.info("Start Media Streaming.....");
@@ -99,7 +115,7 @@ public class ProgramSample {
                 // } catch (Exception e) {
                     
                 // }
-                
+                //#endregion
 
                 // call on hold
                 // hold(callConnectionId);
@@ -153,7 +169,7 @@ public class ProgramSample {
                 // }
 
                 // prepare recognize tones
-                startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+                //startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
             }
             else if (event instanceof RecognizeCompleted) {
                 log.info("Recognize Completed event received");
@@ -274,6 +290,11 @@ public class ProgramSample {
                 log.info("Received Play Completed event. Terminating call");
                 hangUp(callConnectionId);
             }
+            else if(event instanceof CallDisconnected) {
+                log.info("The Call got Disconnected");
+                            
+            }
+
         }
         return ResponseEntity.ok().body("");
     }
@@ -494,7 +515,7 @@ public class ProgramSample {
         CallAutomationClient client;
         try {
             client = new CallAutomationClientBuilder()
-                    .endpoint("https://x-pma-uswe-07.plat.skype.com")
+                    .endpoint("https://nextpma.plat.skype.com")
                     .connectionString(appConfig.getConnectionString())
                     .buildClient();
             return client;

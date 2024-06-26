@@ -11,13 +11,17 @@ import com.azure.communication.common.MicrosoftTeamsUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.communication.identity.implementation.models.CommunicationErrorResponseException;
 import com.azure.core.http.rest.Response;
+import com.azure.core.implementation.util.ListByteBufferContent;
 import com.azure.core.util.Context;
+
+import ch.qos.logback.core.read.ListAppender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -74,20 +78,21 @@ public class ProgramSample {
                 //       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
                 //                 .setSourceDisplayName("Jack (Contoso Tech Support)"));
 
-                //#region Transfer Call
-                PhoneNumberIdentifier caller = new PhoneNumberIdentifier(appConfig.getCallerphonenumber());
-                PhoneNumberIdentifier target = new PhoneNumberIdentifier("+xxxxxxxxxxx");
-                TransferCallToParticipantOptions transferOption = new TransferCallToParticipantOptions(target);
-                transferOption.setOperationContext("transferCallContext");
-                transferOption.setSourceCallerIdNumber(caller);
+                // //#region Transfer Call
+                // PhoneNumberIdentifier caller = new PhoneNumberIdentifier(appConfig.getCallerphonenumber());
+                // PhoneNumberIdentifier target = new PhoneNumberIdentifier("+919160985789");
+                // TransferCallToParticipantOptions transferOption = new TransferCallToParticipantOptions(target);
+                // transferOption.setOperationContext("transferCallContext");
+                // transferOption.setSourceCallerIdNumber(caller);
 
-                // Sending event to a non-default endpoint.
-                transferOption.setOperationCallbackUrl(appConfig.getBasecallbackuri());
-                //TransferCallResult result = client.getCallConnection(callConnectionId).transferCallToParticipant(target);
-                var result = client.getCallConnection(callConnectionId).transferCallToParticipantWithResponse(transferOption, Context.NONE);
-                log.info("Call Transferred successfully");
-                 
-                //#endregion
+                // // Sending event to a non-default endpoint.
+                // transferOption.setOperationCallbackUrl(appConfig.getBasecallbackuri());
+                // //TransferCallResult result = client.getCallConnection(callConnectionId).transferCallToParticipant(target);
+                // var result = client.getCallConnection(callConnectionId).transferCallToParticipantWithResponse(transferOption, Context.NONE);
+                // log.info("Call Transferred successfully");
+                // //#endregion
+
+
                 //#region Media Streaming
                 // // start Media Streaming
                 // startMediaStreamingOptions(callConnectionId);
@@ -168,15 +173,46 @@ public class ProgramSample {
                     
                 // }
 
-                // prepare recognize tones
-                //startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+                log.info("Fetching recognize options...");
+                // #region Recognize Prompt List
+                // Different recognizing formats
+                // // prepare recognize tones Choice
+                startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+
+                // // prepare recognize tones DTMF
+                // GetMediaRecognizeDTMFOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+
+                // // prepare recognize Speech
+                // GetMediaRecognizeSpeechOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+
+                // // prepare recognize Speech or dtmf
+                // GetMediaRecognizeSpeechOrDtmfOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+                //#endregion
             }
             else if (event instanceof RecognizeCompleted) {
                 log.info("Recognize Completed event received");
                 RecognizeCompleted acsEvent = (RecognizeCompleted) event; 
-                var choiceResult = (ChoiceResult) acsEvent.getRecognizeResult().get();
-                String labelDetected = choiceResult.getLabel();
-                String phraseDetected = choiceResult.getRecognizedPhrase();
+                var recognizeResult = acsEvent.getRecognizeResult().get();
+                String labelDetected = "";
+                String phraseDetected = "";
+                
+                if(recognizeResult instanceof ChoiceResult) {
+                    var choiceResult = (ChoiceResult) acsEvent.getRecognizeResult().get();
+                    labelDetected = choiceResult.getLabel();
+                    phraseDetected = choiceResult.getRecognizedPhrase();
+    
+                }
+                if(recognizeResult instanceof SpeechResult) {
+                    var speechResult = (SpeechResult) acsEvent.getRecognizeResult().get();
+                    phraseDetected = speechResult.getSpeech();
+    
+                }
+                if(recognizeResult instanceof DtmfResult) {
+                    var dtmfResult = (DtmfResult) acsEvent.getRecognizeResult().get();
+                    phraseDetected = dtmfResult.getTones().get(0).convertToString();
+    
+                }           
+                
                 log.info("Recognition completed, labelDetected=" + labelDetected + ", phraseDetected=" + phraseDetected + ", context=" + event.getOperationContext());
                 String textToPlay = labelDetected.equals(confirmLabel) ? confirmedText  : cancelText;
                 // stop Media Streaming
@@ -186,24 +222,23 @@ public class ProgramSample {
                 // log.info("Stopped Media streaming....");
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
+                // } catch (Exception e) {   
                 // }
+
                 // // start Media Streaming
                 // startMediaStreamingOptions(callConnectionId);
                 // log.info("Start Media Streaming.....");
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
+                // } catch (Exception e) {   
                 // }
+
                 // // stop Media Streaming
                 // stopMediaStreamingOptions(callConnectionId);
                 // log.info("Stopped Media streaming....");
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
+                // } catch (Exception e) {   
                 // }
                 
                 // // call on Hold 
@@ -214,8 +249,7 @@ public class ProgramSample {
                 // log.info("Call On Hold successfully");
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
+                // } catch (Exception e) {    
                 // }
 
                 // // Call Unhold
@@ -226,9 +260,6 @@ public class ProgramSample {
 
 
                  handlePlay(callConnectionId, textToPlay);
-             
-        
-
 
             }
             else if(event instanceof RecognizeFailed ) {
@@ -259,11 +290,9 @@ public class ProgramSample {
             }
             else if(event instanceof TranscriptionStarted) {
                 log.info("TranscriptionStarted event triggered");
-
             }
             else if(event instanceof TranscriptionStopped) {
-                log.info("TranscriptionStopped event triggered");
-                
+                log.info("TranscriptionStopped event triggered");                
             }
             else if(event instanceof TranscriptionFailed) {
                 log.info("TranscriptionFailed event triggered");
@@ -330,81 +359,273 @@ public class ProgramSample {
              new PhoneNumberIdentifier(appConfig.getTargetphonenumber())
         );
 
-        // var textPlay = new TextSource()
-        //         .setText(textToPlay) 
-        //         .setVoiceName("en-US-NancyNeural");
-        // var playOptions = new PlayOptions(textPlay, playToList);
-
-        // client.getCallConnection(callConnectionId)
-        // .getCallMedia()
-        // .playWithResponse(playOptions, Context.NONE);
-
         var textPlay = new TextSource()
-        .setText("First Interrupt prompt message") 
-        .setVoiceName("en-US-NancyNeural");
-        
-        var playToAllOptions = new PlayToAllOptions(textPlay)
-                    .setLoop(false)
-                    .setOperationCallbackUrl(appConfig.getBasecallbackuri())
-                    .setInterruptCallMediaOperation(false);
-        
-        //with options
+                .setText(textToPlay) 
+                .setVoiceName("en-US-NancyNeural");
+        var playOptions = new PlayOptions(textPlay, playToList);
+
         client.getCallConnection(callConnectionId)
         .getCallMedia()
-        .playToAllWithResponse(playToAllOptions, Context.NONE);
-        // // with out options
+        .playWithResponse(playOptions, Context.NONE);
+
+        // // Inturrput Prompt test
+        // var textPlay = new TextSource()
+        // .setText("First Interrupt prompt message") 
+        // .setVoiceName("en-US-NancyNeural");
+        
+        // var playToAllOptions = new PlayToAllOptions(textPlay)
+        //             .setLoop(false)
+        //             .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+        //             .setInterruptCallMediaOperation(false);
+        
+        // //with options
         // client.getCallConnection(callConnectionId)
         // .getCallMedia()
-        // .playToAll(textPlay);
+        // .playToAllWithResponse(playToAllOptions, Context.NONE);
+        // // // with out options
+        // // client.getCallConnection(callConnectionId)
+        // // .getCallMedia()
+        // // .playToAll(textPlay);
 
-        var textPlay1 = new TextSource()
-        .setText("Interrupt second prompt message") 
-        .setVoiceName("en-US-NancyNeural");
+        // var textPlay1 = new TextSource()
+        // .setText("Interrupt second prompt message") 
+        // .setVoiceName("en-US-NancyNeural");
         
-        var playToAllOptions1 = new PlayToAllOptions(textPlay1)
-                    .setLoop(false)
-                    .setOperationCallbackUrl(appConfig.getBasecallbackuri())
-                    .setInterruptCallMediaOperation(true);
+        // var playToAllOptions1 = new PlayToAllOptions(textPlay1)
+        //             .setLoop(false)
+        //             .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+        //             .setInterruptCallMediaOperation(true);
         
-        //with options
-        client.getCallConnection(callConnectionId)
-        .getCallMedia()
-        .playToAllWithResponse(playToAllOptions1, Context.NONE);
+        // //with options
+        // client.getCallConnection(callConnectionId)
+        // .getCallMedia()
+        // .playToAllWithResponse(playToAllOptions1, Context.NONE);
 
-        //File source
-        var interruptFile = new FileSource()
-                .setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+        // //File source
+        // var interruptFile = new FileSource()
+        //         .setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
 
-        var playFileOptions = new PlayToAllOptions(interruptFile)
-                .setLoop(false)
-                .setOperationCallbackUrl(appConfig.getBasecallbackuri())
-                .setInterruptCallMediaOperation(false);
+        // var playFileOptions = new PlayToAllOptions(interruptFile)
+        //         .setLoop(false)
+        //         .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+        //         .setInterruptCallMediaOperation(false);
 
-        //with options
-        client.getCallConnection(callConnectionId)
-                .getCallMedia()
-                .playToAllWithResponse(playFileOptions, Context.NONE);
-        // //with out options
+        // //with options
         // client.getCallConnection(callConnectionId)
         //         .getCallMedia()
-        //         .playToAll(interruptFile);
+        //         .playToAllWithResponse(playFileOptions, Context.NONE);
+        // // //with out options
+        // // client.getCallConnection(callConnectionId)
+        // //         .getCallMedia()
+        // //         .playToAll(interruptFile);
      }
 
+    // private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
+    // {
+    //     var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+
+    //     var recognizeOptions = new CallMediaRecognizeChoiceOptions(new PhoneNumberIdentifier(targetParticipant),  getChoices())
+    //         .setInterruptCallMediaOperation(false)
+    //         .setInterruptPrompt(false)
+    //         .setInitialSilenceTimeout(Duration.ofSeconds(10))
+    //         .setPlayPrompt(playSource)
+    //         .setOperationContext(context);
+
+    //     client.getCallConnection(callConnectionId)
+    //     .getCallMedia()
+    //     .startRecognizing(recognizeOptions);
+    // }
+
+    // RecognizingWithChoiceOptions for Multiple Prompts
     private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
     {
         var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        // //Multiple TextSource prompt
+        // var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        // var p2 = new TextSource().setText("recognize prompt two").setVoiceName("en-US-NancyNeural");
+        // var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+        // playSources.add(p3);
+
+        // //Multiple FileSource Prompts
+        // var p1 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+
+        // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+
+        //Multiple TextSource and FileSource prompt
+        var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var playSources = new ArrayList<PlaySource>();
+        playSources.add(p1);
+        playSources.add(p2);
+        playSources.add(p3);
+        
+        // //Empty play sources
+        //var playSources = new ArrayList<PlaySource>();
 
         var recognizeOptions = new CallMediaRecognizeChoiceOptions(new PhoneNumberIdentifier(targetParticipant),  getChoices())
             .setInterruptCallMediaOperation(false)
             .setInterruptPrompt(false)
             .setInitialSilenceTimeout(Duration.ofSeconds(10))
-            .setPlayPrompt(playSource)
+            //.setPlayPrompt(playSource)
+            .setPlayPrompts(playSources)
             .setOperationContext(context);
 
         client.getCallConnection(callConnectionId)
         .getCallMedia()
         .startRecognizing(recognizeOptions);
     }
+
+    // MediaRecognizeDTMFOptions for Multiple Prompts
+    private void GetMediaRecognizeDTMFOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
+    {
+        var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        // //Multiple TextSource prompt
+        // var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        // var p2 = new TextSource().setText("recognize prompt two").setVoiceName("en-US-NancyNeural");
+        // var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+        // playSources.add(p3);
+
+        // //Multiple FileSource Prompts
+        // var p1 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+
+        // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+
+        //Multiple TextSource prompt
+        var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var playSources = new ArrayList<PlaySource>();
+        playSources.add(p1);
+        playSources.add(p2);
+        playSources.add(p3);
+        
+        //Empty play sources
+        //var playSources = new ArrayList<PlaySource>();
+
+        var recognizeOptions = new CallMediaRecognizeDtmfOptions(new PhoneNumberIdentifier(targetParticipant),8 )
+            .setInterruptCallMediaOperation(false)
+            .setInterruptPrompt(false)
+            .setInterToneTimeout(Duration.ofSeconds(5))
+            .setInitialSilenceTimeout(Duration.ofSeconds(15))
+            //.setPlayPrompt(playSource)
+            .setPlayPrompts(playSources)
+            .setOperationContext(context);
+
+        client.getCallConnection(callConnectionId)
+        .getCallMedia()
+        .startRecognizing(recognizeOptions);
+    }
+
+    // MediaRecognizeSpeechOptions for Multiple Prompts
+    private void GetMediaRecognizeSpeechOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
+    {
+        var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        // //Multiple TextSource prompt
+        // var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        // var p2 = new TextSource().setText("recognize prompt two").setVoiceName("en-US-NancyNeural");
+        // var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+        // playSources.add(p3);
+
+        // //Multiple FileSource Prompts
+        // var p1 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+
+        // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+
+        //Multiple TextSource prompt
+        var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var playSources = new ArrayList<PlaySource>();
+        playSources.add(p1);
+        playSources.add(p2);
+        playSources.add(p3);
+        
+        //Empty play sources
+        //var playSources = new ArrayList<PlaySource>();
+        var target = new PhoneNumberIdentifier(targetParticipant);
+        var recognizeOptions = new CallMediaRecognizeSpeechOptions(target, Duration.ofSeconds(15))
+            .setInterruptPrompt(false)
+            .setInitialSilenceTimeout(Duration.ofSeconds(15))
+            //.setPlayPrompt(playSource)
+            .setPlayPrompts(playSources)
+            .setOperationContext(context);
+
+        client.getCallConnection(callConnectionId)
+        .getCallMedia()
+        .startRecognizing(recognizeOptions);
+    }
+
+    // MediaRecognizeSpeechOrDtmfOptions for Multiple Prompts
+    private void GetMediaRecognizeSpeechOrDtmfOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
+    {
+        var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        //Multiple TextSource prompt
+        // var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        // var p2 = new TextSource().setText("recognize prompt two").setVoiceName("en-US-NancyNeural");
+        // var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+        // playSources.add(p3);
+
+        // //Multiple FileSource Prompts
+        // var p1 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+
+        // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // playSources.add(p2);
+
+        //Multiple TextSource prompt
+        var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+        var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var playSources = new ArrayList<PlaySource>();
+        playSources.add(p1);
+        playSources.add(p2);
+        playSources.add(p3);
+        
+        //Empty play sources
+        //var playSources = new ArrayList<PlaySource>();
+
+        var recognizeOptions = new CallMediaRecognizeSpeechOrDtmfOptions(new PhoneNumberIdentifier(targetParticipant), 8,Duration.ofSeconds(15))
+            .setInterruptPrompt(false)
+            .setInitialSilenceTimeout(Duration.ofSeconds(10))
+            //.setPlayPrompt(playSource)
+            .setPlayPrompts(playSources)
+            .setOperationContext(context);
+
+        client.getCallConnection(callConnectionId)
+        .getCallMedia()
+        .startRecognizing(recognizeOptions);
+    }    
 
     private List<RecognitionChoice> getChoices(){
         var choices = Arrays.asList(

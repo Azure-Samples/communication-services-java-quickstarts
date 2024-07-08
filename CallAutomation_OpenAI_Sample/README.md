@@ -50,5 +50,5 @@ devtunnel host
     - Compile the application: mvn compile
     - Build the package: mvn package
     - Execute the app: mvn exec:java
-- Access the Swagger UI at http://localhost:8080/swagger-ui.html
-    - Try the GET /outboundCall to run the Sample Application
+- Register an EventGrid Webhook for the IncomingCall Event that points to your DevTunnel URI. Instructions [here](https://learn.microsoft.com/en-us/azure/communication-services/concepts/call-automation/incoming-call-notification).
+    - Once that's completed you should have a running application. The best way to test this is to place a call to your ACS phone number and talk to your intelligent agent.

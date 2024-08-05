@@ -3,18 +3,23 @@ package com.communication.callautomation;
 import com.azure.communication.callautomation.CallAutomationClient;
 import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;
+import com.azure.communication.callautomation.implementation.converters.CommunicationIdentifierConverter;
 import com.azure.communication.callautomation.implementation.models.UnholdRequest;
 import com.azure.communication.callautomation.models.*;
 import com.azure.communication.callautomation.models.events.*;
 import com.azure.communication.common.CommunicationIdentifier;
+import com.azure.communication.common.CommunicationUserIdentifier;
 import com.azure.communication.common.MicrosoftTeamsUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.communication.identity.implementation.models.CommunicationErrorResponseException;
 import com.azure.core.http.rest.Response;
 import com.azure.core.implementation.util.ListByteBufferContent;
 import com.azure.core.util.Context;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ch.qos.logback.core.read.ListAppender;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +28,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -32,12 +38,7 @@ public class ProgramSample {
     private AppConfig appConfig;
     private CallAutomationClient client;
 
-    private String MainMenu =
-    """ 
-    Hello this is Contoso Bank, we’re calling in regard to your appointment tomorrow 
-    at 9am to open a new account. Please say confirm if this time is still suitable for you or say cancel 
-    if you would like to cancel this appointment.
-    """;
+    private String MainMenu ="Hello this is Contoso Bank, Please say confirm if this time is still suitable for you or say cancel";
     private String confirmLabel = "Confirm";
     private String cancelLabel = "Cancel";
     private String confirmedText = "Thank you for confirming your appointment tomorrow at 9am, we look forward to meeting with you.";
@@ -60,9 +61,38 @@ public class ProgramSample {
                 ", CallConnectionId: " + callConnectionId);
     }
 
+   
+    @PostMapping("/createGroupCall")
+    public ResponseEntity<String> createGroupCall(@RequestParam String targetId) {
+        val targetList = new ArrayList<CommunicationIdentifier>();
+        String callbackUriString = String.format("%s?callerId=%s",
+                appConfig.getCallBackUri(),
+                targetId);
+        val caller = new PhoneNumberIdentifier(appConfig.getCallerphonenumber());
+        val target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
+        val voipEndPoint = new CommunicationUserIdentifier(targetId);
+        targetList.add(caller);
+        targetList.add(target);
+        targetList.add(voipEndPoint);
+        CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions().setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint());
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(appConfig.getWebSocketUrl(), TranscriptionTransport.WEBSOCKET, "en-US", false);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(appConfig.getWebSocketUrl(), MediaStreamingTransport.WEBSOCKET, MediaStreamingContent.AUDIO, MediaStreamingAudioChannel.UNMIXED, false);
+                    
+        val groupCallOption = new CreateGroupCallOptions(targetList, callbackUriString);
+           
+        groupCallOption.setCallIntelligenceOptions(callIntelligenceOptions);
+        groupCallOption.setTranscriptionOptions(transcriptionOptions);
+        groupCallOption.setMediaStreamingOptions(mediaStreamingOptions);
+        groupCallOption.setSourceCallIdNumber(caller);
+        client.createGroupCallWithResponse(groupCallOption, Context.NONE);
+        log.info("Group Call Created successfully");
+        return ResponseEntity.ok().body("Group Call created successfully.");
+    }
+   
+
 
     @PostMapping(path = "/api/callback")
-    public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) {
+    public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) throws JsonProcessingException {
         List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
         for (CallAutomationEventBase event : events) {
             String callConnectionId = event.getCallConnectionId();
@@ -73,6 +103,11 @@ public class ProgramSample {
                     event.getCorrelationId());
 
             if (event instanceof CallConnected) {
+                log.info("call connected event triggered");
+                var properties = client.getCallConnection(event.getCallConnectionId())
+                                                .getCallProperties();
+                                log.info("SUBSCRIPTION ID--->" + properties.getTranscriptionSubscription().getId());
+                                log.info("Transcription STATE--->" + properties.getTranscriptionSubscription().getState());
                 // (Optional) Add a Microsoft Teams user to the call.  Uncomment the below snippet to enable Teams Interop scenario.
                 // client.getCallConnection(callConnectionId).addParticipant(
                 //       new CallInvite(new MicrosoftTeamsUserIdentifier(appConfig.getTargetTeamsUserId()))
@@ -93,16 +128,26 @@ public class ProgramSample {
                 // //#endregion
 
 
+                // //Start Transcription
+                // startTranscription(callConnectionId);
+                // log.info("Transcription Started....");
+                //                 try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {
+                    
+                // }
+
                 //#region Media Streaming
                 // // start Media Streaming
                 // startMediaStreamingOptions(callConnectionId);
                 // log.info("Start Media Streaming.....");
 
                 // try {
-                //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
+                //     TimeUnit.SECONDS.sleep(10);    
+                // } catch (Exception e) {   
+
                 // }
+
                 // // stop Media Streaming
                 // stopMediaStreamingOptions(callConnectionId);
                 // log.info("Stopped Media streaming....");
@@ -111,6 +156,7 @@ public class ProgramSample {
                 // } catch (Exception e) {
                     
                 // }
+
                 // // start Media Streaming
                 // startMediaStreamingOptions(callConnectionId);
                 // log.info("Start Media Streaming.....");
@@ -134,17 +180,24 @@ public class ProgramSample {
                 // unhold the call
                 //unhold(callConnectionId);
                 //log.info("Call UnHolded successfully");
+
                 
+                // stopTranscription(callConnectionId);
+                // log.info("Transcription Stopped....");
+                // try {
+                //     TimeUnit.SECONDS.sleep(10);    
+                // } catch (Exception e) {
+                    
+                // }
 
-
-                // //Start Transcription
                 // startTranscription(callConnectionId);
+                // log.info("Transcription Started....");
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
                 // } catch (Exception e) {
                     
                 // }
-                
+
                 // stopTranscription(callConnectionId);
                 // try {
                 //     TimeUnit.SECONDS.sleep(5);    
@@ -152,32 +205,20 @@ public class ProgramSample {
                     
                 // }
 
-                // startTranscription(callConnectionId);
-                // try {
-                //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
+                // // startTranscription(callConnectionId);
+                try {
+                    TimeUnit.SECONDS.sleep(10);    
+                } catch (Exception e) {
                     
-                // }
-
-                // stopTranscription(callConnectionId);
-                // try {
-                //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
-                // }
-
-                // startTranscription(callConnectionId);
-                // try {
-                //     TimeUnit.SECONDS.sleep(5);    
-                // } catch (Exception e) {
-                    
-                // }
+                }
+               handlePlay(callConnectionId, "");
 
                 log.info("Fetching recognize options...");
+
                 // #region Recognize Prompt List
                 // Different recognizing formats
                 // // prepare recognize tones Choice
-                startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
+                // startRecognizingWithChoiceOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
 
                 // // prepare recognize tones DTMF
                 // GetMediaRecognizeDTMFOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
@@ -188,6 +229,9 @@ public class ProgramSample {
                 // // prepare recognize Speech or dtmf
                 // GetMediaRecognizeSpeechOrDtmfOptions(callConnectionId, MainMenu, appConfig.getTargetphonenumber(), "mainmenu");
                 //#endregion
+            }
+            else if(event instanceof PlayCanceled) {
+                log.info("Play Canceled event triggered");
             }
             else if (event instanceof RecognizeCompleted) {
                 log.info("Recognize Completed event received");
@@ -215,7 +259,8 @@ public class ProgramSample {
                 
                 log.info("Recognition completed, labelDetected=" + labelDetected + ", phraseDetected=" + phraseDetected + ", context=" + event.getOperationContext());
                 String textToPlay = labelDetected.equals(confirmLabel) ? confirmedText  : cancelText;
-                // stop Media Streaming
+
+                // // // stop Media Streaming
                 // stopMediaStreamingOptions(callConnectionId);
                 // var callConnectionProperties = client.getCallConnection(callConnectionId).getCallProperties();
                 // log.info("State{}" ,callConnectionProperties.getCallConnectionState());
@@ -240,71 +285,180 @@ public class ProgramSample {
                 //     TimeUnit.SECONDS.sleep(5);    
                 // } catch (Exception e) {   
                 // }
-                
+                // #region Hold and Unhold
                 // // call on Hold 
                 // hold(callConnectionId);
-                // // // var participant = client.getCallConnection(callConnectionId).getParticipant(new PhoneNumberIdentifier(appConfig.getTargetphonenumber()));
-                // // // var isParticipantHold = participant.isOnHold();
-                // // // log.info("Is participant on hold ----> {}", isParticipantHold);
                 // log.info("Call On Hold successfully");
                 // try {
-                //     TimeUnit.SECONDS.sleep(5);    
+                //     TimeUnit.SECONDS.sleep(10);    
                 // } catch (Exception e) {    
                 // }
+                // // var participant = client.getCallConnection(callConnectionId).getParticipant(new PhoneNumberIdentifier(appConfig.getTargetphonenumber()));
+                // // var isParticipantHold = participant.isOnHold();
+                // // log.info("Is participant on hold ----> {}", isParticipantHold);
+                
 
                 // // Call Unhold
                 // unhold(callConnectionId);
-                // // // isParticipantHold = participant.isOnHold();
-                // // // log.info("Is participant on hold ----> {}", isParticipantHold);
+                // // var participantUnhold = client.getCallConnection(callConnectionId).getParticipant(new PhoneNumberIdentifier(appConfig.getTargetphonenumber()));
+                // // var isParticipantUnHold = participantUnhold.isOnHold();
+                // // log.info("Is participant on hold ----> {}", isParticipantUnHold);
                 // log.info("Call UnHolded successfully");
+                //#endregion
 
 
-                 handlePlay(callConnectionId, textToPlay);
+                 handlePlay(callConnectionId, "");
+                 try {
+                    TimeUnit.SECONDS.sleep(10);    
+                } catch (Exception e) {   
+                }
+
+                // // // stop Media Streaming
+                // stopMediaStreamingOptions(callConnectionId);
+                // log.info("Stopped Media streaming....");
+                // try {
+                //     TimeUnit.SECONDS.sleep(5);    
+                // } catch (Exception e) {   
+                // }
+
+                // //  //Stop Transcription
+                // stopTranscription(callConnectionId);
+                // log.info("Transcription Stopped....");
+                
 
             }
             else if(event instanceof RecognizeFailed ) {
                 log.error("Received failed event: {}", ((CallAutomationEventBaseWithReasonCode) event)
                         .getResultInformation().getMessage());
+                ObjectMapper aMapper = new ObjectMapper();
+                log.info("JSON event object {}", aMapper.writeValueAsString(event));
                 var recognizeFailedEvent = (RecognizeFailed) event;
-                var context =recognizeFailedEvent.getOperationContext();
-                if(context != null && context.equals(retryContext)){
-                    handlePlay(callConnectionId, noResponse);
-                }
-                else
-                {
-                    var resultInformation = recognizeFailedEvent.getResultInformation();
-                    log.error("Encountered error during recognize, message={}, code={}, subCode={}",
-                    resultInformation.getMessage(),
-                    resultInformation.getCode(),
-                    resultInformation.getSubCode());
+                // var context =recognizeFailedEvent.getOperationContext();
+                // if(context != null && context.equals(retryContext)){
+                //     handlePlay(callConnectionId, noResponse);
+                // }
+                // else
+                // {
+                //     var resultInformation = recognizeFailedEvent.getResultInformation();
+                //     log.error("Encountered error during recognize, message={}, code={}, subCode={}",
+                //     resultInformation.getMessage(),
+                //     resultInformation.getCode(),
+                //     resultInformation.getSubCode());
 
-                    var reasonCode = recognizeFailedEvent.getReasonCode();
-                    String replyText = reasonCode == ReasonCode.Recognize.PLAY_PROMPT_FAILED ||
-                        reasonCode == ReasonCode.Recognize.INITIAL_SILENCE_TIMEOUT ? customerQueryTimeout : 
-                        reasonCode== ReasonCode.Recognize.INCORRECT_TONE_DETECTED ? invalidAudio: 
-                        customerQueryTimeout;
+                //     var reasonCode = recognizeFailedEvent.getReasonCode();
+                //     String replyText = reasonCode == ReasonCode.Recognize.PLAY_PROMPT_FAILED ||
+                //         reasonCode == ReasonCode.Recognize.INITIAL_SILENCE_TIMEOUT ? customerQueryTimeout : 
+                //         reasonCode== ReasonCode.Recognize.INCORRECT_TONE_DETECTED ? invalidAudio: 
+                //         customerQueryTimeout;
                     
-                        // prepare recognize tones
-                    startRecognizingWithChoiceOptions(callConnectionId, replyText, appConfig.getTargetphonenumber(), retryContext);
-                } 
+                //         // prepare recognize tones
+                //     startRecognizingWithChoiceOptions(callConnectionId, replyText, appConfig.getTargetphonenumber(), retryContext);
+                // } 
+                try {
+                    TimeUnit.SECONDS.sleep(10);    
+                } catch (Exception e) {
+                    
+                }
+             hangUp(callConnectionId);
+
             }
             else if(event instanceof TranscriptionStarted) {
                 log.info("TranscriptionStarted event triggered");
+                TranscriptionStarted acsEvent = (TranscriptionStarted) event;
+                var properties = client.getCallConnection(acsEvent.getCallConnectionId())
+                                                .getCallProperties();
+                                log.info("SUBSCRIPTION ID--->" + properties.getTranscriptionSubscription().getId());
+                                log.info("Transcription STATE--->" + properties.getTranscriptionSubscription().getState());
+                log.info("*****Transcription Status --> "
+                        + acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                log.info("*****Transcritpion Status Details --> "
+                        + acsEvent.getTranscriptionUpdateResult().getTranscriptionStatusDetails());
+
+                // updateTranscriptionLocale(callConnectionId);        
+
             }
             else if(event instanceof TranscriptionStopped) {
-                log.info("TranscriptionStopped event triggered");                
+                log.info("TranscriptionStopped event triggered");
+                TranscriptionStopped acsEvent = (TranscriptionStopped) event;
+                var properties = client.getCallConnection(acsEvent.getCallConnectionId())
+                                                .getCallProperties();
+                                log.info("SUBSCRIPTION ID--->" + properties.getTranscriptionSubscription().getId());
+                                log.info("Transcription STATE--->" + properties.getTranscriptionSubscription().getState());
+                log.info("*****Transcription Status --> "
+                        + acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                log.info("*****Transcritpion Status Details --> "
+                        + acsEvent.getTranscriptionUpdateResult().getTranscriptionStatusDetails());                
+                
             }
             else if(event instanceof TranscriptionFailed) {
                 log.info("TranscriptionFailed event triggered");
+                TranscriptionFailed acsEvent = (TranscriptionFailed) event;
+                var properties = client.getCallConnection(acsEvent.getCallConnectionId())
+                                                .getCallProperties();
+                                log.info("SUBSCRIPTION ID--->" + properties.getTranscriptionSubscription().getId());
+                                log.info("Transcription STATE--->" + properties.getTranscriptionSubscription().getState());
+           log.info("Message --> " + acsEvent.getResultInformation().getMessage());
+                log.info("Code --> " + acsEvent.getResultInformation().getCode());
+                log.info("SubCode --> " + acsEvent.getResultInformation().getSubCode());
+            }
+            else if(event instanceof TranscriptionUpdated){
+                log.info("TranscriptionUpdated event triggered.");
+                TranscriptionUpdated acsEvent = (TranscriptionUpdated)event;
+                val status = acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus().fromString("TRANSCRIPTION_LOCALE_UPDATED");
+                
+                log.info("TrancriptionUpdated status ::::{} ", status);
+                log.info("TrancriptionUpdated status details ::::{} " +acsEvent.getTranscriptionUpdateResult().getTranscriptionStatusDetails());
+                
             }
             else if(event instanceof MediaStreamingStarted) {
-            log.info("MediaStreamingStarted event triggered.");
+                log.info("MediaStreamingStarted event triggered.");
+                MediaStreamingStarted acsEvent = (MediaStreamingStarted) event;
+                var properties = client.getCallConnection(acsEvent.getCallConnectionId())
+                .getCallProperties();
+                log.info("SUBSCRIPTION ID--->" + properties.getMediaStreamingSubscription().getId());
+                log.info("STATE--->" + properties.getMediaStreamingSubscription().getState());
+                
+                log.info("CONTENT TYPE--->" + properties.getMediaStreamingSubscription()
+                                .getSubscribedContentTypes().toArray()[0]);
+
+                log.info("*****Media Streaming Status --> "
+                        + acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                log.info("*****Media Streaming Status Details --> "
+                        + acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatusDetails());
+                log.info("*****Media Streaming Content --> "
+                        + acsEvent.getMediaStreamingUpdateResult().getContentType());
+                log.info("*****MediaOperationContext --> " + acsEvent.getOperationContext());    
             }
             else if(event instanceof MediaStreamingStopped) {
                 log.info("MediaStreamingStopped event triggered.");
+                MediaStreamingStopped acsEvent = (MediaStreamingStopped) event;
+                var properties = client.getCallConnection(acsEvent.getCallConnectionId())
+                .getCallProperties();
+                log.info("SUBSCRIPTION ID--->" + properties.getMediaStreamingSubscription().getId());
+                log.info("STATE--->" + properties.getMediaStreamingSubscription().getState());
+                log.info("CONTENT TYPE--->" + properties.getMediaStreamingSubscription()
+                                .getSubscribedContentTypes().toArray()[0]);
+
+                log.info("*****Media Streaming Status --> "
+                        + acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                log.info("*****Media Streaming Status Details --> "
+                        + acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatusDetails());
+                log.info("*****Media Streaming Content --> "
+                        + acsEvent.getMediaStreamingUpdateResult().getContentType());
+                log.info("*****MediaOperationContext --> " + acsEvent.getOperationContext());
             }
             else if(event instanceof MediaStreamingFailed) {
                 log.info("MediaStreamingFailed event triggered.");
+                MediaStreamingFailed acsEvent = (MediaStreamingFailed) event;
+                var properties = client.getCallConnection(acsEvent.getCallConnectionId())
+                .getCallProperties();
+                log.info("SUBSCRIPTION ID--->" + properties.getMediaStreamingSubscription().getId());
+                log.info("STATE--->" + properties.getMediaStreamingSubscription().getState());
+                log.info("CONTENT TYPE--->" + properties.getMediaStreamingSubscription()
+                                .getSubscribedContentTypes().toArray()[0]);
+
+                log.info("Message --> " + acsEvent.getResultInformation().getMessage());
+                log.info("Code --> " + acsEvent.getResultInformation().getCode());
             }
             else if(event instanceof PlayStarted) {
                 log.info("PlayStarted event triggered.");
@@ -313,12 +467,30 @@ public class ProgramSample {
                 log.info("CallTransferAccepted event triggered.");
             }
             else if(event instanceof CallTransferFailed) {
-                log.info("CallTransFailded event triggered.");
+                log.info("CallTransferFailded event triggered.");
             }
-            else if(event instanceof PlayCompleted || event instanceof PlayFailed) {
+            else if(event instanceof PlayCompleted) {
                 log.info("Received Play Completed event. Terminating call");
-                hangUp(callConnectionId);
+                try {
+                    TimeUnit.SECONDS.sleep(10);    
+                } catch (Exception e) {
+                    
+                }
+             hangUp(callConnectionId);
             }
+            else if(event instanceof PlayFailed) {
+                log.info("Received Play failed event: {}", ((CallAutomationEventBaseWithReasonCode) event)
+                .getResultInformation().getMessage());
+                ObjectMapper aMapper = new ObjectMapper();
+                log.info("JSON event object {}", aMapper.writeValueAsString(event));
+                var playFailedEvent = (PlayFailed) event;
+                var resultInformation = playFailedEvent.getResultInformation();
+                log.error("Encountered error during Play, message={}, code={}, subCode={}",
+                resultInformation.getMessage(),
+                resultInformation.getCode(),
+                resultInformation.getSubCode());
+                hangUp(callConnectionId);
+            }            
             else if(event instanceof CallDisconnected) {
                 log.info("The Call got Disconnected");
                             
@@ -336,8 +508,8 @@ public class ProgramSample {
             
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions().setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint());
             TranscriptionOptions transcriptionOptions = new TranscriptionOptions(appConfig.getWebSocketUrl(), TranscriptionTransport.WEBSOCKET, "en-US", false);
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(appConfig.getWebSocketUrl(), MediaStreamingTransport.WEBSOCKET, MediaStreamingContentType.AUDIO, MediaStreamingAudioChannel.UNMIXED);
-            mediaStreamingOptions.setStartMediaStreaming(false);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(appConfig.getWebSocketUrl(), MediaStreamingTransport.WEBSOCKET, MediaStreamingContent.AUDIO, MediaStreamingAudioChannel.MIXED, false);
+            // mediaStreamingOptions.setStartMediaStreaming(false);
         
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, appConfig.getCallBackUri());
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
@@ -345,6 +517,8 @@ public class ProgramSample {
             createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
 
             Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            log.info("correlationId... {}", result.getValue().getCallConnectionProperties().getCorrelationId());
+
             return result.getValue().getCallConnectionProperties().getCallConnectionId();
         } catch (CommunicationErrorResponseException e) {
             log.error("Error when creating call: {} {}",
@@ -354,39 +528,40 @@ public class ProgramSample {
         }
     }
 
+
     private void handlePlay(final String  callConnectionId, String textToPlay) {
         List<CommunicationIdentifier> playToList = Arrays.asList(
              new PhoneNumberIdentifier(appConfig.getTargetphonenumber())
         );
 
-        var textPlay = new TextSource()
-                .setText(textToPlay) 
-                .setVoiceName("en-US-NancyNeural");
-        var playOptions = new PlayOptions(textPlay, playToList);
-
-        client.getCallConnection(callConnectionId)
-        .getCallMedia()
-        .playWithResponse(playOptions, Context.NONE);
-
-        // // Inturrput Prompt test
         // var textPlay = new TextSource()
-        // .setText("First Interrupt prompt message") 
-        // .setVoiceName("en-US-NancyNeural");
-        
-        // var playToAllOptions = new PlayToAllOptions(textPlay)
-        //             .setLoop(false)
-        //             .setOperationCallbackUrl(appConfig.getBasecallbackuri())
-        //             .setInterruptCallMediaOperation(false);
-        
-        // //with options
+        //         .setText(textToPlay) 
+        //         .setVoiceName("en-US-NancyNeural");
+        // var playOptions = new PlayOptions(textPlay, playToList);
         // client.getCallConnection(callConnectionId)
         // .getCallMedia()
-        // .playToAllWithResponse(playToAllOptions, Context.NONE);
-        // // // with out options
-        // // client.getCallConnection(callConnectionId)
-        // // .getCallMedia()
-        // // .playToAll(textPlay);
+        // .playWithResponse(playOptions, Context.NONE);
 
+        // Inturrput text Prompt 1
+        var textPlay = new TextSource()
+        .setText("First Interrupt prompt message from text source one") 
+        .setVoiceName("en-US-NancyNeural");
+        
+        var playToAllOptions = new PlayToAllOptions(textPlay)
+                    .setLoop(false)
+                    .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                    .setInterruptCallMediaOperation(false);
+        
+        //with options
+        client.getCallConnection(callConnectionId)
+        .getCallMedia()
+        .playToAllWithResponse(playToAllOptions, Context.NONE);
+        // // with out options
+        // client.getCallConnection(callConnectionId)
+        // .getCallMedia()
+        // .playToAll(textPlay);
+
+        // // Inturrput text Prompt 2
         // var textPlay1 = new TextSource()
         // .setText("Interrupt second prompt message") 
         // .setVoiceName("en-US-NancyNeural");
@@ -394,35 +569,87 @@ public class ProgramSample {
         // var playToAllOptions1 = new PlayToAllOptions(textPlay1)
         //             .setLoop(false)
         //             .setOperationCallbackUrl(appConfig.getBasecallbackuri())
-        //             .setInterruptCallMediaOperation(true);
+        //             .setInterruptCallMediaOperation(false);
         
         // //with options
         // client.getCallConnection(callConnectionId)
         // .getCallMedia()
         // .playToAllWithResponse(playToAllOptions1, Context.NONE);
+        // // // without options
+        // // client.getCallConnection(callConnectionId)
+        // // .getCallMedia()
+        // // .playToAll(textPlay1);
 
-        // //File source
-        // var interruptFile = new FileSource()
-        //         .setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+        // Inturrput with File Prompt
+        //File source
+        var interruptFile = new FileSource()
+                .setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
 
-        // var playFileOptions = new PlayToAllOptions(interruptFile)
-        //         .setLoop(false)
-        //         .setOperationCallbackUrl(appConfig.getBasecallbackuri())
-        //         .setInterruptCallMediaOperation(false);
+        var playFileOptions = new PlayToAllOptions(interruptFile)
+                .setLoop(false)
+                .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                .setInterruptCallMediaOperation(false);
 
-        // //with options
+        //with options
+        client.getCallConnection(callConnectionId)
+                .getCallMedia()
+                .playToAllWithResponse(playFileOptions, Context.NONE);
+        // //with out options
         // client.getCallConnection(callConnectionId)
         //         .getCallMedia()
-        //         .playToAllWithResponse(playFileOptions, Context.NONE);
-        // // //with out options
-        // // client.getCallConnection(callConnectionId)
-        // //         .getCallMedia()
-        // //         .playToAll(interruptFile);
+        //         .playToAll(interruptFile);
+
+        // // Inturrput with SSML Prompt
+        //  Ssml source
+        // Multiple SSML sources
+        var ssmlfile = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML recognition test on handle play .. Played through first SSML. Disconnecting the call!</voice></speak>");
+        var playSsmlOptions = new PlayToAllOptions(ssmlfile)
+                .setLoop(false)
+                .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                .setInterruptCallMediaOperation(false);
+        //with options
+        client.getCallConnection(callConnectionId)
+                .getCallMedia()
+                .playToAllWithResponse(playSsmlOptions, Context.NONE);
+        // //with out options
+        // client.getCallConnection(callConnectionId)
+        //         .getCallMedia()
+        //         .playToAll(ssmlfile);   
+        
+        // // Multiple TextSource and FileSource and SsmlSource prompt
+        // var p1 = new TextSource().setText("recognize prompt one, hello welcome to contoso solutions. your appointment has been confirmed. thank you").setVoiceName("en-US-NancyNeural");
+        // // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+        // // var p3 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML play prompt play from form multiple prompts, Played through first SSML handle play</voice></speak>");
+        // // var p4 = new TextSource().setText("recognize prompt four").setVoiceName("en-US-NancyNeural");
+        // // var p5 = new TextSource().setText("recognize prompt five").setVoiceName("en-US-NancyNeural");
+        // // var p6 = new TextSource().setText("recognize prompt six").setVoiceName("en-US-NancyNeural");
+        // // var p7 = new TextSource().setText("recognize prompt seven").setVoiceName("en-US-NancyNeural");
+        // // var p8 = new TextSource().setText("recognize prompt eight").setVoiceName("en-US-NancyNeural");
+        // // var p9 = new TextSource().setText("recognize prompt nine").setVoiceName("en-US-NancyNeural");
+        // // var p10 = new TextSource().setText("recognize prompt ten").setVoiceName("en-US-NancyNeural");
+        // var playSources = new ArrayList<PlaySource>();
+        // playSources.add(p1);
+        // // playSources.add(p2);
+        // // playSources.add(p3);
+        // // playSources.add(p4);
+        // // playSources.add(p5);
+        // // playSources.add(p6);
+        // // playSources.add(p7);
+        // // playSources.add(p8);
+        // // playSources.add(p9);
+        // // playSources.add(p10);
+        // client.getCallConnection(callConnectionId)
+        // .getCallMedia()
+        // .playToAll(playSources);
+
+        
      }
 
-    // private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
-    // {
-    //     var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+    private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
+    {
+    //     // var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+    //     // var playSource = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+    //     var playSource = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML recognition test one please confirm or cancel to proceed further.. Played through first SSML</voice></speak>");
 
     //     var recognizeOptions = new CallMediaRecognizeChoiceOptions(new PhoneNumberIdentifier(targetParticipant),  getChoices())
     //         .setInterruptCallMediaOperation(false)
@@ -436,40 +663,64 @@ public class ProgramSample {
     //     .startRecognizing(recognizeOptions);
     // }
 
-    // RecognizingWithChoiceOptions for Multiple Prompts
-    private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
-    {
-        var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
-        // //Multiple TextSource prompt
-        // var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
-        // var p2 = new TextSource().setText("recognize prompt two").setVoiceName("en-US-NancyNeural");
-        // var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+    // // RecognizingWithChoiceOptions for Multiple Prompts
+    // private void startRecognizingWithChoiceOptions(final String callConnectionId, final String content, final String targetParticipant, final String context)
+    // {
+    //     var playSource = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+    //     //Multiple TextSource prompt
+    //     var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+    //     // var p2 = new TextSource().setText("recognize prompt two").setVoiceName("en-US-NancyNeural");
+    //     // var p3 = new TextSource().setText("recognize prompt three").setVoiceName("en-US-NancyNeural");
+    //     var p4 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
         
-        // var playSources = new ArrayList<PlaySource>();
-        // playSources.add(p1);
-        // playSources.add(p2);
-        // playSources.add(p3);
+    //     var playSources = new ArrayList<PlaySource>();
+    //     playSources.add(p1);
+    //     // playSources.add(p2);
+    //     // playSources.add(p3);
+    //     playSources.add(p4);
 
-        // //Multiple FileSource Prompts
-        // var p1 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
+    //     // //Multiple FileSource Prompts
+    //     // var p1 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/StarWars3.wav");
 
-        // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
+    //     // var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
 
-        // var playSources = new ArrayList<PlaySource>();
-        // playSources.add(p1);
-        // playSources.add(p2);
+    //     // var playSources = new ArrayList<PlaySource>();
+    //     // playSources.add(p1);
+    //     // playSources.add(p2);
 
-        //Multiple TextSource and FileSource prompt
-        var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
+    //     // // Multiple SSML sources
+    //     // var p1 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML recognition test one please confirm or cancel to proceed further.. Played through first SSML</voice></speak>");
+    //     // var p2 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML recognition test two please confirm or cancel to proceed further.. Played through second SSML. Thank you</voice></speak>");
+    //     // var playSources = new ArrayList<PlaySource>();
+    //     // playSources.add(p1);
+    //     // playSources.add(p2);
+
+        // Multiple TextSource and FileSource and SsmlSource prompt
+        var p1 = new TextSource().setText("recognize prompt one, hello welcome to contoso solutions. your appointment has been confirmed. thank you").setVoiceName("en-US-NancyNeural");
         var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
-        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var p3 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML play prompt play from form multiple prompts, Played through first SSML handle play</voice></speak>");
+        // var p4 = new TextSource().setText("recognize prompt four").setVoiceName("en-US-NancyNeural");
+        // var p5 = new TextSource().setText("recognize prompt five").setVoiceName("en-US-NancyNeural");
+        // var p6 = new TextSource().setText("recognize prompt six").setVoiceName("en-US-NancyNeural");
+        // var p7 = new TextSource().setText("recognize prompt seven").setVoiceName("en-US-NancyNeural");
+        // var p8 = new TextSource().setText("recognize prompt eight").setVoiceName("en-US-NancyNeural");
+        // var p9 = new TextSource().setText("recognize prompt nine").setVoiceName("en-US-NancyNeural");
+        // var p10 = new TextSource().setText("recognize prompt ten").setVoiceName("en-US-NancyNeural");
+
         var playSources = new ArrayList<PlaySource>();
         playSources.add(p1);
         playSources.add(p2);
         playSources.add(p3);
+        // playSources.add(p4);
+        // playSources.add(p5);
+        // playSources.add(p6);
+        // playSources.add(p7);
+        // playSources.add(p8);
+        // playSources.add(p9);
+        // playSources.add(p10);
         
-        // //Empty play sources
-        //var playSources = new ArrayList<PlaySource>();
+    //     // //Empty play sources
+    //     //var playSources = new ArrayList<PlaySource>();
 
         var recognizeOptions = new CallMediaRecognizeChoiceOptions(new PhoneNumberIdentifier(targetParticipant),  getChoices())
             .setInterruptCallMediaOperation(false)
@@ -508,14 +759,16 @@ public class ProgramSample {
         // playSources.add(p2);
 
         //Multiple TextSource prompt
+        //Multiple TextSource and FileSource and SsmlSource prompt
         var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
         var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
-        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var p3 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML play prompt play from form multiple prompts, Played through first SSML recognize, please say confirm</voice></speak>");
+        var p4 = new TextSource().setText("recognize prompt four text").setVoiceName("aaaen-US-NancyNeural");
         var playSources = new ArrayList<PlaySource>();
         playSources.add(p1);
         playSources.add(p2);
         playSources.add(p3);
-        
+        playSources.add(p4);
         //Empty play sources
         //var playSources = new ArrayList<PlaySource>();
 
@@ -556,14 +809,16 @@ public class ProgramSample {
         // playSources.add(p1);
         // playSources.add(p2);
 
-        //Multiple TextSource prompt
+        //Multiple TextSource and FileSource and SsmlSource prompt
         var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
         var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
-        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var p3 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML play prompt play from form multiple prompts, Played through first SSML recognize, please say confirm</voice></speak>");
+        var p4 = new TextSource().setText("recognize prompt four text").setVoiceName("aaaen-US-NancyNeural");
         var playSources = new ArrayList<PlaySource>();
         playSources.add(p1);
         playSources.add(p2);
         playSources.add(p3);
+        playSources.add(p4);
         
         //Empty play sources
         //var playSources = new ArrayList<PlaySource>();
@@ -603,14 +858,16 @@ public class ProgramSample {
         // playSources.add(p1);
         // playSources.add(p2);
 
-        //Multiple TextSource prompt
+        //Multiple TextSource and FileSource and SsmlSource prompt
         var p1 = new TextSource().setText("recognize prompt one").setVoiceName("en-US-NancyNeural");
         var p2 = new FileSource().setUrl("https://www2.cs.uic.edu/~i101/SoundFiles/preamble10.wav");
-        var p3 = new TextSource().setText(content).setVoiceName("en-US-NancyNeural");
+        var p3 = new SsmlSource().setSsmlText("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"en-US-JennyNeural\">Hello this is SSML play prompt play from form multiple prompts, Played through first SSML recognize, please say confirm</voice></speak>");
+        var p4 = new TextSource().setText("recognize prompt four text").setVoiceName("aaaen-US-NancyNeural");
         var playSources = new ArrayList<PlaySource>();
         playSources.add(p1);
         playSources.add(p2);
         playSources.add(p3);
+        playSources.add(p4);
         
         //Empty play sources
         //var playSources = new ArrayList<PlaySource>();
@@ -638,30 +895,37 @@ public class ProgramSample {
     private void startTranscription(String callConnectionId) {
         StartTranscriptionOptions transcriptionOptions = new StartTranscriptionOptions()
                                                         .setOperationContext("startMediaStreamingContext");
-        //// with options
-        // client.getCallConnection(callConnectionId)
-        //         .getCallMedia()
-        //         .startTranscriptionWithResponse(transcriptionOptions, Context.NONE);
+        // with options
+        client.getCallConnection(callConnectionId)
+                .getCallMedia()
+                .startTranscriptionWithResponse(transcriptionOptions, Context.NONE);
 
-        // without options
+        // // without options
+        // client.getCallConnection(callConnectionId)
+        //             .getCallMedia()
+        //             .startTranscription();
+                
+    }
+
+    private void updateTranscriptionLocale(String callConnectionId) {
         client.getCallConnection(callConnectionId)
                     .getCallMedia()
-                    .startTranscription();
-                
+                    .updateTranscription("en-CA");
+
     }
     
     private void stopTranscription(String callConnectionId) {
         StopTranscriptionOptions stopTranscriptionOptions = new StopTranscriptionOptions()
                                                             .setOperationContext("stopTranscription");
-        //// with options
-        // client.getCallConnection(callConnectionId)
-        //         .getCallMedia()
-        //         .stopTranscriptionWithResponse(stopTranscriptionOptions, Context.NONE);
-
-        // without options
+        // with options
         client.getCallConnection(callConnectionId)
-                    .getCallMedia()
-                    .stopTranscription();
+                .getCallMedia()
+                .stopTranscriptionWithResponse(stopTranscriptionOptions, Context.NONE);
+
+        // // without options
+        // client.getCallConnection(callConnectionId)
+        //             .getCallMedia()
+        //             .stopTranscription();
     }
 
     private void hangUp(final String callConnectionId) {
@@ -678,10 +942,10 @@ public class ProgramSample {
     private void hold(final String callConnectionId){
         PhoneNumberIdentifier target = new PhoneNumberIdentifier(appConfig.getTargetphonenumber());
         HoldOptions holdOptions = new HoldOptions(target)
-                                    .setOperationCallbackUrl(appConfig.getBasecallbackuri())
+                                    .setOperationCallbackUri(appConfig.getBasecallbackuri())
                                     .setOperationContext("holdPstnParticipant");
                                     var textPlay = new TextSource()
-                                    .setText("i am on hold, please wait") 
+                                    .setText("Call is on hold, please wait srinivas") 
                                     .setVoiceName("en-US-NancyNeural");
         holdOptions.setPlaySource(textPlay);
 
@@ -708,28 +972,29 @@ public class ProgramSample {
         StartMediaStreamingOptions startOptions = new StartMediaStreamingOptions()
                                                         .setOperationContext("startMediaStreamingContext")
                                                         .setOperationCallbackUrl(appConfig.getBasecallbackuri());
-        //without options
-        client.getCallConnection(callConnectionId)
-                    .getCallMedia()
-                    .startMediaStreaming();
-        // //with options
+        // //without options
         // client.getCallConnection(callConnectionId)
         //             .getCallMedia()
-        //             .startMediaStreamingWithResponse(startOptions, Context.NONE);
+        //             .startMediaStreaming();
+        //with options
+        client.getCallConnection(callConnectionId)
+                    .getCallMedia()
+                    .startMediaStreamingWithResponse(startOptions, Context.NONE);
     }
 
     private void stopMediaStreamingOptions(final String callConnectionId){
         StopMediaStreamingOptions stopOptions = new StopMediaStreamingOptions()
+                                                        .setOperationContext("stopMediaStreamingContext")
                                                         .setOperationCallbackUrl(appConfig.getBasecallbackuri());
 
-        // without options
-        client.getCallConnection(callConnectionId)
-                    .getCallMedia()
-                    .stopMediaStreaming();
-        // // with options
+        // // without options
         // client.getCallConnection(callConnectionId)
         //             .getCallMedia()
-        //             .stopMediaStreamingWithResponse(stopOptions, Context.NONE);
+        //             .stopMediaStreaming();
+        // with options
+        client.getCallConnection(callConnectionId)
+                    .getCallMedia()
+                    .stopMediaStreamingWithResponse(stopOptions, Context.NONE);
     }
 
     private CallAutomationClient initClient() {

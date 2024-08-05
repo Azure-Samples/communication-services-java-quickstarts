@@ -8,8 +8,8 @@ server:
 acs:
   connectionstring: 
   basecallbackuri: 
-  callerphonenumber: 
-  targetphonenumber: 
+  callerphonenumber: ""
+  targetphonenumber: ""
   cognitiveServiceEndpoint: 
-  webSocketUrl: 
+  webSocketUrl: ""
   targetTeamsUserId: <(OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870">

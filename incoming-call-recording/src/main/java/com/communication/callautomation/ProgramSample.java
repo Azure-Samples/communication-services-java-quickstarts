@@ -129,6 +129,12 @@ public class ProgramSample {
                         .getMetadataLocation();
                 String contentLocation = statusUpdated.getRecordingStorageInfo().getRecordingChunks().get(0)
                         .getContentLocation();
+                String deleteLocation = statusUpdated.getRecordingStorageInfo().getRecordingChunks().get(0)
+                        .getDeleteLocation();
+                log.info("METADATALOCATION:--> {}", metadataLocation);
+                log.info("CONTENTLOCATION:--> {}", contentLocation);
+                log.info("DELETELOCATION:--> {}", deleteLocation);
+                // deleteRecordingFile(deleteLocation);
                 if (!Boolean.parseBoolean(appConfig.getIsByos())) {
                     downloadRecording(contentLocation);
                     downloadMetadata(metadataLocation);
@@ -148,6 +154,8 @@ public class ProgramSample {
                 log.info("Call connected, call connection Id:--> {}", callConnectionId);
                 callConnection = callAutomationClient.getCallConnection(callConnectionId);                  
                 String serverCallId = callConnection.getCallProperties().getServerCallId();
+                String correlationId = callConnection.getCallProperties().getCorrelationId();
+                log.info("CorrelationId --> " +correlationId);
                 StartRecordingOptions recordingOptions = new StartRecordingOptions(new ServerCallLocator(
                         serverCallId))
                         .setRecordingContent(RecordingContent.AUDIO)
@@ -236,17 +244,31 @@ public class ProgramSample {
                 CompletableFuture<String> stateFuture = getRecordingState(recordingId);
                 String state = stateFuture.join();
 
-                if (state.equals("active")) {
-                    callAutomationClient.getCallRecording().pauseWithResponse(recordingId,
-                            Context.NONE);
-                    log.info("Recording is Paused.");
-                    getRecordingState(recordingId).join();
-                } else {
-                    callAutomationClient.getCallRecording().resumeWithResponse(recordingId,
-                            Context.NONE);
-                    log.info("Recording is Resumed.");
-                    getRecordingState(recordingId).join();
-                }
+                // if (state.equals("active")) {
+                //     callAutomationClient.getCallRecording().pauseWithResponse(recordingId,
+                //             Context.NONE);
+                //     log.info("Recording is Paused.");
+                //     getRecordingState(recordingId).join();
+
+                //     try {
+                //         // Wait for a specific duration before resuming
+                //         Thread.sleep(3000); // Adjust the sleep duration as needed
+                //     } catch (InterruptedException e) {
+                //         log.error(e.getMessage());
+                //         Thread.currentThread().interrupt();
+                //     }
+            
+                //     // Resume the recording after the pause
+                //     callAutomationClient.getCallRecording().resumeWithResponse(recordingId, Context.NONE);
+                //     log.info("Recording is Resumed.");
+                //     getRecordingState(recordingId).join();
+
+                // } else {
+                //     callAutomationClient.getCallRecording().resumeWithResponse(recordingId,
+                //             Context.NONE);
+                //     log.info("Recording is Resumed.");
+                //     getRecordingState(recordingId).join();
+                // }
 
                 try {
                     Thread.sleep(5000);
@@ -422,7 +444,7 @@ public class ProgramSample {
         String downloadsPath = Paths.get(System.getProperty("user.home"), "Downloads").toString();
         try {
             callAutomationClient.getCallRecording().downloadTo(contentLocation,
-                    new FileOutputStream(Paths.get(downloadsPath, "test.wav").toString()));
+                    new FileOutputStream(Paths.get(downloadsPath, "test.mp4").toString()));
         } catch (FileNotFoundException e) {
             log.error(e.getMessage());
         }
@@ -440,6 +462,11 @@ public class ProgramSample {
         return null;
     }
 
+    // private CompletableFuture<Void> deleteRecordingFile(String deleteLocation) {
+    //     callAutomationClient.getCallRecording().delete(deleteLocation);
+    //     log.info("Recording file deleted successfully");
+    //     return null;
+    // }
     private CompletableFuture<String> getRecordingState(String recordingId) {
         RecordingStateResult result = this.callAutomationClient.getCallRecording().getState(recordingId);
 

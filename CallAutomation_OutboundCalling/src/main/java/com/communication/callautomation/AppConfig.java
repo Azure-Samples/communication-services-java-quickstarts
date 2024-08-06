@@ -12,18 +12,27 @@ public class AppConfig {
     private final String callerphonenumber;
     private final String targetphonenumber;
     private final String cognitiveServiceEndpoint;
+    private final String isPauseOnStart;
+    private final String isByos;
+    private final String bringYourOwnStorageUrl;
 
     @ConstructorBinding
     AppConfig(final String connectionString,
               final String basecallbackuri,
               final String callerphonenumber,
               final String targetphonenumber,
-              final String cognitiveServiceEndpoint) {
+              final String cognitiveServiceEndpoint,
+              final String isPauseOnStart,
+              final String isByos,
+              final String bringYourOwnStorageUrl) {
         this.connectionString = connectionString;
         this.basecallbackuri = basecallbackuri;
         this.callerphonenumber = callerphonenumber;
         this.targetphonenumber = targetphonenumber;
         this.cognitiveServiceEndpoint = cognitiveServiceEndpoint;
+        this.isPauseOnStart = isPauseOnStart;
+        this.isByos = isByos;
+        this.bringYourOwnStorageUrl = bringYourOwnStorageUrl;
     }
 
     public String getCallBackUri() {

@@ -6,16 +6,16 @@ server:
   port: 8080
 
 acs:
-  connectionstring: 
-  basecallbackuri: 
-  cognitiveServicesUrl: 
+  connectionstring: <YOUR ACS CONNECTION STRING>
+  basecallbackuri: <YOUR DEV TUNNEL ENDPOINT>
+  cognitiveServicesUrl: <YOUR COGNITIVE SERVICE ENDPOINT>
   agentPhoneNumber: ""
-  isPauseOnStart": "false"
-  isByos": "false"
+  isPauseOnStart": "true"
+  isByos": "true"
   bringYourOwnStorageUrl: ""
   teamsComplianceUserId: ""
   isTeamsComplianceUser: "false"
-  acsPhonenumber: ""
-  targetPhonenumber: ""
+  acsPhonenumber: <YOUR ACS PHONE NUMBER ex. "+1425XXXAAAA">
+  targetPhonenumber: <YOUR TARGET PHONE NUMBER ex. "+1425XXXAAAA">
   isRejectCall: "false"
   isCancelAddParticipant: "false"

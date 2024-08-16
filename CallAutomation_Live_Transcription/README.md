@@ -50,16 +50,18 @@ NOTE: Make sure the "addr:" field has only the port number, not the localhost ur
     - `connectionstring`: Azure Communication Service resource's connection string.
     - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
     - `cognitiveServicesUrl`: The Cognitive Services endpoint
-    - `transportUrl`: Ngrok url for the server port (in this example port 5001) make sure to replace https:// with wss://
+    - `transportUrl`: Ngrok url for the server port (in this example port 5001) make sure to replace https:// with wss:// ex. `wss://localhost:5001/ws/server`
     - `acsPhoneNumber`: Acs Phone Number
     - `agentPhoneNumber`: Agent Phone Number
     - `locale`: Transcription locale
 
 ### Run the application
 
-- Navigate to the directory containing the pom.xml file and use the following mvn commands:
+- Open new terminal and navigate to the directory containing the pom.xml file and use the following mvn commands to run app:
     - Compile the application: mvn compile
     - Build the package: mvn package
-    - Execute the app: mvn exec:java
+    - Execute the app: `mvn exec:java -Papp`
+- Open new terminal and navigate to the directory containing the pom.xml file and use the following mvn commands to run websocket:
+    - Execute the websocket: `mvn exec:java -Pwebsocket`
 - Access the Swagger UI at http://localhost:8080/swagger-ui.html
     - Test this application by giving a call to ACS phone number

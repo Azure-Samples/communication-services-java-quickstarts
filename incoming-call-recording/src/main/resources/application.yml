@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: CallAutomation_OutboundCalling
+
+server:
+  port: 8080
+
+acs:
+  connectionstring: 
+  basecallbackuri: https://mqh4wr0t.inc1.devtunnels.ms:8080
+  cognitiveServicesUrl: 
+  agentPhoneNumber: ""
+  isPauseOnStart": "true"
+  isByos": "false"
+  isRedirectCall": "false"
+  bringYourOwnStorageUrl: ""
+  teamsComplianceUserId: ""
+  isTeamsComplianceUser: "false"
+  acsPhonenumber: ""
+  acsPhonenumber1: ""
+  acsPhonenumber2: ""
+  targetPhonenumber: ""
+  isRejectCall: "false"
+  isCancelAddParticipant: "false"
+  webSocketUrl: "wss://q2562zfv-5000.inc1.devtunnels.ms/ws"

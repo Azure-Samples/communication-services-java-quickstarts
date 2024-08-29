@@ -5,7 +5,7 @@ import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatMessage;
 import com.azure.ai.openai.models.ChatRole;
-import com.azure.communication.callautomation.CallAutomationClient;
+import com.azure.communication.callautomation.CallAutomationAsyncClient;
 import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;
 import com.azure.communication.callautomation.models.*;
@@ -15,7 +15,6 @@ import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
-import com.azure.core.util.Context;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
@@ -30,7 +29,6 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,7 +36,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ProgramSample {
     private final AppConfig appConfig;
-    private final CallAutomationClient client;
+    private final CallAutomationAsyncClient asyncClient;
     private final OpenAIAsyncClient aiClient;
     Set<String> recognizeFails = new HashSet<>() {
     };
@@ -75,7 +73,7 @@ public class ProgramSample {
 
     public ProgramSample(final AppConfig appConfig) {
         this.appConfig = appConfig;
-        client = initClient();
+        asyncClient = initAsyncClient();
         aiClient = initOpenAIClient();
     }
 
@@ -200,8 +198,8 @@ public class ProgramSample {
                         log.info("Empty agent phone number");
                         handlePlayTo(agentPhoneNumberEmptyPrompt, transferFailedContext, callConnectionId, callerId);
                     } else {
-                        client.getCallConnection(callConnectionId)
-                                .transferCallToParticipant(new PhoneNumberIdentifier(agentPhoneNumber));
+                        asyncClient.getCallConnectionAsync(callConnectionId)
+                                .transferCallToParticipant(new PhoneNumberIdentifier(agentPhoneNumber)).subscribe();
                     }
                 } else if (!event.getOperationContext().isEmpty()
                         && (event.getOperationContext().equals(transferFailedContext)
@@ -237,12 +235,13 @@ public class ProgramSample {
                     .setCognitiveServicesEndpoint(appConfig.getCognitiveServicesUrl());
             options = new AnswerCallOptions(data.getString(INCOMING_CALL_CONTEXT),
                     callbackUri).setCallIntelligenceOptions(callIntelligenceOptions);
-            Response<AnswerCallResult> answerCallResponse = client.answerCallWithResponse(options, Context.NONE);
-
-            log.info("Incoming call answered. Cognitive Services Url: {}\nCallbackUri: {}\nCallConnectionId: {}",
-                    cognitiveServicesUrl,
-                    callbackUri,
-                    answerCallResponse.getValue().getCallConnectionProperties().getCallConnectionId());
+            Mono<Response<AnswerCallResult>> answerCallResponse = asyncClient.answerCallWithResponse(options);
+            answerCallResponse.subscribe(response -> {
+                log.info("Incoming call answered. Cognitive Services Url: {}\nCallbackUri: {}\nCallConnectionId: {}",
+                        cognitiveServicesUrl,
+                        callbackUri,
+                        response.getValue().getCallConnectionProperties().getCallConnectionId());
+            });
         } catch (Exception e) {
             log.error("Error getting recording location info {} {}",
                     e.getMessage(),
@@ -266,7 +265,7 @@ public class ProgramSample {
         }
     }
 
-    private CompletableFuture<Void> handleRecognizeRequest(
+    private void handleRecognizeRequest(
             final String message,
             final String callConnectionId,
             final String callerId) {
@@ -281,17 +280,14 @@ public class ProgramSample {
                 .setPlayPrompt(textSource)
                 .setOperationContext("OpenAISample")
                 .setInitialSilenceTimeout(Duration.ofSeconds(15));
-
-        return CompletableFuture.runAsync(() -> {
-            try {
-                client.getCallConnection(callConnectionId)
-                        .getCallMedia()
-                        .startRecognizing(options);
-            } catch (Exception e) {
-                log.error("Error occurred when starting Recognize to participant {}: {} {}", targetParticipant,
-                        e.getMessage(), e.getCause());
-            }
-        });
+        try {
+            asyncClient.getCallConnectionAsync(callConnectionId)
+                    .getCallMediaAsync()
+                    .startRecognizingWithResponse(options).subscribe();
+        } catch (Exception e) {
+            log.error("Error occurred when starting Recognize to participant {}: {} {}", targetParticipant,
+                    e.getMessage(), e.getCause());
+        }
     }
 
     private int getSentimentScore(String sentimentScore) {
@@ -347,7 +343,7 @@ public class ProgramSample {
         return getChatCompletionsAsync(answerPromptSystemTemplate, speech);
     }
 
-    private CompletableFuture<Void> handleChatGptResponse(final String chatResponse,
+    private void handleChatGptResponse(final String chatResponse,
             final String callConnectionId,
             final String callerId) {
         String targetParticipant = callerId.replaceAll("\\s", "+");
@@ -362,20 +358,18 @@ public class ProgramSample {
                 .setPlayPrompt(textSource)
                 .setOperationContext("OpenAISample")
                 .setInitialSilenceTimeout(Duration.ofSeconds(15));
-        return CompletableFuture.runAsync(() -> {
-            try {
-                client.getCallConnection(callConnectionId)
-                        .getCallMedia()
-                        .startRecognizing(options);
-            } catch (Exception e) {
-                log.error("Error while handling Chat GPT response {} {}",
-                        e.getMessage(),
-                        e.getCause());
-            }
-        });
+        try {
+            asyncClient.getCallConnectionAsync(callConnectionId)
+                    .getCallMediaAsync()
+                    .startRecognizingWithResponse(options).subscribe();
+        } catch (Exception e) {
+            log.error("Error while handling Chat GPT response {} {}",
+                    e.getMessage(),
+                    e.getCause());
+        }
     }
 
-    private CompletableFuture<Void> handlePlayTo(final String textToPlay,
+    private void handlePlayTo(final String textToPlay,
             final String context,
             final String callConnectionId,
             final String callerId) {
@@ -388,27 +382,22 @@ public class ProgramSample {
         PlayOptions playOptions = new PlayOptions(playSource, new ArrayList<>(List.of(targetParticipant)))
                 .setOperationContext(context);
 
-        return CompletableFuture.runAsync(() -> {
-            try {
-                client.getCallConnection(callConnectionId)
-                        .getCallMedia()
-                        .playWithResponse(playOptions, Context.NONE);
-            } catch (Exception e) {
-                log.error("Error occurred when playing media to participant {} {}", e.getMessage(), e.getCause());
-            }
-        });
+        try {
+            asyncClient.getCallConnectionAsync(callConnectionId)
+                    .getCallMediaAsync()
+                    .playWithResponse(playOptions).subscribe();
+        } catch (Exception e) {
+            log.error("Error occurred when playing media to participant {} {}", e.getMessage(), e.getCause());
+        }
     }
 
-    private CompletableFuture<Void> hangUp(final String callConnectionId) {
-
-        return CompletableFuture.runAsync(() -> {
-            try {
-                client.getCallConnection(callConnectionId).hangUp(true);
-                log.info("Terminated call");
-            } catch (Exception e) {
-                log.error("Error when terminating the call for all participants {} {}", e.getMessage(), e.getCause());
-            }
-        });
+    private void hangUp(final String callConnectionId) {
+        try {
+            asyncClient.getCallConnectionAsync(callConnectionId).hangUpWithResponse(true).subscribe();
+            log.info("Terminated call");
+        } catch (Exception e) {
+            log.error("Error when terminating the call for all participants {} {}", e.getMessage(), e.getCause());
+        }
     }
 
     private OpenAIAsyncClient initOpenAIClient() {
@@ -436,12 +425,12 @@ public class ProgramSample {
         }
     }
 
-    private CallAutomationClient initClient() {
-        CallAutomationClient client;
+    private CallAutomationAsyncClient initAsyncClient() {
+        CallAutomationAsyncClient client;
         try {
             client = new CallAutomationClientBuilder()
                     .connectionString(appConfig.getConnectionString())
-                    .buildClient();
+                    .buildAsyncClient();
             return client;
         } catch (NullPointerException e) {
             log.error("Please verify if Application config is properly set up");

@@ -20,7 +20,7 @@ public class App
         String senderAddress = "<SENDER_EMAIL_ADDRESS>";
         String recipientAddress = "<RECIPIENT_EMAIL_ADDRESS>";
 
-        BinaryData jpgInlineAttachmentContent = BinaryData.fromFile(new File("./inline-attachment.jpg").toPath());
+        BinaryData jpgInlineAttachmentContent = BinaryData.fromFile(new File("./inline-attachment.png").toPath());
         EmailAttachment jpgInlineAttachment = new EmailAttachment(
             "inline-attachment.jpg",
             "image/jpeg",
@@ -43,7 +43,7 @@ public class App
             .setToRecipients(recipientAddress)
             .setSubject("Test email from Java Sample")
             .setBodyPlainText("This is plaintext body of test email.")
-            .setBodyHtml("<html><h1>HTML body inline images:</h1><img src="cid:kittens-1" /><img src="cid:kittens-2" /></html>")
+            .setBodyHtml("<html><h1>HTML body inline images:</h1><img src=\"cid:kittens-1\" /><img src=\"cid:kittens-2\" /></html>")
             .setAttachments(jpgInlineAttachmentContent, pngInlineAttachmentContent);
 
         try

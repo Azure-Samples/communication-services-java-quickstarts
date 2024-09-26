@@ -1,6 +1,8 @@
 package com.communication.email;
 import java.time.Duration;
+import java.util.Base64;
 import java.io.File;
+import java.nio.file.Files;
 
 import com.azure.communication.email.models.*;
 import com.azure.communication.email.*;
@@ -20,34 +22,36 @@ public class App
         String senderAddress = "<SENDER_EMAIL_ADDRESS>";
         String recipientAddress = "<RECIPIENT_EMAIL_ADDRESS>";
 
-        BinaryData jpgInlineAttachmentContent = BinaryData.fromFile(new File("./inline-attachment.png").toPath());
-        EmailAttachment jpgInlineAttachment = new EmailAttachment(
-            "inline-attachment.jpg",
-            "image/jpeg",
-            jpgInlineAttachmentContent
-        ).setContentId("kittens-1");
-
-        BinaryData pngInlineAttachmentContent = BinaryData.fromFile(new File("./inline-attachment.png").toPath());
-        EmailAttachment pngInlineAttachment = new EmailAttachment(
-            "inline-attachment.png",
-            "image/png",
-            pngInlineAttachmentContent
-        ).setContentId("kittens-2");
-
-        EmailClient client = new EmailClientBuilder()
-            .connectionString(connectionString)
-            .buildClient();
-
-        EmailMessage message = new EmailMessage()
-            .setSenderAddress(senderAddress)
-            .setToRecipients(recipientAddress)
-            .setSubject("Test email from Java Sample")
-            .setBodyPlainText("This is plaintext body of test email.")
-            .setBodyHtml("<html><h1>HTML body inline images:</h1><img src=\"cid:kittens-1\" /><img src=\"cid:kittens-2\" /></html>")
-            .setAttachments(jpgInlineAttachmentContent, pngInlineAttachmentContent);
-
         try
         {
+            byte[] jpgContent = Files.readAllBytes(new File("./inline-attachment.jpg").toPath());
+            byte[] jpgEncodedContent = Base64.getEncoder().encodeToString(jpgContent).getBytes();
+            EmailAttachment jpgInlineAttachment = new EmailAttachment(
+                "inline-attachment.jpg",
+                "image/jpeg",
+                BinaryData.fromBytes(jpgEncodedContent)
+            ).setContentId("kittens-1");
+
+            byte[] pngContent = Files.readAllBytes(new File("./inline-attachment.png").toPath());
+            byte[] pngEncodedContent = Base64.getEncoder().encodeToString(pngContent).getBytes();
+            EmailAttachment pngInlineAttachment = new EmailAttachment(
+                "inline-attachment.png",
+                "image/png",
+                BinaryData.fromBytes(pngEncodedContent)
+            ).setContentId("kittens-2");
+
+            EmailClient client = new EmailClientBuilder()
+                .connectionString(connectionString)
+                .buildClient();
+
+            EmailMessage message = new EmailMessage()
+                .setSenderAddress(senderAddress)
+                .setToRecipients(recipientAddress)
+                .setSubject("Test email from Java Sample")
+                .setBodyPlainText("This is plaintext body of test email.")
+                .setBodyHtml("<html><h1>HTML body inline images:</h1><img src=\"cid:kittens-1\" /><img src=\"cid:kittens-2\" /></html>")
+                .setAttachments(jpgInlineAttachment, pngInlineAttachment);
+
             SyncPoller<EmailSendResult, EmailSendResult> poller = client.beginSend(message, null);
 
             PollResponse<EmailSendResult> pollResponse = null;

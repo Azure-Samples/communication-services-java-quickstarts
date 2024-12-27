@@ -130,7 +130,6 @@ public class ProgramSample {
             } else if (event instanceof PlayCompleted) {
                 log.info("Received Play Completed event");
                 if (!event.getOperationContext().isEmpty() && event.getOperationContext().equals(addAgentContext)) {
-                    System.out.println("Add Agent: " + appConfig.getAgentPhoneNumber());
                     // Add Agent
                     CallInvite callInvite = new CallInvite(new PhoneNumberIdentifier(appConfig.getAgentPhoneNumber()),
                             new PhoneNumberIdentifier(appConfig.getAcsPhoneNumber()));
@@ -279,13 +278,8 @@ public class ProgramSample {
                     appConfig.getCallBackUri(),
                     UUID.randomUUID(),
                     data.getJSONObject("from").getString("rawId"));
-                    String callbackHostUri = appConfig.getCallBackUri(); // Example: https://3tkj9v9n-8080.inc1.devtunnels.ms/api/callback
-
-                    // Extract the base host and port by removing the path after the host
-                    String baseUri = callbackHostUri.replaceFirst("(https://[^/]+).*", "$1");
-                    
                     // Replace "https://" with "wss://" for WebSocket protocol
-                    websocketUrl = baseUri.replaceFirst("^https://", "wss://") + "/ws";
+                    websocketUrl = appConfig.getBasecallbackuri().replaceFirst("^https://", "wss://") + "/ws";
                     
                     System.out.println("WebSocket URL: " + websocketUrl);
             cognitiveServicesUrl = new URI(appConfig.getCognitiveServicesUrl()).toString();

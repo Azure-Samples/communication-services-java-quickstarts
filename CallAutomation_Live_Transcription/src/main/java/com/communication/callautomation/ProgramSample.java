@@ -280,7 +280,6 @@ public class ProgramSample {
                     data.getJSONObject("from").getString("rawId"));
                     // Replace "https://" with "wss://" for WebSocket protocol
                     websocketUrl = appConfig.getBasecallbackuri().replaceFirst("^https://", "wss://") + "/ws";
-                    
                     System.out.println("WebSocket URL: " + websocketUrl);
             cognitiveServicesUrl = new URI(appConfig.getCognitiveServicesUrl()).toString();
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()

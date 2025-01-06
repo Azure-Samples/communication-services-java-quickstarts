@@ -9,7 +9,6 @@ acs:
   connectionstring: <ENTER YOUR ACS CONNECTION STRING>
   basecallbackuri: <ENTER YOUR DEV TUNNEL BASE URL>
   cognitiveServicesUrl: <ENTER YOUR COGNITIVE SERVICE URL>
-  transportUrl: <ENTER TRANSPORTS URL>
   acsPhoneNumber: <ENTER ACS PHONE NUMBER>
   agentPhoneNumber: <ENTER AGENT PHONE NUMBER>
   locale: <ENTER LOCALE>

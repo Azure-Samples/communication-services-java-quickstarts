@@ -1,48 +1,52 @@
 package com.communication.callautomation;
 
-import javax.websocket.OnMessage;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
-
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.web.socket.TextMessage;
 import com.azure.communication.callautomation.StreamingDataParser;
 import com.azure.communication.callautomation.models.StreamingData;
 import com.azure.communication.callautomation.models.TranscriptionData;
 import com.azure.communication.callautomation.models.TranscriptionMetadata;
 import com.azure.communication.callautomation.models.WordData;
 
-@ServerEndpoint("/server")
-public class WebSocket {
-    @OnMessage
-    public void onMessage(String message, Session session) {
+public class WebSocketHandler extends TextWebSocketHandler {
 
-        System.out.println("Received message: " + message);
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        String payload = message.getPayload();
+        System.out.println("Received message: " + payload);
 
-        StreamingData data = StreamingDataParser.parse(message);
+        // Parse the message into StreamingData (custom data parsing logic)
+        StreamingData data = StreamingDataParser.parse(payload);
 
+        // Handle TranscriptionMetadata
         if (data instanceof TranscriptionMetadata) {
-            System.out.println("----------------------------------------------------------------");
             TranscriptionMetadata transcriptionMetadata = (TranscriptionMetadata) data;
-            System.out.println(
-                    "TRANSCRIPTION SUBSCRIPTION ID:-->" + transcriptionMetadata.getTranscriptionSubscriptionId());
+            System.out.println("----------------------------------------------------------------");
+            System.out.println("TRANSCRIPTION SUBSCRIPTION ID:-->" + transcriptionMetadata.getTranscriptionSubscriptionId());
             System.out.println("LOCALE:-->" + transcriptionMetadata.getLocale());
             System.out.println("CALL CONNECTION ID:-->" + transcriptionMetadata.getCallConnectionId());
             System.out.println("CORRELATION ID:-->" + transcriptionMetadata.getCorrelationId());
             System.out.println("----------------------------------------------------------------");
         }
+
+        // Handle TranscriptionData
         if (data instanceof TranscriptionData) {
-            System.out.println("----------------------------------------------------------------");
             TranscriptionData transcriptionData = (TranscriptionData) data;
+            System.out.println("----------------------------------------------------------------");
             System.out.println("TEXT:-->" + transcriptionData.getText());
             System.out.println("FORMAT:-->" + transcriptionData.getFormat());
             System.out.println("CONFIDENCE:-->" + transcriptionData.getConfidence());
             System.out.println("OFFSET:-->" + transcriptionData.getOffset());
             System.out.println("DURATION:-->" + transcriptionData.getDuration());
-            var participant = transcriptionData.getParticipant().getRawId() != null
+
+            String participant = transcriptionData.getParticipant().getRawId() != null
                     ? transcriptionData.getParticipant().getRawId()
                     : "";
             System.out.println("PARTICIPANT:-->" + participant);
-            System.out.println("RESULT STATUS:-->" +
-                    transcriptionData.getResultStatus());
+            System.out.println("RESULT STATUS:-->" + transcriptionData.getResultStatus());
+
+            // Print word data (example of transcribed words)
             for (WordData word : transcriptionData.getTranscripeWords()) {
                 System.out.println("TEXT:-->" + word.getText());
                 System.out.println("OFFSET:-->" + word.getOffset());
@@ -50,5 +54,8 @@ public class WebSocket {
             }
             System.out.println("----------------------------------------------------------------");
         }
+
+        // Send an echo response back to the client
+        session.sendMessage(new TextMessage("Echo: " + payload));
     }
 }

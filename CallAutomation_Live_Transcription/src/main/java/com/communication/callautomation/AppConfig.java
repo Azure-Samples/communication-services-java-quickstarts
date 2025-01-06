@@ -12,7 +12,6 @@ public class AppConfig {
     private final String cognitiveServicesUrl;
     private final String agentPhoneNumber;
     private final String acsPhoneNumber;
-    private final String transportUrl;
     private final String locale;
 
     @ConstructorBinding
@@ -21,14 +20,12 @@ public class AppConfig {
               final String cognitiveServicesUrl,
               final String agentPhoneNumber,
               final String acsPhoneNumber,
-              final String transportUrl,
               final String locale) {
         this.connectionString = connectionString;
         this.basecallbackuri = basecallbackuri;
         this.cognitiveServicesUrl = cognitiveServicesUrl;
         this.agentPhoneNumber = agentPhoneNumber;
         this.acsPhoneNumber = acsPhoneNumber;
-        this.transportUrl = transportUrl;
         this.locale = locale;
     }
 

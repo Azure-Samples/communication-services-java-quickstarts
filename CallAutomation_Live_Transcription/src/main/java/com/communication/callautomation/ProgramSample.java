@@ -271,17 +271,21 @@ public class ProgramSample {
         String callbackUri;
         AnswerCallOptions options;
         String cognitiveServicesUrl;
+        String websocketUrl;
 
         try {
             callbackUri = String.format("%s/%s?callerId=%s",
                     appConfig.getCallBackUri(),
                     UUID.randomUUID(),
                     data.getJSONObject("from").getString("rawId"));
+                    // Replace "https://" with "wss://" for WebSocket protocol
+                    websocketUrl = appConfig.getBasecallbackuri().replaceFirst("^https://", "wss://") + "/ws";
+                    System.out.println("WebSocket URL: " + websocketUrl);
             cognitiveServicesUrl = new URI(appConfig.getCognitiveServicesUrl()).toString();
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                     .setCognitiveServicesEndpoint(appConfig.getCognitiveServicesUrl());
             TranscriptionOptions transcriptionOptions = new TranscriptionOptions(
-                    appConfig.getTransportUrl(),
+                    websocketUrl,
                     TranscriptionTransport.WEBSOCKET,
                     appConfig.getLocale(),
                     false);

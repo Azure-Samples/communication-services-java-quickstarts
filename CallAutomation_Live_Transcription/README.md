@@ -16,32 +16,19 @@ This sample application is also capable of making multiple concurrent inbound ca
 - A [phone number](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/telephony/get-phone-number) in your Azure Communication Services resource that can make outbound calls. NB: phone numbers are not available in free subscriptions.
 - [Java Development Kit (JDK) Microsoft.OpenJDK.17](https://learn.microsoft.com/en-us/java/openjdk/download)
 - [Apache Maven](https://maven.apache.org/download.cgi)
-- Install ngrok. Instructions [here](https://ngrok.com/)
 - Create Azure AI Multi Service resource. For details, see [Create an Azure AI Multi service](https://learn.microsoft.com/en-us/azure/cognitive-services/cognitive-services-apis-create-account).
 
 ## Before running the sample for the first time
 
-### Setup and host ngrok
+### Setup and host your Azure DevTunnel
 
-You can run multiple tunnels on ngrok by changing ngrok.yml file as follows:
+[Azure DevTunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) is an Azure service that enables you to share local web services hosted on the internet. Use the commands below to connect your local development environment to the public internet. This creates a tunnel with a persistent endpoint URL and which allows anonymous access. We will then use this endpoint to notify your application of calling events from the ACS Call Automation service.
 
-1. Open the ngrok.yml file from a powershell using the command ngrok config edit
-2. Update the ngrok.yml file as follows:
-    authtoken: xxxxxxxxxxxxxxxxxxxxxxxxxx
-    version: "2"
-    region: us
-    tunnels:
-    first:
-        addr: 8080
-        proto: http 
-        host_header: localhost:8080
-    second:
-        proto: http
-        addr: 5001
-        host_header: localhost:5001
-NOTE: Make sure the "addr:" field has only the port number, not the localhost url.
-3. Start all ngrok tunnels configured using the following command on a powershell - ngrok start --all
-4. Once you have setup the websocket server, note down the the ngrok url on your server's port as the websocket url in this application for incoming call scenario. Just replace the https:// with wss:// and update in the application.yml file.
+```bash
+devtunnel create --allow-anonymous
+devtunnel port create -p 8080
+devtunnel host
+```
 
 ### Configuring application
 
@@ -50,7 +37,6 @@ NOTE: Make sure the "addr:" field has only the port number, not the localhost ur
     - `connectionstring`: Azure Communication Service resource's connection string.
     - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
     - `cognitiveServicesUrl`: The Cognitive Services endpoint
-    - `transportUrl`: Ngrok url for the server port (in this example port 5001) make sure to replace https:// with wss:// ex. `wss://localhost:5001/ws/server`
     - `acsPhoneNumber`: Acs Phone Number
     - `agentPhoneNumber`: Agent Phone Number
     - `locale`: Transcription locale
@@ -61,7 +47,7 @@ NOTE: Make sure the "addr:" field has only the port number, not the localhost ur
     - Compile the application: mvn compile
     - Build the package: mvn package
     - Execute the app: `mvn exec:java -Papp`
-- Open new terminal and navigate to the directory containing the pom.xml file and use the following mvn commands to run websocket:
-    - Execute the websocket: `mvn exec:java -Pwebsocket`
 - Access the Swagger UI at http://localhost:8080/swagger-ui.html
-    - Test this application by giving a call to ACS phone number
+- Register an EventGrid Webhook for the IncomingCall Event that points to your DevTunnel URI endpoint ex `{basecallbackuri}/api/incomingCall` and register Recording File Status Updated event to you recordingstatus api endpoint ex. `{basecallbackuri}/api/recordingFileStatus`. Instructions [here](https://learn.microsoft.com/en-us/azure/communication-services/concepts/call-automation/incoming-call-notification).
+
+Once that's completed you should have a running application. The best way to test this is to place a call to your ACS phone number and talk to your intelligent agent.

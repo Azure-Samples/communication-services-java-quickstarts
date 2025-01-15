@@ -60,7 +60,7 @@ public class App {
 
         List<RoomParticipant> roomParticipants = new ArrayList<RoomParticipant>();
 
-        roomParticipants.add(participant_1);
+        roomParticipants.add(participant_1.setRole(ParticipantRole.PRESENTER));
         roomParticipants.add(participant_2.setRole(ParticipantRole.CONSUMER));
 
         System.out.print("Creating room...\n");
@@ -199,8 +199,9 @@ public class App {
             PagedIterable<RoomParticipant> participants = roomsClient.listParticipants(roomId);
 
             for (RoomParticipant participant : participants) {
-                System.out.println(
-                        participant.getCommunicationIdentifier().getRawId() + " (" + participant.getRole() + ")");
+                System.out.print(" participant(s)...\n"+participant);
+                // System.out.println(
+                //         participant.getCommunicationIdentifier().getRawId() + " (" + participant.getRole() + ")");
             }
 
         } catch (Exception ex) {

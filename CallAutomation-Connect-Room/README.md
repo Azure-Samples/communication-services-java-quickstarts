@@ -54,8 +54,6 @@ devtunnel host
 
           For e.g. "+1425XXXAAAA"
     - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
-    - `cognitiveServiceEndpoint`: Cognitive Service Endpoint.
-    - `allowedOrigins`: Base url of the app. For local development use dev tunnel url.
 
 ### Run the application
 
@@ -63,16 +61,13 @@ devtunnel host
     - Compile the application: mvn compile
     - Build the package: mvn package
     - Execute the app: mvn exec:java
-    - Access the Swagger UI at http://localhost:8080/swagger-ui.html
+    - Access the UI at http://localhost:8080/
 
 ### Creating and connecting to room call.
 
-- Click on createRoom from the swagger.
-
-    1. ![create room with user](./static/createRoom.png)
-    2. Open two tabs for Presenter and attendee  ![calling room quickstart](./static/callingRoomQuickstart.png) 
-    3. Copy tokens for presenter and attendee from ![tokens](./static/tokens.png)
-    4. Initialize call agent with tokens for both presenter and attendee.
-    5. Take room id ![room id](./static/roomId.png) and initiate rooms call for both users. ![join room call](./static/joinRoomCall.png)
-    6. Connect room call with callautomation connect call endpoint. ![connect room call](./static/connectCall.png)
-
+1. ![create room with user](./data/createRoom.png)
+2. Open two tabs for Presenter and attendee  ![calling room quickstart](./data/callingRoomQuickstart.png) 
+3. Copy tokens for presenter and attendee from ![tokens](./data/tokens.png)
+4. Initialize call agent with tokens for both presenter and attendee.
+5. Take room id ![room id](./data/roomId.png) and initiate rooms call for both users. ![join room call](./data/joinRoomCall.png)
+6. Connect room call with call automation connect call endpoint. ![connect room call](./data/connectCall.png)

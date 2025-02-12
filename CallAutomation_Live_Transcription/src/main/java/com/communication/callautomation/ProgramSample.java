@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.net.URI;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -56,6 +57,7 @@ public class ProgramSample {
 
     private String recordingId = "";
     private String recordingLocation = "";
+    private String recordingCallbackUri = "";
 
     private CallConnection answerCallConnection;
 
@@ -98,8 +100,14 @@ public class ProgramSample {
             if (event instanceof CallConnected) {
                 /* Start the recording */
                 CallLocator callLocator = new ServerCallLocator(event.getServerCallId());
+                StartRecordingOptions recordingOptions = new StartRecordingOptions(callLocator)
+                        .setRecordingChannel(RecordingChannel.MIXED)
+                        .setRecordingContent((RecordingContent.AUDIO_VIDEO))
+                        .setRecordingFormat((RecordingFormat.MP4))
+                        .setRecordingStateCallbackUrl(recordingCallbackUri)
+                        .setPauseOnStart(true);
                 RecordingStateResult recordingResult = client.getCallRecording()
-                        .start(new StartRecordingOptions(callLocator));
+                        .start(recordingOptions);
                 recordingId = recordingResult.getRecordingId();
 
                 var properties = client.getCallConnection(callConnectionId)
@@ -108,25 +116,11 @@ public class ProgramSample {
                         + properties.getTranscriptionSubscription().getId());
                 log.info("Transcription State---> "
                         + properties.getTranscriptionSubscription().getState());
-
-                /* Start the Transcription */
-                initiateTranscription(callConnectionId);
-
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ex) {
-
-                }
-
-                pauseOrStopTranscriptionAndRecording(callConnectionId, false, recordingId);
-
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ex) {
-
-                }
-
-                handleRecognizeRequest(helpIVRPrompt, callConnectionId, callerId, "hellocontext");
+            } else if (event instanceof RecordingStateChanged) {
+                log.info("Received Call RecordingStateChanged event for Call Connection ID: {}", callConnectionId);
+                RecordingStateChanged recordingStateChanged = (RecordingStateChanged) event;
+                log.info("Recording state---> "
+                        + recordingStateChanged.getRecordingState().toString());
             } else if (event instanceof PlayCompleted) {
                 log.info("Received Play Completed event");
                 if (!event.getOperationContext().isEmpty() && event.getOperationContext().equals(addAgentContext)) {
@@ -141,7 +135,7 @@ public class ProgramSample {
                 }
                 if (!event.getOperationContext().isEmpty() && (event.getOperationContext().equals(goodbyeContext) ||
                         event.getOperationContext().equals(addParticipantFailureContext))) {
-                    pauseOrStopTranscriptionAndRecording(callConnectionId, true, recordingId);
+                    stopTranscriptionAndRecording(callConnectionId, recordingId);
                     hangUp(callConnectionId);
                 }
             } else if (event instanceof RecognizeCompleted) {
@@ -156,7 +150,6 @@ public class ProgramSample {
                     Matcher match = pattern.matcher(tones);
                     if (match.find()) {
                         resumeTranscriptionAndRecording(callConnectionId, recordingId);
-                        handlePlayTo(addAgentPrompt, addAgentContext, callConnectionId, callerId);
                     } else {
                         handleRecognizeRequest(incorrectDobPrompt, callConnectionId, callerId, incorrectDobContext);
                     }
@@ -188,7 +181,7 @@ public class ProgramSample {
                 log.info("Received Play Failed event Message: {}, Subcode: {}",
                         playFailedEvent.getResultInformation().getMessage(),
                         playFailedEvent.getResultInformation().getSubCode());
-                pauseOrStopTranscriptionAndRecording(callConnectionId, true, recordingId);
+                stopTranscriptionAndRecording(callConnectionId, recordingId);
                 recognizeFails.remove(callConnectionId);
                 hangUp(callConnectionId);
             } else if (event instanceof CallDisconnected) {
@@ -202,6 +195,16 @@ public class ProgramSample {
                         + acsEvent.getTranscriptionUpdateResult()
                                 .getTranscriptionStatusDetails());
                 log.info("Operation Context --> " + acsEvent.getOperationContext());
+                if (acsEvent.getOperationContext() == null) {
+                    StopTranscriptionOptions stopTranscriptionOptions = new StopTranscriptionOptions()
+                            .setOperationContext("nextRecognizeContext");
+                    client.getCallConnection(acsEvent.getCallConnectionId()).getCallMedia()
+                            .stopTranscriptionWithResponse(stopTranscriptionOptions, Context.NONE);
+                } else if (acsEvent.getOperationContext() != null
+                        && acsEvent.getOperationContext().equals("StartTranscriptionContext")) {
+                    handlePlayTo(addAgentPrompt, addAgentContext, callConnectionId, callerId);
+                }
+
             } else if (event instanceof TranscriptionStopped) {
                 isTranscriptionActive = false;
                 log.info("Received transcription stopped event");
@@ -212,6 +215,13 @@ public class ProgramSample {
                         + acsEvent.getTranscriptionUpdateResult()
                                 .getTranscriptionStatusDetails());
                 log.info("Operation Context --> " + acsEvent.getOperationContext());
+
+                if (acsEvent.getOperationContext() != null
+                        && acsEvent.getOperationContext().equals("nextRecognizeContext")) {
+                    handleRecognizeRequest(helpIVRPrompt, callConnectionId, callerId,
+                            "hellocontext");
+                }
+
             } else if (event instanceof TranscriptionUpdated) {
                 log.info("Transcription Updated....");
                 TranscriptionUpdated acsEvent = (TranscriptionUpdated) event;
@@ -259,7 +269,11 @@ public class ProgramSample {
     @GetMapping("/download")
     public ResponseEntity<Void> callRecordingDownload() {
         try {
-            client.getCallRecording().downloadTo(recordingLocation, new FileOutputStream("testfile.wav"));
+            String userHome = System.getProperty("user.home");
+            String downloadsPath = Paths.get(userHome, "Downloads").toString();
+            System.out.println("Downloads path: " + downloadsPath);
+            client.getCallRecording().downloadTo(recordingLocation,
+                    new FileOutputStream(downloadsPath + "/testfile.mp4"));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -278,9 +292,10 @@ public class ProgramSample {
                     appConfig.getCallBackUri(),
                     UUID.randomUUID(),
                     data.getJSONObject("from").getString("rawId"));
-                    // Replace "https://" with "wss://" for WebSocket protocol
-                    websocketUrl = appConfig.getBasecallbackuri().replaceFirst("^https://", "wss://") + "/ws";
-                    System.out.println("WebSocket URL: " + websocketUrl);
+            recordingCallbackUri = callbackUri;
+            // Replace "https://" with "wss://" for WebSocket protocol
+            websocketUrl = appConfig.getBasecallbackuri().replaceFirst("^https://", "wss://") + "/ws";
+            System.out.println("WebSocket URL: " + websocketUrl);
             cognitiveServicesUrl = new URI(appConfig.getCognitiveServicesUrl()).toString();
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                     .setCognitiveServicesEndpoint(appConfig.getCognitiveServicesUrl());
@@ -288,7 +303,7 @@ public class ProgramSample {
                     websocketUrl,
                     TranscriptionTransport.WEBSOCKET,
                     appConfig.getLocale(),
-                    false);
+                    true);
             options = new AnswerCallOptions(data.getString(INCOMING_CALL_CONTEXT),
                     callbackUri).setCallIntelligenceOptions(callIntelligenceOptions)
                     .setTranscriptionOptions(transcriptionOptions);
@@ -372,7 +387,7 @@ public class ProgramSample {
         if (!isTranscriptionActive) {
             StartTranscriptionOptions startTranscriptionOptions = new StartTranscriptionOptions()
                     .setLocale(appConfig.getLocale())
-                    .setOperationContext("StartTranscription");
+                    .setOperationContext("StartTranscriptionContext");
             client.getCallConnection(callConnectionId)
                     .getCallMedia()
                     .startTranscriptionWithResponse(startTranscriptionOptions, Context.NONE);
@@ -409,19 +424,18 @@ public class ProgramSample {
         }
     }
 
-    private void pauseOrStopTranscriptionAndRecording(String callConnectionId, Boolean stopRecording,
+    private void stopTranscriptionAndRecording(String callConnectionId,
             String recordingId) {
-        if (isTranscriptionActive) {
+        CallConnectionProperties callConnectionProperties = client.getCallConnection(callConnectionId)
+                .getCallProperties();
+        RecordingStateResult recordingStateResult = client.getCallRecording().getState(recordingId);
+
+        if (callConnectionProperties.getTranscriptionSubscription().getState().toString() == "active") {
             client.getCallConnection(callConnectionId).getCallMedia().stopTranscription();
-            log.info("Transcription stopped.");
         }
 
-        if (stopRecording) {
+        if (recordingStateResult.getRecordingState().toString() == "active") {
             client.getCallRecording().stop(recordingId);
-            log.info("Recording stopped. RecordingId: {}", recordingId);
-        } else {
-            client.getCallRecording().pause(recordingId);
-            log.info("Recording paused. RecordingId: {}", recordingId);
         }
     }
 

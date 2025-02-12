@@ -47,7 +47,7 @@ devtunnel host
     - Compile the application: mvn compile
     - Build the package: mvn package
     - Execute the app: `mvn exec:java -Papp`
-- Access the Swagger UI at http://localhost:8080/swagger-ui.html
+- Access the Swagger UI at http://localhost:8080/swagger-ui/index.html
 - Register an EventGrid Webhook for the IncomingCall Event that points to your DevTunnel URI endpoint ex `{basecallbackuri}/api/incomingCall` and register Recording File Status Updated event to you recordingstatus api endpoint ex. `{basecallbackuri}/api/recordingFileStatus`. Instructions [here](https://learn.microsoft.com/en-us/azure/communication-services/concepts/call-automation/incoming-call-notification).
 
 Once that's completed you should have a running application. The best way to test this is to place a call to your ACS phone number and talk to your intelligent agent.

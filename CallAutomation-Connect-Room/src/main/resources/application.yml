@@ -10,3 +10,4 @@ acs:
   basecallbackuri: <ENTER YOUR DEV TUNNEL BASE URL>
   callerphonenumber: <ENTER ACS PHONE NUMBER>
   targetphonenumber: <ENTER AGENT PHONE NUMBER>
+  cognitiveServiceEndpoint: <ENTER YOUR COGNITIVE SERVICE URL>

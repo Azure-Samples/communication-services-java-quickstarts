@@ -11,6 +11,7 @@ public class AppConfig {
     private final String basecallbackuri;
     private final String callerphonenumber;
     private final String targetphonenumber;
+    private final String cognitiveServiceEndpoint;
 
     @ConstructorBinding
     AppConfig(final String connectionString,
@@ -24,6 +25,7 @@ public class AppConfig {
         this.basecallbackuri = basecallbackuri;
         this.callerphonenumber = callerphonenumber;
         this.targetphonenumber = targetphonenumber;
+        this.cognitiveServiceEndpoint = cognitiveServiceEndpoint;
     }
 
     public String getCallBackUri() {

@@ -232,7 +232,10 @@ public class ProgramSample {
 
                 // Build the ConnectCallOptions
                 ConnectCallOptions connectCallOptions = new ConnectCallOptions(callLocator, callbackUri)
-                        .setOperationContext("connectCallContext");
+                        .setOperationContext("connectCallContext")
+                        .setCallIntelligenceOptions(
+                                new CallIntelligenceOptions()
+                                        .setCognitiveServicesEndpoint(appConfig.getCognitiveServiceEndpoint()));
                 // Call the connectCallWithResponse method asynchronously
                 Mono<Response<ConnectCallResult>> res = asyncClient.connectCallWithResponse(connectCallOptions);
                 res.subscribe(response -> {
@@ -282,15 +285,21 @@ public class ProgramSample {
                     log.info("ConnectionId: {}", callConnectionId);
                     log.info("Correlation ID: {}", ((CallConnected) event).getCorrelationId());
                 } else if (event instanceof AddParticipantSucceeded) {
-                    AddParticipantSucceeded addParticipantSucceededEvent = (AddParticipantSucceeded) event;
                     log.info("Received AddParticipantSucceeded event");
                 } else if (event instanceof ParticipantsUpdated) {
-                    ParticipantsUpdated participantsUpdatedEvent = (ParticipantsUpdated) event;
                     log.info("Received ParticipantsUpdated event");
                 } else if (event instanceof AddParticipantFailed) {
                     AddParticipantFailed addParticipantFailedEvent = (AddParticipantFailed) event;
                     ResultInformation resultInfo = addParticipantFailedEvent.getResultInformation();
                     log.info("Received AddParticipantFailed event");
+                    log.info("Code: {}, Subcode: {}, Message: {}",
+                            resultInfo.getCode(), resultInfo.getSubCode(), resultInfo.getMessage());
+                } else if (event instanceof PlayCompleted) {
+                    log.info("Received PlayCompleted event");
+                } else if (event instanceof PlayFailed) {
+                    PlayFailed playFailedEvent = (PlayFailed) event;
+                    ResultInformation resultInfo = playFailedEvent.getResultInformation();
+                    log.info("Received PlayFailed event");
                     log.info("Code: {}, Subcode: {}, Message: {}",
                             resultInfo.getCode(), resultInfo.getSubCode(), resultInfo.getMessage());
                 } else if (event instanceof CallDisconnected) {
@@ -363,6 +372,25 @@ public class ProgramSample {
         } catch (Exception e) {
             log.error("Unexpected error: {}", e.getMessage());
             return Mono.just(ResponseEntity.status(500).body("Unexpected error: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/playMedia")
+    public void playMedia() {
+        String callConnectionId = getCallConnectionId();
+
+        if (callConnectionId == null || callConnectionId.isEmpty()) {
+            log.warn("Call connection ID is empty or call not active.");
+        }
+        try {
+            var textPlay = new TextSource()
+                    .setText("Hello, welcome to connect room contoso app.")
+                    .setVoiceName("en-US-NancyNeural");
+            PlayToAllOptions playToAllOptions = new PlayToAllOptions(textPlay);
+            asyncClient.getCallConnectionAsync(callConnectionId)
+                    .getCallMediaAsync().playToAllWithResponse(playToAllOptions).subscribe();
+        } catch (Exception e) {
+            log.error("Unexpected error: {}", e.getMessage());
         }
     }
 }

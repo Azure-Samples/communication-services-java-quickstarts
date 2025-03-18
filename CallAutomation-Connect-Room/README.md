@@ -54,6 +54,7 @@ devtunnel host
 
           For e.g. "+1425XXXAAAA"
     - `basecallbackuri`: Base url of the app. For local development use dev tunnel url.
+    - `cognitiveServiceEndpoint` Cognitive service endpoint.
 
 ### Run the application
 

@@ -237,7 +237,9 @@ public class ProgramSample {
                 Mono<Response<ConnectCallResult>> res = asyncClient.connectCallWithResponse(connectCallOptions);
                 res.subscribe(response -> {
                     if (response.getStatusCode() == 200) {
-                        log.info("Call connected successfully {}", response.getValue());
+                        log.info("Connect request succeeded {}", response.getValue());
+                        log.info("Connect request correlationId {}",
+                                response.getValue().getCallConnectionProperties().getCorrelationId());
                     } else {
                         log.error("Failed to connect call: {}", response.getStatusCode());
                     }

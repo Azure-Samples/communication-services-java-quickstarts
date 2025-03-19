@@ -159,7 +159,7 @@ public class App {
             List<RoomParticipant> participantsToAddAndUpdate = new ArrayList<>();
 
             // Adding new participant
-            participantsToAddAndUpdate.add(participant_3.setRole(ParticipantRole.CONSUMER));
+            participantsToAddAndUpdate.add(participant_3.setRole(ParticipantRole.COLLABORATOR));
 
             // Updating current participant
             participantsToAddAndUpdate.add(participant_2.setRole(ParticipantRole.PRESENTER));

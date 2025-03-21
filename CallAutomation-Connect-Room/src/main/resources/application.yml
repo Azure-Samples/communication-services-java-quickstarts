@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: CallAutomation-Connect-Room
+
+server:
+  port: 8080
+
+acs:
+  connectionstring: <ENTER YOUR ACS CONNECTION STRING>
+  basecallbackuri: <ENTER YOUR DEV TUNNEL BASE URL>
+  callerphonenumber: <ENTER ACS PHONE NUMBER>
+  targetphonenumber: <ENTER AGENT PHONE NUMBER>
+  cognitiveServiceEndpoint: <ENTER YOUR COGNITIVE SERVICE URL>

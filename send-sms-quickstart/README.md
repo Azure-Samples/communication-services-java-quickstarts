@@ -10,7 +10,7 @@ products:
 
 # Send an SMS message
 
-For full instructions on how to build this code sample from scratch, look at [Quickstart: Send an SMS message](https://docs.microsoft.com/azure/communication-services/quickstarts/telephony-sms/send?pivots=programming-language-java)
+For full instructions on how to build this code sample from scratch, see [Quickstart: Send an SMS message](https://docs.microsoft.com/azure/communication-services/quickstarts/telephony-sms/send?pivots=programming-language-java).
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 - A setup managed identity for a development environment, [see Authorize access with managed identity](https://docs.microsoft.com/azure/communication-services/quickstarts/managed-identity-from-cli).
 ## Code Structure
 
-- **./send-sms-quickstart/src/main/java/com/communication/quickstart/App.java:** contains code for creating and managing access tokens.
+- **./send-sms-quickstart/src/main/java/com/communication/quickstart/App.java:** contains code for sending SMS messages.
 - **pom.xml:** Project's Project Object Model, or [POM](https://maven.apache.org/guides/introduction/introduction-to-the-pom.html).
 
 ## Before running sample code

@@ -8,7 +8,7 @@ products:
 ---
 
 
-# Create and manage access tokens
+# Send an SMS message
 
 For full instructions on how to build this code sample from scratch, look at [Quickstart: Send an SMS message](https://docs.microsoft.com/azure/communication-services/quickstarts/telephony-sms/send?pivots=programming-language-java)
 

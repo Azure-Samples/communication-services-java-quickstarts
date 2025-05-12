@@ -10,6 +10,8 @@ public class ConfigurationRequest {
     private String acsConnectionString;
     private String cognitiveServiceEndpoint;
     private String acsPhoneNumber;
+    private String targetPhoneNumber;
+    private String targetTeamsUserId;
     private String callbackUriHost;
 
     // Getters and Setters
@@ -35,6 +37,22 @@ public class ConfigurationRequest {
 
     public void setAcsPhoneNumber(String acsPhoneNumber) {
         this.acsPhoneNumber = acsPhoneNumber;
+    }
+
+    public String getTargetPhoneNumber() {
+        return targetPhoneNumber;
+    }
+
+    public void setTargetPhoneNumber(String targetPhoneNumber) {
+        this.targetPhoneNumber = targetPhoneNumber;
+    }
+
+    public String getTargetTeamsUserId() {
+        return targetTeamsUserId;
+    }
+
+    public void setTargetTeamsUserId(String targetTeamsUserId) {
+        this.targetTeamsUserId = targetTeamsUserId;
     }
 
     public String getCallbackUriHost() {

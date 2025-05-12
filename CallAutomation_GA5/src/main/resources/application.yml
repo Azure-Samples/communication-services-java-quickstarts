@@ -1,6 +1,6 @@
 spring:
   application:
-    name: CallAutomation_OutboundCalling
+    name: CallAutomation_GA5
 
 springdoc:
   swagger-ui:

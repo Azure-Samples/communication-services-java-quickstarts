@@ -13,6 +13,7 @@ public class ConfigurationRequest {
     private String targetPhoneNumber;
     private String targetTeamsUserId;
     private String callbackUriHost;
+    private String websocketUriHost;
 
     // Getters and Setters
     public String getAcsConnectionString() {
@@ -61,5 +62,13 @@ public class ConfigurationRequest {
 
     public void setCallbackUriHost(String callbackUriHost) {
         this.callbackUriHost = callbackUriHost;
+    }
+
+    public String getWebsocketUriHost() {
+        return websocketUriHost;
+    }
+
+    public void setWebsocketUriHost(String websocketUriHost) {
+        this.websocketUriHost = websocketUriHost;
     }
 }

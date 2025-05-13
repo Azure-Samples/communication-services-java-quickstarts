@@ -2,6 +2,7 @@ package com.communication.callautomation;
 
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.lang.NonNull;
 import org.springframework.web.socket.TextMessage;
 //import com.azure.communication.callautomation.StreamingData;
 import com.azure.communication.callautomation.models.StreamingData;
@@ -12,7 +13,7 @@ import com.azure.communication.callautomation.models.WordData;
 public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) throws Exception {
         String payload = message.getPayload();
         System.out.println("Received message: " + payload);
 

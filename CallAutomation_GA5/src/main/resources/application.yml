@@ -15,4 +15,5 @@ acs:
   callerphonenumber: "+1425XXXAAAA"
   targetphonenumber: "+1425XXXAAAA"
   cognitiveServiceEndpoint: "https://cognitive-service-waferwire.cognitiveservices.azure.com/"
-  targetTeamsUserId: <(OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870">
+  targetTeamsUserId: ""
+  # (OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870"

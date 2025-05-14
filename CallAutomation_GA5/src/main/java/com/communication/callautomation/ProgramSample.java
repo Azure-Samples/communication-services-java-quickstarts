@@ -15,10 +15,6 @@ import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.Context;
-import com.azure.messaging.eventgrid.EventGridEvent;
-import com.azure.messaging.eventgrid.systemevents.AcsIncomingCallEventData;
-import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
-import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -42,7 +38,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -65,7 +60,6 @@ public class ProgramSample {
     private String recordingId = "";
     private String recordingLocation = "";
     private String recordingFileFormat = "";
-    private String callerId = "";
 
     private String confirmLabel = "Confirm";
     private String cancelLabel = "Cancel";

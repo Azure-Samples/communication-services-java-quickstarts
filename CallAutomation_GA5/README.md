@@ -37,7 +37,7 @@ This script assumes you have the Azure CLI, Maven, and Java installed, and you a
 3. Run the script:  
    `./deploy-to-azure.sh`
 
-**This script will:**
+**The script will:**
 - Build your app
 - Create Azure resources if they don’t exist
 - Deploy your JAR

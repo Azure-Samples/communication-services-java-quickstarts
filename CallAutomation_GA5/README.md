@@ -24,3 +24,22 @@ devtunnel host
     - Execute the app: mvn exec:java
 - Access the Swagger UI at http://localhost:8080/swagger-ui.html
     - Try the GET and POST methods to run the Sample Application
+
+### Deploy the application
+
+`deploy-to-azure.sh` bash script automates the **build**, **configuration**, and **deployment** of your Spring Boot Swagger web app to Azure App Service.  
+This script assumes you have the Azure CLI, Maven, and Java installed, and you are running it from your project root.
+
+**How to use:**
+1. Replace the variable values at the top with your actual configuration.
+2. Make the script executable:  
+   `chmod +x deploy-to-azure.sh`
+3. Run the script:  
+   `./deploy-to-azure.sh`
+
+**This script will:**
+- Build your app
+- Create Azure resources if they don’t exist
+- Deploy your JAR
+- Output your Swagger UI URL
+

@@ -23,10 +23,11 @@ import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventDat
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.Base64;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -123,6 +124,29 @@ public class ProgramSample {
         } catch (Exception e) {
             log.error("Error configuring: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
+        }
+    }
+    
+    @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
+    @GetMapping("/api/logs")
+    public ResponseEntity<String> getAzureLogStream(@RequestParam String userName, @RequestParam String password) {
+        String appName = "javaContosoGA5App";
+        String kuduUrl = "https://" + appName + ".scm.azurewebsites.net/api/logstream/application";
+        String auth = userName + ":" + password;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Basic " + encodedAuth);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                kuduUrl, HttpMethod.GET, entity, String.class);
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Failed to fetch logs: " + e.getMessage());
         }
     }
 
@@ -231,96 +255,96 @@ public class ProgramSample {
         }
     }
 
-    @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
-    @PostMapping("/answerCallAsync")
-    public ResponseEntity<String> answerCallAsync() {
-        try {
-            // Construct the callback URI
-            String callbackUri = callbackUriHost + "/api/callbacks";
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // @PostMapping("/answerCallAsync")
+    // public ResponseEntity<String> answerCallAsync() {
+    //     try {
+    //         // Construct the callback URI
+    //         String callbackUri = callbackUriHost + "/api/callbacks";
 
-            String incomingCallContext = "IncomingCallContext";
-            // Create AnswerCallOptions
-            AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
-            options.setCallIntelligenceOptions(
-                    new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
-            );
+    //         String incomingCallContext = "IncomingCallContext";
+    //         // Create AnswerCallOptions
+    //         AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
+    //         options.setCallIntelligenceOptions(
+    //                 new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
+    //         );
 
-            // Answer the call asynchronously
-            Response<AnswerCallResult> result = client.answerCallWithResponse(options, Context.NONE);
-            if (result.getStatusCode() == 200) {
-                log.info("Answered call asynchronously. Connection ID: {}", result.getValue().getCallConnectionProperties().getCallConnectionId());
-            } else {
-                log.error("Failed to answer call asynchronously. Status code: {}", result.getStatusCode());
-            }
+    //         // Answer the call asynchronously
+    //         Response<AnswerCallResult> result = client.answerCallWithResponse(options, Context.NONE);
+    //         if (result.getStatusCode() == 200) {
+    //             log.info("Answered call asynchronously. Connection ID: {}", result.getValue().getCallConnectionProperties().getCallConnectionId());
+    //         } else {
+    //             log.error("Failed to answer call asynchronously. Status code: {}", result.getStatusCode());
+    //         }
 
-            return ResponseEntity.ok("Answer call request sent asynchronously.");
-        } catch (Exception e) {
-            log.error("Error answering call asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to answer call asynchronously.");
-        }
-    }
+    //         return ResponseEntity.ok("Answer call request sent asynchronously.");
+    //     } catch (Exception e) {
+    //         log.error("Error answering call asynchronously: {}", e.getMessage());
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to answer call asynchronously.");
+    //     }
+    // }
 
-    @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
-    @PostMapping("/answerCall")
-    public ResponseEntity<String> answerCall() {
-        try {
-            // Construct the callback URI
-            String callbackUri = callbackUriHost + "/api/callbacks";
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // @PostMapping("/answerCall")
+    // public ResponseEntity<String> answerCall() {
+    //     try {
+    //         // Construct the callback URI
+    //         String callbackUri = callbackUriHost + "/api/callbacks";
 
-            String incomingCallContext = "IncomingCallContext";
-            // Create AnswerCallOptions
-            AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
-            options.setCallIntelligenceOptions(
-                    new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
-            );
+    //         String incomingCallContext = "IncomingCallContext";
+    //         // Create AnswerCallOptions
+    //         AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
+    //         options.setCallIntelligenceOptions(
+    //                 new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
+    //         );
 
-            // Answer the call 
-            AnswerCallResult result = client.answerCall(incomingCallContext, callbackUri);
-            if (result != null) {
-                log.info("Answered call. Connection ID: {}", result.getCallConnectionProperties().getCallConnectionId());
-            } else {
-                log.error("Failed to answer call.");
-            }
+    //         // Answer the call 
+    //         AnswerCallResult result = client.answerCall(incomingCallContext, callbackUri);
+    //         if (result != null) {
+    //             log.info("Answered call. Connection ID: {}", result.getCallConnectionProperties().getCallConnectionId());
+    //         } else {
+    //             log.error("Failed to answer call.");
+    //         }
 
-            return ResponseEntity.ok("Answer call request sent.");
-        } catch (Exception e) {
-            log.error("Error answering call: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to answer call.");
-        }
-    }
+    //         return ResponseEntity.ok("Answer call request sent.");
+    //     } catch (Exception e) {
+    //         log.error("Error answering call: {}", e.getMessage());
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to answer call.");
+    //     }
+    // }
 
-    @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
-    @PostMapping("/rejectCallAsync")
-    public ResponseEntity<String> rejectCallAsync() {
-        try {
-            String incomingCallContext = "IncomingCallContext";
-            // Create RejectCallOptions
-            RejectCallOptions options = new RejectCallOptions(incomingCallContext);
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // @PostMapping("/rejectCallAsync")
+    // public ResponseEntity<String> rejectCallAsync() {
+    //     try {
+    //         String incomingCallContext = "IncomingCallContext";
+    //         // Create RejectCallOptions
+    //         RejectCallOptions options = new RejectCallOptions(incomingCallContext);
 
-            // Reject the call asynchronously
-            client.rejectCallWithResponse(options, Context.NONE);
-            log.info("Rejected call asynchronously.");
-            return ResponseEntity.ok("Reject call request sent asynchronously.");
-        } catch (Exception e) {
-            log.error("Error rejecting call asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to reject call asynchronously.");
-        }
-    }
+    //         // Reject the call asynchronously
+    //         client.rejectCallWithResponse(options, Context.NONE);
+    //         log.info("Rejected call asynchronously.");
+    //         return ResponseEntity.ok("Reject call request sent asynchronously.");
+    //     } catch (Exception e) {
+    //         log.error("Error rejecting call asynchronously: {}", e.getMessage());
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to reject call asynchronously.");
+    //     }
+    // }
 
-    @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
-    @PostMapping("/rejectCall")
-    public ResponseEntity<String> rejectCall() {
-        try {
-            String incomingCallContext = "IncomingCallContext";
-            // Reject the call 
-            client.rejectCall(incomingCallContext);
-            log.info("Rejected call.");
-            return ResponseEntity.ok("Reject call request sent.");
-        } catch (Exception e) {
-            log.error("Error rejecting call : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to reject call.");
-        }
-    }
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // @PostMapping("/rejectCall")
+    // public ResponseEntity<String> rejectCall() {
+    //     try {
+    //         String incomingCallContext = "IncomingCallContext";
+    //         // Reject the call 
+    //         client.rejectCall(incomingCallContext);
+    //         log.info("Rejected call.");
+    //         return ResponseEntity.ok("Reject call request sent.");
+    //     } catch (Exception e) {
+    //         log.error("Error rejecting call : {}", e.getMessage());
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to reject call.");
+    //     }
+    // }
 
     // // POST: /outboundCallToPstnAsync
     // @Tag(name = "Outbound Call APIs", description = "Outbound Call APIs")
@@ -361,24 +385,17 @@ public class ProgramSample {
     // }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
-    @PostMapping("/createCallAsync")
-    public ResponseEntity<String> createCallAsync() {
+    @PostMapping("/outboundCallAsync")
+    public ResponseEntity<String> outboundCallAsync() {
         try {
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-            String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
 
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, TranscriptionTransport.WEBSOCKET, 
-                "en-US", false);
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(websocketUri, MediaStreamingTransport.WEBSOCKET, 
-                MediaStreamingContent.AUDIO, MediaStreamingAudioChannel.UNMIXED, false);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
-            createCallOptions.setTranscriptionOptions(transcriptionOptions);
-            createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
 
             Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
             callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
@@ -391,8 +408,8 @@ public class ProgramSample {
     }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
-    @PostMapping("/createCall")
-    public ResponseEntity<String> createCall() {
+    @PostMapping("/outboundCall")
+    public ResponseEntity<String> outboundCall() {
         try {
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
             CallInvite callInvite = new CallInvite(target);
@@ -1082,6 +1099,29 @@ public class ProgramSample {
     //     callMedia.play(textSource,playTo);
     //     return ResponseEntity.ok().build();
     // }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/createCallWithPlayAsync")
+    public ResponseEntity<String> createCallWithPlayAsync() {
+        try {
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CallInvite callInvite = new CallInvite(target);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+
+            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created async call with connection id: " + callConnectionId);
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
+    }
 
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playTextSourceTargetAsync")
@@ -1899,6 +1939,33 @@ public class ProgramSample {
     }
 
     @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
+    @PostMapping("/createCallWithTranscriptionAsync")
+    public ResponseEntity<String> createCallWithTranscriptionAsync() {
+        try {
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CallInvite callInvite = new CallInvite(target);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+            String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
+
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, TranscriptionTransport.WEBSOCKET, 
+                "en-US", false);
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+            createCallOptions.setTranscriptionOptions(transcriptionOptions);
+
+            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created async call with connection id: " + callConnectionId);
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
+    }
+
+    @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
     @PostMapping("/startTranscriptionAsync")
     public ResponseEntity<String> startTranscriptionAsync() {
         try {
@@ -1992,6 +2059,96 @@ public class ProgramSample {
         } catch (Exception e) {
             log.error("Error updating transcription: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update transcription.");
+        }
+    }
+
+    @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/createCallWithMediaStreamingAsync")
+    public ResponseEntity<String> createCallWithMediaStreamingAsync() {
+        try {
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CallInvite callInvite = new CallInvite(target);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+            String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
+
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(websocketUri, MediaStreamingTransport.WEBSOCKET, 
+                MediaStreamingContent.AUDIO, MediaStreamingAudioChannel.UNMIXED, false);
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+            createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
+
+            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created async call with connection id: " + callConnectionId);
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
+    }
+
+    @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/startMediaStreamingAsync")
+    public ResponseEntity<String> startMediaStreamingAsync() {
+        try {
+            StartMediaStreamingOptions mediaStreamingOptions = new StartMediaStreamingOptions();
+
+            CallMedia callMedia = getCallMedia();
+            callMedia.startMediaStreamingWithResponse(mediaStreamingOptions, Context.NONE);
+
+            log.info("Started media streaming asynchronously for call: {}", callConnectionId);
+            return ResponseEntity.ok("Media streaming started successfully.");
+        } catch (Exception e) {
+            log.error("Error starting media streaming asynchronously: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to start media streaming.");
+        }
+    }
+
+    @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/startMediaStreaming")
+    public ResponseEntity<String> startMediaStreaming() {
+        try {
+            CallMedia callMedia = getCallMedia();
+            callMedia.startMediaStreaming();
+
+            log.info("Started media streaming asynchronously for call: {}", callConnectionId);
+            return ResponseEntity.ok("Media streaming started successfully.");
+        } catch (Exception e) {
+            log.error("Error starting media streaming asynchronously: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to start media streaming.");
+        }
+    }
+        
+    @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/stopMediaStreamingAsync")
+    public ResponseEntity<String> stopMediaStreamingAsync() {
+        try {
+            StopMediaStreamingOptions stopOptions = new StopMediaStreamingOptions();
+            CallMedia callMedia = getCallMedia();
+            callMedia.stopMediaStreamingWithResponse(stopOptions, Context.NONE);
+
+            log.info("Stopped media streaming asynchronously for call: {}", callConnectionId);
+            return ResponseEntity.ok("Media streaming stopped successfully.");
+        } catch (Exception e) {
+            log.error("Error stopping media streaming asynchronously: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to stop media streaming.");
+        }
+    }
+
+    @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/stopMediaStreaming")
+    public ResponseEntity<String> stopMediaStreaming() {
+        try {
+            CallMedia callMedia = getCallMedia();
+            callMedia.stopMediaStreaming();
+
+            log.info("Stopped media streaming for call: {}", callConnectionId);
+            return ResponseEntity.ok("Media streaming stopped successfully.");
+        } catch (Exception e) {
+            log.error("Error stopping media streaming: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to stop media streaming.");
         }
     }
 

@@ -9,6 +9,9 @@ springdoc:
 server:
   port: 8080
 
+applicationinsights:
+  connection-string: "InstrumentationKey=0132d5b9-d016-4e4b-9229-3718dfe57723;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=362c714c-5715-4881-8491-b70fbdb5513e"
+
 acs:
   connectionstring: "endpoint=https://dacsrecordingtest.unitedstates.communication.azure.com/;accesskey=FWMCjVWSbPyivHtGZ3Kph0XKvbMowgHoWYekUDXcfZhzrVdc0l1gJQQJ99ALACULyCpAArohAAAAAZCSNRZe"
   basecallbackuri: "https://8kvlj5f1.inc1.devtunnels.ms:8080"

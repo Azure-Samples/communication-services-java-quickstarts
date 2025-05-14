@@ -19,15 +19,19 @@ import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.systemevents.AcsIncomingCallEventData;
 import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Base64;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -43,9 +47,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
-@Slf4j
 public class ProgramSample {
 
+    private static final Logger log = LoggerFactory.getLogger(ProgramSample.class);
     private CallAutomationClient client;
     // private final CallAutomationAsyncClient asyncClient;
     
@@ -129,24 +133,52 @@ public class ProgramSample {
     
     @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
     @GetMapping("/api/logs")
-    public ResponseEntity<String> getAzureLogStream(@RequestParam String userName, @RequestParam String password) {
-        String appName = "javaContosoGA5App";
-        String kuduUrl = "https://" + appName + ".scm.azurewebsites.net/api/logstream/application";
-        String auth = userName + ":" + password;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Basic " + encodedAuth);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        RestTemplate restTemplate = new RestTemplate();
-
+    public ResponseEntity<String> getAzureLogStream(@RequestParam(required = false) String severityLevel) {
         try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                kuduUrl, HttpMethod.GET, entity, String.class);
-            return ResponseEntity.ok(response.getBody());
+            String appId = "362c714c-5715-4881-8491-b70fbdb5513e"; // Replace with your Application Insights app ID
+            String apiKey = "x8q6e2g4i0vowb4refgx6ovj2h6tuxqrmrhn5ocn"; // Replace with your Application Insights API key
+            // Application Insights REST API endpoint
+            String url = "https://api.applicationinsights.io/v1/apps/" + appId + "/query";
+            // Kusto query to get latest traces
+            String query = "traces | order by timestamp desc | take 500";
+            if (severityLevel != null && !severityLevel.isEmpty()) {
+                query = "traces | where severityLevel == '" + severityLevel + "' | order by timestamp desc | take 500";
+            }
+            String requestBody = "{\"query\": \"" + query + "\"}";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("x-api-key", apiKey);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+            RestTemplate restTemplate = new RestTemplate();
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
+            // Parse JSON and extract fields
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(response.getBody());
+            ArrayNode rows = (ArrayNode) root.path("tables").get(0).path("rows");
+
+            StringBuilder html = new StringBuilder();
+            html.append("<table border='1'>\n<tr><th>Timestamp</th><th>Message</th><th>Severity Level</th></tr>\n");
+            for (JsonNode row : rows) {
+                String ts = row.get(0).asText();
+                String msg = row.get(1).asText();
+                int sev = row.get(2).asInt();
+                html.append("<tr>")
+                    .append("<td>").append(ts).append("</td>")
+                    .append("<td>").append(msg).append("</td>")
+                    .append("<td>").append(sev).append("</td>")
+                    .append("</tr>\n");
+            }
+            html.append("</table>");
+
+            return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html.toString());
         } catch (Exception e) {
+            log.error("Error fetching Application Insights traces: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Failed to fetch logs: " + e.getMessage());
+                    .body("Failed to fetch Application Insights traces: " + e.getMessage());
         }
     }
 
@@ -179,81 +211,81 @@ public class ProgramSample {
         }
     }
 
-    @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
-    @PostMapping("/api/events")
-    public ResponseEntity<Object> handleEvents(@RequestBody EventGridEvent[] eventGridEvents) {
-        try {
-            for (EventGridEvent eventGridEvent : eventGridEvents) {
-                log.info("Recording event received: {}", eventGridEvent.getEventType());
+    // @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
+    // @PostMapping("/api/events")
+    // public ResponseEntity<Object> handleEvents(@RequestBody EventGridEvent[] eventGridEvents) {
+    //     try {
+    //         for (EventGridEvent eventGridEvent : eventGridEvents) {
+    //             log.info("Recording event received: {}", eventGridEvent.getEventType());
 
-                // Try to parse system event data
-                Object eventData = eventGridEvent.getData().toObject(Object.class);
+    //             // Try to parse system event data
+    //             Object eventData = eventGridEvent.getData().toObject(Object.class);
 
-                // SubscriptionValidationEventData
-                if ("Microsoft.EventGrid.SubscriptionValidationEvent".equals(eventGridEvent.getEventType())
-                        && eventData instanceof SubscriptionValidationEventData) {
+    //             // SubscriptionValidationEventData
+    //             if ("Microsoft.EventGrid.SubscriptionValidationEvent".equals(eventGridEvent.getEventType())
+    //                     && eventData instanceof SubscriptionValidationEventData) {
 
-                    SubscriptionValidationEventData validationData =
-                            (SubscriptionValidationEventData) eventData;
+    //                 SubscriptionValidationEventData validationData =
+    //                         (SubscriptionValidationEventData) eventData;
 
-                    Map<String, String> responseData = Map.of("validationResponse", validationData.getValidationCode());
-                    return ResponseEntity.ok(responseData);
-                }
+    //                 Map<String, String> responseData = Map.of("validationResponse", validationData.getValidationCode());
+    //                 return ResponseEntity.ok(responseData);
+    //             }
 
-                // AcsIncomingCallEventData
-                if ("Microsoft.Communication.IncomingCall".equals(eventGridEvent.getEventType())
-                        && eventData instanceof AcsIncomingCallEventData) {
+    //             // AcsIncomingCallEventData
+    //             if ("Microsoft.Communication.IncomingCall".equals(eventGridEvent.getEventType())
+    //                     && eventData instanceof AcsIncomingCallEventData) {
 
-                    AcsIncomingCallEventData incomingCallEventData =
-                            (AcsIncomingCallEventData) eventData;
+    //                 AcsIncomingCallEventData incomingCallEventData =
+    //                         (AcsIncomingCallEventData) eventData;
 
-                    callerId = incomingCallEventData.getFromCommunicationIdentifier().getRawId();
-                    System.out.println("Caller Id--> " + callerId);
+    //                 callerId = incomingCallEventData.getFromCommunicationIdentifier().getRawId();
+    //                 System.out.println("Caller Id--> " + callerId);
 
-                    URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
-                    log.info("Incoming call - correlationId: {}, Callback url: {}",
-                            incomingCallEventData.getCorrelationId(), callbackUri);
+    //                 URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
+    //                 log.info("Incoming call - correlationId: {}, Callback url: {}",
+    //                         incomingCallEventData.getCorrelationId(), callbackUri);
 
-                    AnswerCallOptions options = new AnswerCallOptions(
-                        incomingCallEventData.getIncomingCallContext(),
-                        callbackUri.toString()
-                    );
+    //                 AnswerCallOptions options = new AnswerCallOptions(
+    //                     incomingCallEventData.getIncomingCallContext(),
+    //                     callbackUri.toString()
+    //                 );
                     
-                    options.setCallIntelligenceOptions(
-                            new CallIntelligenceOptions()
-                            .setCognitiveServicesEndpoint(cognitiveServicesEndpoint
-                            )
-                    );
+    //                 options.setCallIntelligenceOptions(
+    //                         new CallIntelligenceOptions()
+    //                         .setCognitiveServicesEndpoint(cognitiveServicesEndpoint
+    //                         )
+    //                 );
 
-                    // Call client to answer call
-                    AnswerCallResult result = client.answerCallWithResponse(options, Context.NONE).getValue();
-                    result.getCallConnection().getCallMedia();
-                }
+    //                 // Call client to answer call
+    //                 AnswerCallResult result = client.answerCallWithResponse(options, Context.NONE).getValue();
+    //                 result.getCallConnection().getCallMedia();
+    //             }
 
-                // AcsRecordingFileStatusUpdatedEventData
-                if ("Microsoft.Communication.RecordingFileStatusUpdated".equals(eventGridEvent.getEventType())
-                        && eventData instanceof AcsRecordingFileStatusUpdatedEventData) {
+    //             // AcsRecordingFileStatusUpdatedEventData
+    //             if ("Microsoft.Communication.RecordingFileStatusUpdated".equals(eventGridEvent.getEventType())
+    //                     && eventData instanceof AcsRecordingFileStatusUpdatedEventData) {
 
-                    AcsRecordingFileStatusUpdatedEventData statusUpdated =
-                            (AcsRecordingFileStatusUpdatedEventData) eventData;
+    //                 AcsRecordingFileStatusUpdatedEventData statusUpdated =
+    //                         (AcsRecordingFileStatusUpdatedEventData) eventData;
 
-                    recordingLocation = statusUpdated
-                            .getRecordingStorageInfo()
-                            .getRecordingChunks()
-                            .get(0)
-                            .getContentLocation();
+    //                 recordingLocation = statusUpdated
+    //                         .getRecordingStorageInfo()
+    //                         .getRecordingChunks()
+    //                         .get(0)
+    //                         .getContentLocation();
 
-                            log.info("The recording location is : {}", recordingLocation);
-                }
-            }
+    //                         log.info("The recording location is : {}", recordingLocation);
+    //             }
+    //         }
 
-            return ResponseEntity.ok("Processed");
+    //         return ResponseEntity.ok("Processed");
 
-        } catch (Exception ex) {
-            log.error("Error processing events", ex);
-            return ResponseEntity.status(500).body("Failed to process events");
-        }
-    }
+    //     } catch (Exception ex) {
+    //         log.error("Error processing events", ex);
+    //         return ResponseEntity.status(500).body("Failed to process events");
+    //     }
+    // }
 
     // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
     // @PostMapping("/answerCallAsync")

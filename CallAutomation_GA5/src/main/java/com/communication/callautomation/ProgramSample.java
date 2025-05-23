@@ -177,16 +177,18 @@ public class ProgramSample {
     }
 
     @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
-    @PostMapping(path = "/api/callback")
+    @PostMapping(path = "/api/callbacks")
     public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) {
         try {
             List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
             for (CallAutomationEventBase event : events) {
                 String callConnectionId = event.getCallConnectionId();
                 log.info(
-                        "Received call event callConnectionID: {}, serverCallId: {}",
+                        "Received call event callConnectionID: {}, serverCallId: {}, CorrelationId: {}, eventType: {}",
                         callConnectionId,
-                        event.getServerCallId());
+                        event.getServerCallId(),
+                        event.getCorrelationId(),
+                        event.getClass().getSimpleName());
 
                 if (event instanceof CallConnected) {
                     // handle CallConnected
@@ -1976,8 +1978,7 @@ public class ProgramSample {
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, TranscriptionTransport.WEBSOCKET, 
-                "en-US", false);
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, "en-US");
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setTranscriptionOptions(transcriptionOptions);
 
@@ -2060,9 +2061,12 @@ public class ProgramSample {
     @PostMapping("/updateTranscriptionAsync")
     public ResponseEntity<String> updateTranscriptionAsync(@RequestParam String newLocale) {
         try {
+            UpdateTranscriptionOptions transcriptionOptions = new UpdateTranscriptionOptions()
+                    .setLocale(newLocale)
+                    .setOperationContext("transcriptionContext");
             // Get CallMedia and update transcription asynchronously
             CallMedia callMedia = getCallMedia();
-            callMedia.updateTranscriptionWithResponse(newLocale, "", "transcriptionContext", Context.NONE);
+            callMedia.updateTranscriptionWithResponse(transcriptionOptions, Context.NONE);
 
             log.info("Updated transcription asynchronously.");
             return ResponseEntity.ok("Transcription updated successfully.");
@@ -2100,8 +2104,7 @@ public class ProgramSample {
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(websocketUri, MediaStreamingTransport.WEBSOCKET, 
-                MediaStreamingContent.AUDIO, MediaStreamingAudioChannel.UNMIXED, false);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(websocketUri, MediaStreamingAudioChannel.UNMIXED);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
 

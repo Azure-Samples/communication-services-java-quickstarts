@@ -53,6 +53,7 @@ public class ProgramSample {
     private String acsConnectionString = "";
     private String cognitiveServicesEndpoint = "";
     private String acsPhoneNumber = "";
+    private String targetAcsUserId = "";
     private String callbackUriHost = "";
     private String websocketUriHost = "";
 
@@ -72,6 +73,7 @@ public class ProgramSample {
             acsConnectionString = "";
             cognitiveServicesEndpoint = "";
             acsPhoneNumber = "";
+            targetAcsUserId = "";
             callbackUriHost = "";
             websocketUriHost = "";
 
@@ -94,6 +96,12 @@ public class ProgramSample {
                         .orElseThrow(() -> new IllegalArgumentException("AcsPhoneNumber is required"))
                 );
 
+                configuration.setTargetAcsUserId(
+                    Optional.ofNullable(configurationRequest.getTargetAcsUserId())
+                        .filter(s -> !s.isEmpty())
+                        .orElseThrow(() -> new IllegalArgumentException("TargetAcsUserId is required"))
+                );
+
                 configuration.setCallbackUriHost(
                     Optional.ofNullable(configurationRequest.getCallbackUriHost())
                         .filter(s -> !s.isEmpty())
@@ -111,6 +119,7 @@ public class ProgramSample {
             acsConnectionString = configuration.getAcsConnectionString();
             cognitiveServicesEndpoint = configuration.getCognitiveServiceEndpoint();
             acsPhoneNumber = configuration.getAcsPhoneNumber();
+            targetAcsUserId = configuration.getTargetAcsUserId();
             callbackUriHost = configuration.getCallbackUriHost();
             websocketUriHost = configuration.getWebsocketUriHost();
 
@@ -379,7 +388,7 @@ public class ProgramSample {
     // @PostMapping("/outboundCallToPstnAsync")
     // public ResponseEntity<String> outboundCallToPstnAsync(@RequestParam String targetPhoneNumber) {
     //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
+    //     PhoneNumberIdentifier caller = new PhoneNumberIdentifier(targetAcsUserId);
 
     //     //URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
@@ -401,7 +410,7 @@ public class ProgramSample {
     // @PostMapping("/outboundCallToPstn")
     // public ResponseEntity<String> outboundCallToPstn(@RequestParam String targetPhoneNumber) {
     //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
+    //     PhoneNumberIdentifier caller = new PhoneNumberIdentifier(targetAcsUserId);
 
     //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
     //     CallInvite callInvite = new CallInvite(target, caller);
@@ -416,7 +425,7 @@ public class ProgramSample {
     @PostMapping("/outboundCallAsync")
     public ResponseEntity<String> outboundCallAsync() {
         try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
@@ -439,7 +448,7 @@ public class ProgramSample {
     @PostMapping("/outboundCall")
     public ResponseEntity<String> outboundCall() {
         try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
@@ -519,7 +528,7 @@ public class ProgramSample {
     @PostMapping("/holdParticipantAsync")
     public ResponseEntity<String> holdParticipantAsync(@RequestParam boolean isPlaySource) {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             HoldOptions holdOptions = new HoldOptions(target).setOperationContext("holdUserContext");
             CallMedia callMediaService = getCallMedia();
 
@@ -545,7 +554,7 @@ public class ProgramSample {
     @PostMapping("/holdParticipant")
     public ResponseEntity<String> holdParticipant(@RequestParam boolean isPlaySource) {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             TextSource textSource = null;
             CallMedia callMediaService = getCallMedia();
 
@@ -607,12 +616,12 @@ public class ProgramSample {
     @PostMapping("/unholdParticipantAsync")
     public ResponseEntity<String> unholdParticipantAsync() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             UnholdOptions unholdOptions = new UnholdOptions(target).setOperationContext("unholdUserContext");
             CallMedia callMediaService = getCallMedia();
 
             callMediaService.unholdWithResponse(unholdOptions, Context.NONE);
-            log.info("Unhold participant asynchronously {}", acsPhoneNumber);
+            log.info("Unhold participant asynchronously {}", targetAcsUserId);
             return ResponseEntity.ok("Participant unheld (async).");
         }
         catch (Exception e) {
@@ -625,11 +634,11 @@ public class ProgramSample {
     @PostMapping("/unholdParticipant")
     public ResponseEntity<String> unholdParticipant() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
 
             callMediaService.unhold(target);
-            log.info("Unhold participant synchronously {}", acsPhoneNumber);
+            log.info("Unhold participant synchronously {}", targetAcsUserId);
             return ResponseEntity.ok("Participant unheld.");
         } catch (Exception e) {
             log.error("Error unholding participant: {}", e.getMessage());
@@ -641,7 +650,7 @@ public class ProgramSample {
     @PostMapping("/interruptHoldWithPlayAsync")
     public ResponseEntity<String> interruptHoldWithPlayAsync() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
 
             TextSource textSource = new TextSource()
@@ -656,7 +665,7 @@ public class ProgramSample {
                 //.setInterruptHoldAudio(true);
 
             callMediaService.playWithResponse(playOptions, Context.NONE);
-            log.info("Interrupt hold with play sent (async) to {}", acsPhoneNumber);
+            log.info("Interrupt hold with play sent (async) to {}", targetAcsUserId);
             return ResponseEntity.ok("Interrupt hold with play sent (async).");
 
         } catch (Exception e) {
@@ -669,7 +678,7 @@ public class ProgramSample {
     @PostMapping("/interruptHoldWithPlay")
     public ResponseEntity<String> interruptHoldWithPlay() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
 
             TextSource textSource = new TextSource()
@@ -681,7 +690,7 @@ public class ProgramSample {
             List<CommunicationIdentifier> playTo = Collections.singletonList(target);
             callMediaService.play(textSource, playTo);
 
-            log.info("Interrupt hold with play sent (sync) to {}", acsPhoneNumber);
+            log.info("Interrupt hold with play sent (sync) to {}", targetAcsUserId);
             return ResponseEntity.ok("Interrupt hold with play sent.");
         } catch (Exception e) {
             log.error("Error interrupting hold with play: {}", e.getMessage());
@@ -729,7 +738,7 @@ public class ProgramSample {
             CallConnection callConnection = getConnection();
         
             Response<CallParticipant> response = callConnection.getParticipantWithResponse(
-                new CommunicationUserIdentifier(acsPhoneNumber),
+                new CommunicationUserIdentifier(targetAcsUserId),
                 Context.NONE
             );
         
@@ -739,7 +748,7 @@ public class ProgramSample {
                 log.info("Participant: --> {}", participant.getIdentifier().getRawId());
                 log.info("Is Participant on hold: --> {}", participant.isOnHold());
             } else {
-                log.warn("No participant found for identifier: {}", acsPhoneNumber);
+                log.warn("No participant found for identifier: {}", targetAcsUserId);
             }
             return ResponseEntity.ok("Participant found");
         } catch (Exception e) {
@@ -753,7 +762,7 @@ public class ProgramSample {
     public ResponseEntity<String> getParticipant() {
         try {
             CallConnection callConnection = getConnection();
-            CallParticipant participant = callConnection.getParticipant(new CommunicationUserIdentifier(acsPhoneNumber));
+            CallParticipant participant = callConnection.getParticipant(new CommunicationUserIdentifier(targetAcsUserId));
 
             if (participant != null) {
                 log.info("Participant: --> {}", participant.getIdentifier().getRawId());
@@ -859,7 +868,7 @@ public class ProgramSample {
     @PostMapping("/muteParticipantAsync")
     public ResponseEntity<String> muteParticipantAsync() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallConnection callConnection = getConnection();
 
             MuteParticipantOptions options = new MuteParticipantOptions(target)
@@ -868,7 +877,7 @@ public class ProgramSample {
             // Assuming you're calling a method like muteParticipantWithResponse(options, context)
             callConnection.muteParticipantWithResponse(options, Context.NONE);
 
-            log.info("Muted participant asynchronously: {}", acsPhoneNumber);
+            log.info("Muted participant asynchronously: {}", targetAcsUserId);
             return ResponseEntity.ok("Muted participant (async).");
         } catch (Exception e) {
             log.error("Error muting participant asynchronously: {}", e.getMessage());
@@ -880,11 +889,11 @@ public class ProgramSample {
     @PostMapping("/muteParticipant")
     public ResponseEntity<String> muteParticipant() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallConnection callConnection = getConnection();
 
             callConnection.muteParticipant(target); // Synchronous mute using options if method is available
-            log.info("Muted participant synchronously: {}", acsPhoneNumber);
+            log.info("Muted participant synchronously: {}", targetAcsUserId);
             return ResponseEntity.ok("Muted participant.");
         } catch (Exception e) {
             log.error("Error muting participant: {}", e.getMessage());
@@ -898,7 +907,7 @@ public class ProgramSample {
     //     CallConnection  callConnectionService = getConnection();
     //     CallInvite callInvite = new CallInvite(
     //             new PhoneNumberIdentifier(pstnParticipant),
-    //             new PhoneNumberIdentifier("acsPhoneNumber")); // Replace with actual ACS number
+    //             new PhoneNumberIdentifier("targetAcsUserId")); // Replace with actual ACS number
     //     AddParticipantOptions options = new AddParticipantOptions(callInvite);
     //     options.setOperationContext("addPstnUserContext");
     //     options.setInvitationTimeout(Duration.ofSeconds(15));
@@ -912,7 +921,7 @@ public class ProgramSample {
     //     CallConnection  callConnectionService = getConnection();
     //     CallInvite callInvite = new CallInvite(
     //             new PhoneNumberIdentifier(pstnParticipant),
-    //             new PhoneNumberIdentifier(acsPhoneNumber)).setSourceCallerIdNumber(new PhoneNumberIdentifier(acsPhoneNumber)); // Replace with actual ACS number
+    //             new PhoneNumberIdentifier(targetAcsUserId)).setSourceCallerIdNumber(new PhoneNumberIdentifier(targetAcsUserId)); // Replace with actual ACS number
     //     Object result = callConnectionService.addParticipant(callInvite);
     //     return ResponseEntity.ok(result);
     // }
@@ -1132,7 +1141,7 @@ public class ProgramSample {
     @PostMapping("/createCallWithPlayAsync")
     public ResponseEntity<String> createCallWithPlayAsync() {
         try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
@@ -1156,7 +1165,7 @@ public class ProgramSample {
     public ResponseEntity<String> playTextSourceTargetAsync() {
         try {
             CallMedia callMedia = getCallMedia();
-            List<CommunicationIdentifier> playTo = Collections.singletonList(new CommunicationUserIdentifier(acsPhoneNumber));
+            List<CommunicationIdentifier> playTo = Collections.singletonList(new CommunicationUserIdentifier(targetAcsUserId));
             TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
             PlayOptions options = new PlayOptions(textSource, playTo);
             options.setOperationContext("playToContext");
@@ -1174,7 +1183,7 @@ public class ProgramSample {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-            callMedia.play(textSource,Collections.singletonList(new CommunicationUserIdentifier(acsPhoneNumber)));
+            callMedia.play(textSource,Collections.singletonList(new CommunicationUserIdentifier(targetAcsUserId)));
             return ResponseEntity.ok("Successfully played text source to target.");
         } catch (Exception e) {
             log.error("Error playing text source to target: {}", e.getMessage());
@@ -1268,14 +1277,14 @@ public class ProgramSample {
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playSsmlSourceTargetAsync")
     public ResponseEntity<String> playSsmlSourceTargetAsync() {
-        return playSsml(acsPhoneNumber, TargetType.ACS, true, false);
+        return playSsml(targetAcsUserId, TargetType.ACS, true, false);
     }
 
     // 4.  - Sync
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playSsmlSourceToTarget")
     public ResponseEntity<String> playSsmlSourceToTarget() {
-        return playSsml(acsPhoneNumber, TargetType.ACS, false, false);
+        return playSsml(targetAcsUserId, TargetType.ACS, false, false);
     }
 
     // // 5. Teams - Async
@@ -1331,14 +1340,14 @@ public class ProgramSample {
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playFileSourceToTargetAsync")
     public ResponseEntity<String> playFileSourceToTargetAsync() {
-        return playFile(acsPhoneNumber, TargetType.ACS, true, false);
+        return playFile(targetAcsUserId, TargetType.ACS, true, false);
     }
 
     // 4.  - Sync
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playFileSourceToTarget")
     public ResponseEntity<String> playFileSourceToTarget() {
-        return playFile(acsPhoneNumber, TargetType.ACS, false, false);
+        return playFile(targetAcsUserId, TargetType.ACS, false, false);
     }
 
     // // 5. Teams - Async
@@ -1376,52 +1385,100 @@ public class ProgramSample {
         return playFile(null, TargetType.ALL, true, true);
     }
 
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleToTargetAsync")
+    public ResponseEntity<String> playMultipleToTargetAsync() {
+        return playMultipleWithValidFileName(targetAcsUserId, TargetType.ACS, true, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleToAllAsync")
+    public ResponseEntity<String> playMultipleToAllAsync() {
+        return playMultipleWithValidFileName(null, TargetType.ALL, true, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleInvalidToTargetAsync")
+    public ResponseEntity<String> playMultipleInvalidToTargetAsync() {
+        return playMultipleWithInvalidFileName(targetAcsUserId, TargetType.ACS, true, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleInvalidToAllAsync")
+    public ResponseEntity<String> playMultipleInvalidToAllAsync() {
+        return playMultipleWithInvalidFileName(null, TargetType.ALL, true, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleToTarget")
+    public ResponseEntity<String> playMultipleToTarget() {
+        return playMultipleWithValidFileName(targetAcsUserId, TargetType.ACS, false, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleToAll")
+    public ResponseEntity<String> playMultipleToAll() {
+        return playMultipleWithValidFileName(null, TargetType.ALL, false, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleInvalidToTarget")
+    public ResponseEntity<String> playMultipleInvalidToTarget() {
+        return playMultipleWithInvalidFileName(targetAcsUserId, TargetType.ACS, false, false);
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playMultipleInvalidToAll")
+    public ResponseEntity<String> playMultipleInvalidToAll() {
+        return playMultipleWithInvalidFileName(null, TargetType.ALL, false, false);
+    }
+
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeDTMFAsync")
     public ResponseEntity<String> recognizeDTMFAsync() {
-        return startDtmfRecognition(acsPhoneNumber, true);
+        return startDtmfRecognition(targetAcsUserId, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeDTMF")
     public ResponseEntity<String> recognizeDTMF() {
-        return startDtmfRecognition(acsPhoneNumber, false);
+        return startDtmfRecognition(targetAcsUserId, false);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeSpeechAsync")
     public ResponseEntity<String> recognizeSpeechAsync() {
-        return startSpeechRecognition(acsPhoneNumber, true);
+        return startSpeechRecognition(targetAcsUserId, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeSpeech")
     public ResponseEntity<String> recognizeSpeech() {
-        return startSpeechRecognition(acsPhoneNumber, false);
+        return startSpeechRecognition(targetAcsUserId, false);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeSpeechOrDtmfAsync")
     public ResponseEntity<String> recognizeSpeechOrDtmfAsync() {
-        return startSpeechOrDtmfRecognition(acsPhoneNumber, true);
+        return startSpeechOrDtmfRecognition(targetAcsUserId, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeSpeechOrDtmf")
     public ResponseEntity<String> recognizeSpeechOrDtmf() {
-        return startSpeechOrDtmfRecognition(acsPhoneNumber, false);
+        return startSpeechOrDtmfRecognition(targetAcsUserId, false);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeChoiceAsync")
     public ResponseEntity<String> recognizeChoiceAsync() {
-        return startChoiceRecognition(acsPhoneNumber, true);
+        return startChoiceRecognition(targetAcsUserId, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
     @PostMapping("/recognizeChoice")
     public ResponseEntity<String> recognizeChoice() {
-        return startChoiceRecognition(acsPhoneNumber, false);
+        return startChoiceRecognition(targetAcsUserId, false);
     }
 
        // Async Equivalent: /sendDTMFTonesAsync (C#)
@@ -1429,15 +1486,15 @@ public class ProgramSample {
     @PostMapping("/sendDTMFTonesAsync")
     public ResponseEntity<String> sendDTMFTonesAsync() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             List<DtmfTone> tones = Arrays.asList(DtmfTone.ZERO, DtmfTone.ONE);
             CallMedia callMediaService = getCallMedia();
             callMediaService.sendDtmfTones(tones, target); // .block() internally
 
-            log.info("Async DTMF tones sent to {}", acsPhoneNumber);
+            log.info("Async DTMF tones sent to {}", targetAcsUserId);
             return ResponseEntity.ok("DTMF tones sent (async simulation).");
         } catch (Exception e) {
-            log.error("Error sending DTMF tones to {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error sending DTMF tones to {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sending DTMF tones");
         }
     }
@@ -1447,15 +1504,15 @@ public class ProgramSample {
     @PostMapping("/sendDTMFTones")
     public ResponseEntity<String> sendDTMFTones() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             List<DtmfTone> tones = Arrays.asList(DtmfTone.ZERO, DtmfTone.ONE);
             CallMedia callMediaService = getCallMedia();
             callMediaService.sendDtmfTones(tones, target);
 
-            log.info("DTMF tones sent to {}", acsPhoneNumber);
+            log.info("DTMF tones sent to {}", targetAcsUserId);
             return ResponseEntity.ok("DTMF tones sent.");
         } catch (Exception e) {
-            log.error("Error sending DTMF tones to {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error sending DTMF tones to {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sending DTMF tones");
         }
     }
@@ -1465,14 +1522,14 @@ public class ProgramSample {
     @PostMapping("/startContinuousDTMFTonesAsync")
     public ResponseEntity<String> startContinuousDTMFTonesAsync() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
             callMediaService.startContinuousDtmfRecognition(target); // .block() internally
 
-            log.info("Async continuous DTMF started for {}", acsPhoneNumber);
+            log.info("Async continuous DTMF started for {}", targetAcsUserId);
             return ResponseEntity.ok("Started continuous DTMF recognition (async simulation).");
         } catch (Exception e) {
-            log.error("Error starting continuous DTMF recognition for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting continuous DTMF recognition");
         }
     }
@@ -1482,14 +1539,14 @@ public class ProgramSample {
     @PostMapping("/startContinuousDTMFTones")
     public ResponseEntity<String> startContinuousDTMFTones() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
             callMediaService.startContinuousDtmfRecognition(target);
 
-            log.info("Started continuous DTMF for {}", acsPhoneNumber);
+            log.info("Started continuous DTMF for {}", targetAcsUserId);
             return ResponseEntity.ok("Started continuous DTMF recognition.");
         } catch (Exception e) {
-            log.error("Error starting continuous DTMF recognition for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting continuous DTMF recognition");
         }
     }
@@ -1499,14 +1556,14 @@ public class ProgramSample {
     @PostMapping("/stopContinuousDTMFTonesAsync")
     public ResponseEntity<String> stopContinuousDTMFTonesAsync() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
             callMediaService.stopContinuousDtmfRecognition(target); // .block() internally
 
-            log.info("Async stop continuous DTMF for {}", acsPhoneNumber);
+            log.info("Async stop continuous DTMF for {}", targetAcsUserId);
             return ResponseEntity.ok("Stopped continuous DTMF recognition (async simulation).");
         } catch (Exception e) {
-            log.error("Error stopping continuous DTMF recognition for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error stopping continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error stopping continuous DTMF recognition");
         }
     }
@@ -1516,14 +1573,14 @@ public class ProgramSample {
     @PostMapping("/stopContinuousDTMFTones")
     public ResponseEntity<String> stopContinuousDTMFTones() {
         try {
-            CommunicationIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallMedia callMediaService = getCallMedia();
             callMediaService.stopContinuousDtmfRecognition(target);
 
-            log.info("Stopped continuous DTMF for {}", acsPhoneNumber);
+            log.info("Stopped continuous DTMF for {}", targetAcsUserId);
             return ResponseEntity.ok("Stopped continuous DTMF recognition.");
         } catch (Exception e) {
-            log.error("Error stopping continuous DTMF recognition for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error stopping continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error stopping continuous DTMF recognition");
         }
     }
@@ -1532,7 +1589,7 @@ public class ProgramSample {
     // @PostMapping("/createGroupCallAsync")
     // public ResponseEntity<String> createGroupCallAsync(@RequestParam String targetPhoneNumber) {
     //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(acsPhoneNumber);
+    //     PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(targetAcsUserId);
 
     //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
     //     String websocketUri = callbackUriHost.replace("https", "wss") + "/ws";
@@ -1569,7 +1626,7 @@ public class ProgramSample {
     // @PostMapping("/createGroupCall")
     // public ResponseEntity<String> createGroupCall(@RequestParam String targetPhoneNumber) {
     //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(acsPhoneNumber);
+    //     PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(targetAcsUserId);
 
     //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
@@ -1639,7 +1696,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1664,7 +1721,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1692,7 +1749,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1717,7 +1774,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1745,7 +1802,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1770,7 +1827,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1798,7 +1855,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1823,7 +1880,7 @@ public class ProgramSample {
             log.info("Recording started. RecordingId: {}", recordingId);
             return ResponseEntity.ok("Recording started successfully.");
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
@@ -1833,10 +1890,10 @@ public class ProgramSample {
     public ResponseEntity<String> pauseRecordingAsync() {
         try {
             client.getCallRecording().pauseWithResponse(recordingId, null);
-            log.info("Paused recording for {}", acsPhoneNumber);
+            log.info("Paused recording for {}", targetAcsUserId);
             return ResponseEntity.ok("Recording paused successfully.");
         } catch (Exception e) {
-            log.error("Error pausing recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error pausing recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pausing recording");
         }
     }
@@ -1846,10 +1903,10 @@ public class ProgramSample {
     public ResponseEntity<String> pauseRecording() {
         try {
             client.getCallRecording().pause(recordingId);
-            log.info("Paused recording for {}", acsPhoneNumber);
+            log.info("Paused recording for {}", targetAcsUserId);
             return ResponseEntity.ok("Recording paused successfully.");
         } catch (Exception e) {
-            log.error("Error pausing recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error pausing recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pausing recording");
         }
     }
@@ -1859,10 +1916,10 @@ public class ProgramSample {
     public ResponseEntity<String> resumeRecordingAsync() {
         try {
             client.getCallRecording().resumeWithResponse(recordingId, null);
-            log.info("Resumed recording for {}", acsPhoneNumber);
+            log.info("Resumed recording for {}", targetAcsUserId);
             return ResponseEntity.ok("Recording resumed successfully.");
         } catch (Exception e) {
-            log.error("Error resuming recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error resuming recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error resuming recording");
         }
     }
@@ -1872,10 +1929,10 @@ public class ProgramSample {
     public ResponseEntity<String> resumeRecording() {
         try {
             client.getCallRecording().resume(recordingId);
-            log.info("Resumed recording for {}", acsPhoneNumber);
+            log.info("Resumed recording for {}", targetAcsUserId);
             return ResponseEntity.ok("Recording resumed successfully.");
         } catch (Exception e) {
-            log.error("Error resuming recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error resuming recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error resuming recording");
         }
     }
@@ -1885,10 +1942,10 @@ public class ProgramSample {
     public ResponseEntity<String> stopRecordingAsync() {
         try {
             client.getCallRecording().stopWithResponse(recordingId, null);
-            log.info("Stopped recording for {}", acsPhoneNumber);
+            log.info("Stopped recording for {}", targetAcsUserId);
             return ResponseEntity.ok("Recording stopped successfully.");
         } catch (Exception e) {
-            log.error("Error stopping recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error stopping recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error stopping recording");
         }
     }
@@ -1898,10 +1955,10 @@ public class ProgramSample {
     public ResponseEntity<String> stopRecording() {
         try {
             client.getCallRecording().stop(recordingId);
-            log.info("Stopped recording for {}", acsPhoneNumber);
+            log.info("Stopped recording for {}", targetAcsUserId);
             return ResponseEntity.ok("Recording stopped successfully.");
         } catch (Exception e) {
-            log.error("Error stopping recording for {}: {}", acsPhoneNumber, e.getMessage());
+            log.error("Error stopping recording for {}: {}", targetAcsUserId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error stopping recording");
         }
     }
@@ -1970,7 +2027,7 @@ public class ProgramSample {
     @PostMapping("/createCallWithTranscriptionAsync")
     public ResponseEntity<String> createCallWithTranscriptionAsync() {
         try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
             String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
@@ -2096,7 +2153,7 @@ public class ProgramSample {
     @PostMapping("/createCallWithMediaStreamingAsync")
     public ResponseEntity<String> createCallWithMediaStreamingAsync() {
         try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(acsPhoneNumber);
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
             String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
@@ -2308,7 +2365,71 @@ public class ProgramSample {
         }
     }
 
-    private static final String FILE_SOURCE_URI = "https://yourdomain.com/sample.wav"; // replace with actual URI
+    private static final String FILE_SOURCE_URI = "https://sample-videos.com/audio/mp3/crowd-cheering.mp3"; // replace with actual URI
+
+    private ResponseEntity<String> playMultipleWithValidFileName(String target, TargetType targetType, boolean async, boolean bargeIn) {
+        return playMultiple(FILE_SOURCE_URI, target, targetType, async, bargeIn);
+    }
+
+    private ResponseEntity<String> playMultipleWithInvalidFileName(String target, TargetType targetType, boolean async, boolean bargeIn) {
+        String filePath = "http://yourdomain.com/sample.wava"; // replace with invalid URI
+        return playMultiple(filePath, target, targetType, async, bargeIn);
+    }
+
+    private ResponseEntity<String> playMultiple(String filePath, String target, TargetType targetType, boolean async, boolean bargeIn) {
+        try {
+            log.info("1. Successfully.");
+            FileSource fileSource = new FileSource().setUrl(filePath);
+            SsmlSource ssmlSource = createSsmlSource(bargeIn);
+            TextSource textSource = createTextSource("Hi, this is barge in test played through play source thanks. Goodbye!.");
+
+            log.info("2. Successfully.");
+            String context = bargeIn ? "playBargeInContext" : "playContext";
+            CallMedia mediaService = getCallMedia();
+    
+            log.info("3. Successfully.");
+            if (targetType == TargetType.ALL) {
+                log.info("4. Successfully.");
+                PlayToAllOptions options = new PlayToAllOptions(List.of(fileSource, ssmlSource, textSource));
+                options.setOperationContext(context);
+                options.setInterruptCallMediaOperation(bargeIn);
+                log.info("5. Successfully.");
+
+                if (async) {
+                    mediaService.playToAll(List.of(fileSource, ssmlSource, textSource));
+                } else {
+                    mediaService.playToAllWithResponse(options, Context.NONE);
+                }
+                log.info("6. Successfully.");
+            } else {
+                log.info("7. Successfully.");
+                List<CommunicationIdentifier> playTo = switch (targetType) {
+                    case PSTN -> List.of(new PhoneNumberIdentifier(target));
+                    case ACS -> List.of(new CommunicationUserIdentifier(target));
+                    case TEAMS -> List.of(new MicrosoftTeamsUserIdentifier(target));
+                    default -> throw new IllegalArgumentException("Unsupported target type.");
+                };
+
+                log.info("8. Successfully.");
+                PlayOptions options = new PlayOptions(List.of(fileSource, ssmlSource, textSource), playTo);
+                options.setOperationContext(context);
+                //options.setInterruptHoldAudio(bargeIn);
+
+                log.info("9. Successfully.");
+                if (async) {
+                    mediaService.play(List.of(fileSource, ssmlSource, textSource), playTo);
+                } else {
+                    mediaService.playWithResponse(options, Context.NONE);
+                }
+                log.info("10. Successfully.");
+            }
+            log.info("Successfully played file source to target: {}", target);
+            return ResponseEntity.ok("Successfully played file source.");
+        } catch (Exception ex) {
+            log.error("Error playing file source: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     private ResponseEntity<String> playFile(String target, TargetType targetType, boolean async, boolean bargeIn) {
         try {

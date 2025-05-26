@@ -12,6 +12,7 @@ public class ConfigurationRequest {
     private String acsPhoneNumber;
     private String targetPhoneNumber;
     private String targetTeamsUserId;
+    private String targetAcsUserId;
     private String callbackUriHost;
     private String websocketUriHost;
 
@@ -26,6 +27,10 @@ public class ConfigurationRequest {
 
     public void setAcsPhoneNumber(String acsPhoneNumber) {
         this.acsPhoneNumber = acsPhoneNumber;
+    }
+
+    public void setTargetAcsUserId(String targetAcsUserId) {
+        this.targetAcsUserId = targetAcsUserId;
     }
 
     public void setTargetPhoneNumber(String targetPhoneNumber) {

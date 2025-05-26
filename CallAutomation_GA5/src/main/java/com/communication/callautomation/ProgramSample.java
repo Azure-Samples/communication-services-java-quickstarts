@@ -53,6 +53,7 @@ public class ProgramSample {
     private String acsConnectionString = "";
     private String cognitiveServicesEndpoint = "";
     private String acsPhoneNumber = "";
+    private String targetPhoneNumber = "";
     private String targetAcsUserId = "";
     private String callbackUriHost = "";
     private String websocketUriHost = "";
@@ -73,6 +74,7 @@ public class ProgramSample {
             acsConnectionString = "";
             cognitiveServicesEndpoint = "";
             acsPhoneNumber = "";
+            targetPhoneNumber = "";
             targetAcsUserId = "";
             callbackUriHost = "";
             websocketUriHost = "";
@@ -94,6 +96,12 @@ public class ProgramSample {
                     Optional.ofNullable(configurationRequest.getAcsPhoneNumber())
                         .filter(s -> !s.isEmpty())
                         .orElseThrow(() -> new IllegalArgumentException("AcsPhoneNumber is required"))
+                );
+
+                configuration.setTargetPhoneNumber(
+                    Optional.ofNullable(configurationRequest.getTargetPhoneNumber())
+                        .filter(s -> !s.isEmpty())
+                        .orElseThrow(() -> new IllegalArgumentException("TargetPhoneNumber is required"))
                 );
 
                 configuration.setTargetAcsUserId(
@@ -119,6 +127,7 @@ public class ProgramSample {
             acsConnectionString = configuration.getAcsConnectionString();
             cognitiveServicesEndpoint = configuration.getCognitiveServiceEndpoint();
             acsPhoneNumber = configuration.getAcsPhoneNumber();
+            targetPhoneNumber = configuration.getTargetPhoneNumber();
             targetAcsUserId = configuration.getTargetAcsUserId();
             callbackUriHost = configuration.getCallbackUriHost();
             websocketUriHost = configuration.getWebsocketUriHost();
@@ -199,14 +208,14 @@ public class ProgramSample {
                         event.getCorrelationId(),
                         event.getClass().getSimpleName());
 
-                if (event instanceof CallConnected) {
-                    // handle CallConnected
-                } else if (event instanceof RecognizeCompleted) {
-                    // handle RecognizeCompleted
-                } else if (event instanceof RecognizeFailed) {
-                    // handle RecognizeFailed
-                } else if (event instanceof PlayCompleted || event instanceof PlayFailed) {
-                    // handle PlayCompleted or PlayFailed
+                if (event instanceof CreateCallFailed ||
+                    event instanceof ConnectFailed || 
+                    event instanceof PlayFailed || 
+                    event instanceof RecognizeFailed) {
+                    // handle Failed
+                    log.error(reqBody);
+                } else {
+                    // handle Success
                 }
             }
             return ResponseEntity.ok().body("");
@@ -383,47 +392,52 @@ public class ProgramSample {
     //     }
     // }
 
-    // // POST: /outboundCallToPstnAsync
-    // @Tag(name = "Outbound Call APIs", description = "Outbound Call APIs")
-    // @PostMapping("/outboundCallToPstnAsync")
-    // public ResponseEntity<String> outboundCallToPstnAsync(@RequestParam String targetPhoneNumber) {
-    //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier caller = new PhoneNumberIdentifier(targetAcsUserId);
+    // POST: /outboundCallToPstnAsync
+    @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
+    @PostMapping("/outboundCallToPstnAsync")
+    public ResponseEntity<String> outboundCallToPstnAsync() {
+        PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+        PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
 
-    //     //URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+        URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
-    //     CallInvite callInvite = new CallInvite(target, caller);
-    //     CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUriHost);
+        CallInvite callInvite = new CallInvite(target, caller);
+        CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+        CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+            .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+        createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
 
-    //     // Make async call and block to get the result
-    //     Response<CreateCallResult> response = asyncClient.createCallWithResponse(createCallOptions).block();
+        // Make async call and block to get the result
+        Response<CreateCallResult> response = client.createCallWithResponse(createCallOptions, Context.NONE);
 
-    //     if (response != null && response.getValue() != null) {
-    //         callConnectionId = response.getValue().getCallConnectionProperties().getCallConnectionId();
-    //         log.info("Created async pstn call with connection id: " + callConnectionId);
-    //     } else {
-    //         log.error("Failed to create call. Response or value was null.");
-    //     }
-    // }
-
-    // @Tag(name = "Outbound Call APIs", description = "Outbound Call APIs")
-    // @PostMapping("/outboundCallToPstn")
-    // public ResponseEntity<String> outboundCallToPstn(@RequestParam String targetPhoneNumber) {
-    //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier caller = new PhoneNumberIdentifier(targetAcsUserId);
-
-    //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-    //     CallInvite callInvite = new CallInvite(target, caller);
-
-    //     // ✅ Convert URI to String
-    //     CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
-    //     callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
-    //     log.info("Created call with connection id: " + callConnectionId);  
-    // }
+        if (response != null && response.getValue() != null) {
+            callConnectionId = response.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created async pstn call with connection id: " + callConnectionId);
+        } else {
+            log.error("Failed to create call. Response or value was null.");
+        }
+        return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+    }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
-    @PostMapping("/outboundCallAsync")
-    public ResponseEntity<String> outboundCallAsync() {
+    @PostMapping("/outboundCallToPstn")
+    public ResponseEntity<String> outboundCallToPstn() {
+        PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+        PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
+
+        URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+        CallInvite callInvite = new CallInvite(target, caller);
+
+        // ✅ Convert URI to String
+        CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
+        callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
+        log.info("Created call with connection id: " + callConnectionId);  
+        return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+    }
+
+    @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
+    @PostMapping("/outboundCallToAcsAsync")
+    public ResponseEntity<String> outboundCallToAcsAsync() {
         try {
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
@@ -445,8 +459,8 @@ public class ProgramSample {
     }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
-    @PostMapping("/outboundCall")
-    public ResponseEntity<String> outboundCall() {
+    @PostMapping("/outboundCallToAcs")
+    public ResponseEntity<String> outboundCallToAcs() {
         try {
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
@@ -1114,55 +1128,32 @@ public class ProgramSample {
         }
     }
 
-    // @Tag(name = "Play Media APIs", description = "Play Media APIs")
-    // @PostMapping("/playTextSourceToPstnTargetAsync")
-    // public ResponseEntity<String> playTextSourceToPstnTargetAsync(@RequestParam String targetParticipant) {
-    //     CallMedia callMedia = getCallMedia();
-    //     TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-    //     List<CommunicationIdentifier> playTo = Collections.singletonList(new PhoneNumberIdentifier(targetParticipant));
-
-    //     PlayOptions options = new PlayOptions(textSource, playTo);
-    //     options.setOperationContext("playToContext");
-    //     callMedia.playWithResponse(options,Context.NONE);
-    //     return ResponseEntity.ok().build();
-    // }
-
-    // @Tag(name = "Play Media APIs", description = "Play Media APIs")
-    // @PostMapping("/playTextSourceToPstnTarget")
-    // public ResponseEntity<String> playTextSourceToPstnTarget(@RequestParam String targetParticipant) {
-    //     CallMedia callMedia = getCallMedia();
-    //     TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-    //     List<CommunicationIdentifier> playTo = Collections.singletonList(new PhoneNumberIdentifier(targetParticipant));
-    //     callMedia.play(textSource,playTo);
-    //     return ResponseEntity.ok().build();
-    // }
-
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
-    @PostMapping("/createCallWithPlayAsync")
-    public ResponseEntity<String> createCallWithPlayAsync() {
-        try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
-            CallInvite callInvite = new CallInvite(target);
-            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+    @PostMapping("/playTextSourceToPstnTargetAsync")
+    public ResponseEntity<String> playTextSourceToPstnTargetAsync(@RequestParam String targetParticipant) {
+        CallMedia callMedia = getCallMedia();
+        TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
+        List<CommunicationIdentifier> playTo = Collections.singletonList(new PhoneNumberIdentifier(targetParticipant));
 
-            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
-            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
-
-            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
-            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
-            log.info("Created async call with connection id: " + callConnectionId);
-            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
-        } catch (Exception e) {
-            log.error("Error creating call : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
-        }
+        PlayOptions options = new PlayOptions(textSource, playTo);
+        options.setOperationContext("playToContext");
+        callMedia.playWithResponse(options,Context.NONE);
+        return ResponseEntity.ok().build();
     }
 
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
-    @PostMapping("/playTextSourceTargetAsync")
-    public ResponseEntity<String> playTextSourceTargetAsync() {
+    @PostMapping("/playTextSourceToPstnTarget")
+    public ResponseEntity<String> playTextSourceToPstnTarget(@RequestParam String targetParticipant) {
+        CallMedia callMedia = getCallMedia();
+        TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
+        List<CommunicationIdentifier> playTo = Collections.singletonList(new PhoneNumberIdentifier(targetParticipant));
+        callMedia.play(textSource,playTo);
+        return ResponseEntity.ok().build();
+    }
+
+    @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
+    @PostMapping("/playTextSourceTargetToAcsAsync")
+    public ResponseEntity<String> playTextSourceTargetToAcsAsync() {
         try {
             CallMedia callMedia = getCallMedia();
             List<CommunicationIdentifier> playTo = Collections.singletonList(new CommunicationUserIdentifier(targetAcsUserId));
@@ -1178,8 +1169,8 @@ public class ProgramSample {
     }
 
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
-    @PostMapping("/playTextSourceToTarget")
-    public ResponseEntity<String> playTextSourceToTarget() {
+    @PostMapping("/playTextSourceToAcsTarget")
+    public ResponseEntity<String> playTextSourceToAcsTarget() {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
@@ -1434,54 +1425,102 @@ public class ProgramSample {
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeDTMFAsync")
-    public ResponseEntity<String> recognizeDTMFAsync() {
-        return startDtmfRecognition(targetAcsUserId, true);
+    @PostMapping("/recognizeDTMFFromPstnAsync")
+    public ResponseEntity<String> recognizeDTMFFromPstnAsync() {
+        return startDtmfRecognition(targetPhoneNumber, TargetType.PSTN, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeDTMF")
-    public ResponseEntity<String> recognizeDTMF() {
-        return startDtmfRecognition(targetAcsUserId, false);
+    @PostMapping("/recognizeDTMFFromPstn")
+    public ResponseEntity<String> recognizeDTMFFromPstn() {
+        return startDtmfRecognition(targetPhoneNumber, TargetType.PSTN, false);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeSpeechAsync")
-    public ResponseEntity<String> recognizeSpeechAsync() {
-        return startSpeechRecognition(targetAcsUserId, true);
+    @PostMapping("/recognizeSpeechFromPstnAsync")
+    public ResponseEntity<String> recognizeSpeechFromPstnAsync() {
+        return startSpeechRecognition(targetPhoneNumber, TargetType.PSTN, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeSpeech")
-    public ResponseEntity<String> recognizeSpeech() {
-        return startSpeechRecognition(targetAcsUserId, false);
+    @PostMapping("/recognizeSpeechFromPstn")
+    public ResponseEntity<String> recognizeSpeechFromPstn() {
+        return startSpeechRecognition(targetPhoneNumber, TargetType.PSTN, false);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeSpeechOrDtmfAsync")
-    public ResponseEntity<String> recognizeSpeechOrDtmfAsync() {
-        return startSpeechOrDtmfRecognition(targetAcsUserId, true);
+    @PostMapping("/recognizeSpeechOrDtmfFromPstnAsync")
+    public ResponseEntity<String> recognizeSpeechOrDtmfFromPstnAsync() {
+        return startSpeechOrDtmfRecognition(targetPhoneNumber, TargetType.PSTN, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeSpeechOrDtmf")
-    public ResponseEntity<String> recognizeSpeechOrDtmf() {
-        return startSpeechOrDtmfRecognition(targetAcsUserId, false);
+    @PostMapping("/recognizeSpeechOrDtmfFromPstn")
+    public ResponseEntity<String> recognizeSpeechOrDtmfFromPstn() {
+        return startSpeechOrDtmfRecognition(targetPhoneNumber, TargetType.PSTN, false);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeChoiceAsync")
-    public ResponseEntity<String> recognizeChoiceAsync() {
-        return startChoiceRecognition(targetAcsUserId, true);
+    @PostMapping("/recognizeChoiceFromPstnAsync")
+    public ResponseEntity<String> recognizeChoiceFromPstnAsync() {
+        return startChoiceRecognition(targetPhoneNumber, TargetType.PSTN, true);
     }
 
     @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
-    @PostMapping("/recognizeChoice")
-    public ResponseEntity<String> recognizeChoice() {
-        return startChoiceRecognition(targetAcsUserId, false);
+    @PostMapping("/recognizeChoiceFromPstn")
+    public ResponseEntity<String> recognizeChoiceFromPstn() {
+        return startChoiceRecognition(targetPhoneNumber, TargetType.PSTN, false);
     }
 
-       // Async Equivalent: /sendDTMFTonesAsync (C#)
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeDTMFFromAcsAsync")
+    public ResponseEntity<String> recognizeDTMFFromAcsAsync() {
+        return startDtmfRecognition(targetAcsUserId, TargetType.ACS, true);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeDTMFFromAcs")
+    public ResponseEntity<String> recognizeDTMFFromAcs() {
+        return startDtmfRecognition(targetAcsUserId, TargetType.ACS, false);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeSpeechFromAcsAsync")
+    public ResponseEntity<String> recognizeSpeechFromAcsAsync() {
+        return startSpeechRecognition(targetAcsUserId, TargetType.ACS, true);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeSpeechFromAcs")
+    public ResponseEntity<String> recognizeSpeechFromAcs() {
+        return startSpeechRecognition(targetAcsUserId, TargetType.ACS, false);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeSpeechOrDtmfFromAcsAsync")
+    public ResponseEntity<String> recognizeSpeechOrDtmfFromAcsAsync() {
+        return startSpeechOrDtmfRecognition(targetAcsUserId, TargetType.ACS, true);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeSpeechOrDtmfFromAcs")
+    public ResponseEntity<String> recognizeSpeechOrDtmfFromAcs() {
+        return startSpeechOrDtmfRecognition(targetAcsUserId, TargetType.ACS, false);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeChoiceFromAcsAsync")
+    public ResponseEntity<String> recognizeChoiceFromAcsAsync() {
+        return startChoiceRecognition(targetAcsUserId, TargetType.ACS, true);
+    }
+
+    @Tag(name = "15. Start Recognition APIs", description = "Start Recognition APIs")
+    @PostMapping("/recognizeChoiceFromAcs")
+    public ResponseEntity<String> recognizeChoiceFromAcs() {
+        return startChoiceRecognition(targetAcsUserId, TargetType.ACS, false);
+    }
+
+    // Async Equivalent: /sendDTMFTonesAsync (C#)
     @Tag(name = "14. Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
     @PostMapping("/sendDTMFTonesAsync")
     public ResponseEntity<String> sendDTMFTonesAsync() {
@@ -2473,7 +2512,7 @@ public class ProgramSample {
         }
     }
 
-    private ResponseEntity<String> startDtmfRecognition(String target, boolean async) {
+    private ResponseEntity<String> startDtmfRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
@@ -2482,7 +2521,12 @@ public class ProgramSample {
                 .setSourceLocale("en-US")
                 .setVoiceKind(VoiceKind.MALE); // Optional: if enum NEURAL is available
     
-            CommunicationIdentifier participant = new CommunicationUserIdentifier(target);
+            CommunicationIdentifier participant = switch (targetType) {
+                    case PSTN -> new PhoneNumberIdentifier(target);
+                    case ACS -> new CommunicationUserIdentifier(target);
+                    case TEAMS -> new MicrosoftTeamsUserIdentifier(target);
+                    default -> throw new IllegalArgumentException("Unsupported target type.");
+                };
     
             CallMediaRecognizeDtmfOptions options = new CallMediaRecognizeDtmfOptions(participant, 4)
                 .setInterruptPrompt(false)
@@ -2504,7 +2548,7 @@ public class ProgramSample {
         }
     }
     
-    private ResponseEntity<String> startSpeechRecognition(String target, boolean async) {
+    private ResponseEntity<String> startSpeechRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
@@ -2513,7 +2557,12 @@ public class ProgramSample {
                 .setSourceLocale("en-US")
                 .setVoiceKind(VoiceKind.MALE);
 
-            CommunicationIdentifier participant = new CommunicationUserIdentifier(target);
+            CommunicationIdentifier participant = switch (targetType) {
+                case PSTN -> new PhoneNumberIdentifier(target);
+                case ACS -> new CommunicationUserIdentifier(target);
+                case TEAMS -> new MicrosoftTeamsUserIdentifier(target);
+                default -> throw new IllegalArgumentException("Unsupported target type.");
+            };
 
             CallMediaRecognizeSpeechOptions options = new CallMediaRecognizeSpeechOptions(participant, Duration.ofSeconds(15))
             .setInterruptPrompt(false)
@@ -2534,7 +2583,7 @@ public class ProgramSample {
         }
     }
     
-    private ResponseEntity<String> startSpeechOrDtmfRecognition(String target, boolean async) {
+    private ResponseEntity<String> startSpeechOrDtmfRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
@@ -2542,9 +2591,14 @@ public class ProgramSample {
                 .setVoiceName("en-US-NancyNeural")
                 .setSourceLocale("en-US")
                 .setVoiceKind(VoiceKind.MALE);
-    
-            CommunicationIdentifier participant = new CommunicationUserIdentifier(target);
-    
+
+            CommunicationIdentifier participant = switch (targetType) {
+                case PSTN -> new PhoneNumberIdentifier(target);
+                case ACS -> new CommunicationUserIdentifier(target);
+                case TEAMS -> new MicrosoftTeamsUserIdentifier(target);
+                default -> throw new IllegalArgumentException("Unsupported target type.");
+            };
+
             var options = new CallMediaRecognizeSpeechOrDtmfOptions(participant, 4, Duration.ofSeconds(15))
             .setInterruptPrompt(false)
             .setInitialSilenceTimeout(Duration.ofSeconds(15))
@@ -2564,7 +2618,7 @@ public class ProgramSample {
         }
     }
     
-    private ResponseEntity<String> startChoiceRecognition(String target, boolean async) {
+    private ResponseEntity<String> startChoiceRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
@@ -2573,7 +2627,12 @@ public class ProgramSample {
                 .setSourceLocale("en-US")
                 .setVoiceKind(VoiceKind.MALE);
 
-            CommunicationIdentifier participant = new CommunicationUserIdentifier(target);
+            CommunicationIdentifier participant = switch (targetType) {
+                case PSTN -> new PhoneNumberIdentifier(target);
+                case ACS -> new CommunicationUserIdentifier(target);
+                case TEAMS -> new MicrosoftTeamsUserIdentifier(target);
+                default -> throw new IllegalArgumentException("Unsupported target type.");
+            };
 
             CallMediaRecognizeChoiceOptions options = new CallMediaRecognizeChoiceOptions(participant, getChoices())
                 .setInterruptPrompt(false)

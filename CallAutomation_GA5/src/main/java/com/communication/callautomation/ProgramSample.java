@@ -61,8 +61,8 @@ public class ProgramSample {
     
     // Configuration state variables
     private ConfigurationRequest configuration = new ConfigurationRequest();
-    private String acsConnectionString = "endpoint=https://dacsrecordingtest.unitedstates.communication.azure.com/;accesskey=9lMdkVL4KcqJ3YXGgWS9Fxa1CjPwXs63rEMczJ7DsC9mbWR3hlbtJQQJ99BEACULyCpAArohAAAAAZCS58G3";
-    private String cognitiveServicesEndpoint = "https://cognitive-service-waferwire.cognitiveservices.azure.com/";
+    private String acsConnectionString = "";
+    private String cognitiveServicesEndpoint = "";
     private String acsPhoneNumber = "+18772119545";
     private String targetPhoneNumber = "+18332638155";
     private String targetAcsUserId = "8:acs:19ae37ff-1a44-4e19-aade-198eedddbdf2_00000027-b629-e0c6-6a0b-343a0d001e8f";

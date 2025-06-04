@@ -14,12 +14,21 @@ import com.azure.communication.common.MicrosoftTeamsUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.Response;
+import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
+import com.azure.messaging.eventgrid.EventGridEvent;
+import com.azure.messaging.eventgrid.SystemEventNames;
+import com.azure.messaging.eventgrid.systemevents.AcsIncomingCallEventData;
+import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
+import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
+import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.json.JSONObject;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,25 +47,27 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
 public class ProgramSample {
 
     private static final Logger log = LoggerFactory.getLogger(ProgramSample.class);
-    private CallAutomationClient client;
+    // private CallAutomationClient client;
     // private final CallAutomationAsyncClient asyncClient;
     
     // Configuration state variables
     private ConfigurationRequest configuration = new ConfigurationRequest();
-    private String acsConnectionString = "";
-    private String cognitiveServicesEndpoint = "";
-    private String acsPhoneNumber = "";
-    private String targetPhoneNumber = "";
-    private String targetAcsUserId = "";
-    private String callbackUriHost = "";
-    private String websocketUriHost = "";
+    private String acsConnectionString = "endpoint=https://dacsrecordingtest.unitedstates.communication.azure.com/;accesskey=9lMdkVL4KcqJ3YXGgWS9Fxa1CjPwXs63rEMczJ7DsC9mbWR3hlbtJQQJ99BEACULyCpAArohAAAAAZCS58G3";
+    private String cognitiveServicesEndpoint = "https://cognitive-service-waferwire.cognitiveservices.azure.com/";
+    private String acsPhoneNumber = "+18772119545";
+    private String targetPhoneNumber = "+18332638155";
+    private String targetAcsUserId = "8:acs:19ae37ff-1a44-4e19-aade-198eedddbdf2_00000027-b629-e0c6-6a0b-343a0d001e8f";
+    private String callbackUriHost = "https://9430-182-156-148-150.ngrok-free.app";
+    private String websocketUriHost = "wss://09e3-182-156-148-150.ngrok-free.app/ws/server";
 
     private String callConnectionId = "";
     private String recordingId = "";
@@ -65,83 +76,85 @@ public class ProgramSample {
 
     private String confirmLabel = "Confirm";
     private String cancelLabel = "Cancel";
+    
+    private CallAutomationClient client = initClient();
 
-    @Tag(name = "01. Set Configuration", description = "Set Configuration")
-    @PostMapping("/api/setConfigurations")
-    public ResponseEntity<String> setConfigurations(@RequestBody ConfigurationRequest configurationRequest) {
-        try {
-            // Reset variables
-            acsConnectionString = "";
-            cognitiveServicesEndpoint = "";
-            acsPhoneNumber = "";
-            targetPhoneNumber = "";
-            targetAcsUserId = "";
-            callbackUriHost = "";
-            websocketUriHost = "";
+    // @Tag(name = "01. Set Configuration", description = "Set Configuration")
+    // @PostMapping("/api/setConfigurations")
+    // public ResponseEntity<String> setConfigurations(@RequestBody ConfigurationRequest configurationRequest) {
+    //     try {
+    //         // Reset variables
+    //         acsConnectionString = "";
+    //         cognitiveServicesEndpoint = "";
+    //         acsPhoneNumber = "";
+    //         targetPhoneNumber = "";
+    //         targetAcsUserId = "";
+    //         callbackUriHost = "";
+    //         websocketUriHost = "";
 
-            if (configurationRequest != null) {
-                configuration.setAcsConnectionString(
-                    Optional.ofNullable(configurationRequest.getAcsConnectionString())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("AcsConnectionString is required"))
-                );
+    //         if (configurationRequest != null) {
+    //             configuration.setAcsConnectionString(
+    //                 Optional.ofNullable(configurationRequest.getAcsConnectionString())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("AcsConnectionString is required"))
+    //             );
 
-                configuration.setCognitiveServiceEndpoint(
-                    Optional.ofNullable(configurationRequest.getCognitiveServiceEndpoint())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("CognitiveServiceEndpoint is required"))
-                );
+    //             configuration.setCognitiveServiceEndpoint(
+    //                 Optional.ofNullable(configurationRequest.getCognitiveServiceEndpoint())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("CognitiveServiceEndpoint is required"))
+    //             );
 
-                configuration.setAcsPhoneNumber(
-                    Optional.ofNullable(configurationRequest.getAcsPhoneNumber())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("AcsPhoneNumber is required"))
-                );
+    //             configuration.setAcsPhoneNumber(
+    //                 Optional.ofNullable(configurationRequest.getAcsPhoneNumber())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("AcsPhoneNumber is required"))
+    //             );
 
-                configuration.setTargetPhoneNumber(
-                    Optional.ofNullable(configurationRequest.getTargetPhoneNumber())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("TargetPhoneNumber is required"))
-                );
+    //             configuration.setTargetPhoneNumber(
+    //                 Optional.ofNullable(configurationRequest.getTargetPhoneNumber())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("TargetPhoneNumber is required"))
+    //             );
 
-                configuration.setTargetAcsUserId(
-                    Optional.ofNullable(configurationRequest.getTargetAcsUserId())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("TargetAcsUserId is required"))
-                );
+    //             configuration.setTargetAcsUserId(
+    //                 Optional.ofNullable(configurationRequest.getTargetAcsUserId())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("TargetAcsUserId is required"))
+    //             );
 
-                configuration.setCallbackUriHost(
-                    Optional.ofNullable(configurationRequest.getCallbackUriHost())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("CallbackUriHost is required"))
-                );
+    //             configuration.setCallbackUriHost(
+    //                 Optional.ofNullable(configurationRequest.getCallbackUriHost())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("CallbackUriHost is required"))
+    //             );
 
-                configuration.setWebsocketUriHost(
-                    Optional.ofNullable(configurationRequest.getWebsocketUriHost())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("WebsocketUriHost is required"))
-                );
-            }
+    //             configuration.setWebsocketUriHost(
+    //                 Optional.ofNullable(configurationRequest.getWebsocketUriHost())
+    //                     .filter(s -> !s.isEmpty())
+    //                     .orElseThrow(() -> new IllegalArgumentException("WebsocketUriHost is required"))
+    //             );
+    //         }
 
-            // Assign to global variables
-            acsConnectionString = configuration.getAcsConnectionString();
-            cognitiveServicesEndpoint = configuration.getCognitiveServiceEndpoint();
-            acsPhoneNumber = configuration.getAcsPhoneNumber();
-            targetPhoneNumber = configuration.getTargetPhoneNumber();
-            targetAcsUserId = configuration.getTargetAcsUserId();
-            callbackUriHost = configuration.getCallbackUriHost();
-            websocketUriHost = configuration.getWebsocketUriHost();
+    //         // Assign to global variables
+    //         acsConnectionString = configuration.getAcsConnectionString();
+    //         cognitiveServicesEndpoint = configuration.getCognitiveServiceEndpoint();
+    //         acsPhoneNumber = configuration.getAcsPhoneNumber();
+    //         targetPhoneNumber = configuration.getTargetPhoneNumber();
+    //         targetAcsUserId = configuration.getTargetAcsUserId();
+    //         callbackUriHost = configuration.getCallbackUriHost();
+    //         websocketUriHost = configuration.getWebsocketUriHost();
 
-            client = initClient();
-            // asyncClient =  initAsyncClient();
+    //         // client = initClient();
+    //         // asyncClient =  initAsyncClient();
 
-            log.info("Initialized call automation client.");
-            return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.");
-        } catch (Exception e) {
-            log.error("Error configuring: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
-        }
-    }
+    //         log.info("Initialized call automation client.");
+    //         return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.");
+    //     } catch (Exception e) {
+    //         log.error("Error configuring: {}", e.getMessage());
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
+    //     }
+    // }
     
     @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
     @GetMapping("/api/logs")
@@ -200,7 +213,7 @@ public class ProgramSample {
         try {
             List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
             for (CallAutomationEventBase event : events) {
-                String callConnectionId = event.getCallConnectionId();
+                 callConnectionId = event.getCallConnectionId();
                 log.info(
                         "Received call event callConnectionID: {}, serverCallId: {}, CorrelationId: {}, eventType: {}",
                         callConnectionId,
@@ -208,14 +221,44 @@ public class ProgramSample {
                         event.getCorrelationId(),
                         event.getClass().getSimpleName());
 
-                if (event instanceof CreateCallFailed ||
-                    event instanceof ConnectFailed || 
-                    event instanceof PlayFailed || 
-                    event instanceof RecognizeFailed) {
-                    // handle Failed
-                    log.error(reqBody);
-                } else {
-                    // handle Success
+                if (event instanceof CallConnected) {
+                log.info("****************************************");
+                log.info("CORRELATION ID: {}", event.getCorrelationId());
+                log.info("****************************************");
+                log.info("CALL CONNECTION ID: {}", event.getCallConnectionId());
+                log.info("****************************************");
+                var mediaStreamingSubscription = client.getCallConnection(callConnectionId).getCallProperties().getMediaStreamingSubscription();
+                var transcriptionSubscription = client.getCallConnection(callConnectionId).getCallProperties().getTranscriptionSubscription();
+                log.info("MediaStreaming State: {}", mediaStreamingSubscription.getState());
+                log.info("Transcription State: {}", transcriptionSubscription.getState());
+                
+                } else if (event instanceof MediaStreamingStarted) {
+                    MediaStreamingStarted acsEvent = (MediaStreamingStarted) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("MediaSteaming Status: {}", acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    
+                }
+                else if (event instanceof MediaStreamingStopped) {
+                    MediaStreamingStopped acsEvent = (MediaStreamingStopped) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("MediaSteaming Status: {}", acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    
+                }
+                else if (event instanceof MediaStreamingFailed) {
+                    MediaStreamingFailed acsEvent = (MediaStreamingFailed) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("MediaSteaming Status: {}", acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    log.error("Received failed event: {}", acsEvent
+                        .getResultInformation().getMessage());
+                } else if (event instanceof RecognizeCompleted) {
+                    // handle RecognizeCompleted
+                } else if (event instanceof RecognizeFailed) {
+                    // handle RecognizeFailed
+                } else if (event instanceof PlayCompleted || event instanceof PlayFailed) {
+                    // handle PlayCompleted or PlayFailed
+                } else if (event instanceof RecordingStateChanged || event instanceof RecordingStateChanged) {
+                    // log.info("Recording State Changed event received: {}", event.getCallConnectionId());
+                    // log.info("Recording State: {}", getRecordingState());
                 }
             }
             return ResponseEntity.ok().body("");
@@ -225,11 +268,86 @@ public class ProgramSample {
         }
     }
 
+    private void handleIncomingCall(final BinaryData eventData) {
+        JSONObject data = new JSONObject(eventData.toString());
+        String callbackUri;
+        AnswerCallOptions options;
+        String cognitiveServicesUrl;
+        String websocketUrl;
+
+        try {
+            callbackUri = callbackUriHost + "/api/callbacks";
+            // Replace "https://" with "wss://" for WebSocket protocol
+            websocketUrl = websocketUriHost;
+            System.out.println("WebSocket URL: " + websocketUrl);
+            cognitiveServicesUrl = cognitiveServicesEndpoint;
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                    .setCognitiveServicesEndpoint(cognitiveServicesUrl);
+
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.MIXED);
+            mediaStreamingOptions.setTransportUrl(websocketUrl);
+            mediaStreamingOptions.setStartMediaStreaming(true);
+            mediaStreamingOptions.setEnableDtmfTones(true);
+            mediaStreamingOptions.setEnableBidirectional(true);
+            mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_16K_MONO);
+            
+            
+            options = new AnswerCallOptions(data.getString("incomingCallContext"),
+                    callbackUri).setCallIntelligenceOptions(callIntelligenceOptions);
+                options.setMediaStreamingOptions(mediaStreamingOptions);
+                    
+            Response<AnswerCallResult> answerCallResponse = client.answerCallWithResponse(options, Context.NONE);
+
+            // answerCallConnection = answerCallResponse.getValue().getCallConnection();
+
+            log.info("Incoming call answered. Cognitive Services Url: {}\nCallbackUri: {}\nCallConnectionId: {}",
+                    cognitiveServicesUrl,
+                    callbackUri,
+                    answerCallResponse.getValue().getCallConnectionProperties().getCallConnectionId());
+        } catch (Exception e) {
+            log.error("Error getting recording location info {} {}",
+                    e.getMessage(),
+                    e.getCause());
+        }
+    }
+
+    private ResponseEntity<SubscriptionValidationResponse> handleSubscriptionValidation(final BinaryData eventData) {
+        try {
+            log.info("Received Subscription Validation Event from Incoming Call API endpoint");
+            SubscriptionValidationEventData subscriptioneventData = eventData
+                    .toObject(SubscriptionValidationEventData.class);
+            SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();
+            responseData.setValidationResponse(subscriptioneventData.getValidationCode());
+            return ResponseEntity.ok().body(responseData);
+        } catch (Exception e) {
+            log.error("Error at subscription validation event {} {}",
+                    e.getMessage(),
+                    e.getCause());
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+
+     @PostMapping(path = "/api/incomingCall")
+    public ResponseEntity<SubscriptionValidationResponse> recordinApiEventGridEvents(
+            @RequestBody final String reqBody) {
+        List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+        for (EventGridEvent eventGridEvent : events) {
+            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
+                return handleSubscriptionValidation(eventGridEvent.getData());
+            } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
+                handleIncomingCall(eventGridEvent.getData());
+            }
+        }
+        return ResponseEntity.ok().body(null);
+    }
+
     // @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
     // @PostMapping("/api/events")
-    // public ResponseEntity<Object> handleEvents(@RequestBody EventGridEvent[] eventGridEvents) {
+    // public ResponseEntity<Object> handleEvents(@RequestBody final String reqBody) {
     //     try {
-    //         for (EventGridEvent eventGridEvent : eventGridEvents) {
+    //         List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+    //         for (EventGridEvent eventGridEvent : events) {
     //             log.info("Recording event received: {}", eventGridEvent.getEventType());
 
     //             // Try to parse system event data
@@ -253,7 +371,7 @@ public class ProgramSample {
     //                 AcsIncomingCallEventData incomingCallEventData =
     //                         (AcsIncomingCallEventData) eventData;
 
-    //                 callerId = incomingCallEventData.getFromCommunicationIdentifier().getRawId();
+    //                 String callerId = incomingCallEventData.getFromCommunicationIdentifier().getRawId();
     //                 System.out.println("Caller Id--> " + callerId);
 
     //                 URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
@@ -915,19 +1033,19 @@ public class ProgramSample {
         }
     }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
-    // @PostMapping("/addPstnParticipantAsync")
-    // public ResponseEntity<Object> addPstnParticipantAsync(@RequestParam String pstnParticipant) {
-    //     CallConnection  callConnectionService = getConnection();
-    //     CallInvite callInvite = new CallInvite(
-    //             new PhoneNumberIdentifier(pstnParticipant),
-    //             new PhoneNumberIdentifier("targetAcsUserId")); // Replace with actual ACS number
-    //     AddParticipantOptions options = new AddParticipantOptions(callInvite);
-    //     options.setOperationContext("addPstnUserContext");
-    //     options.setInvitationTimeout(Duration.ofSeconds(15));
-    //     Object result = callConnectionService.addParticipantWithResponse(options,Context.NONE);
-    //     return ResponseEntity.ok(result);
-    // }
+    @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    @PostMapping("/addPstnParticipantAsync")
+    public ResponseEntity<Object> addPstnParticipantAsync() {
+        CallConnection  callConnectionService = getConnection();
+        CallInvite callInvite = new CallInvite(
+                new PhoneNumberIdentifier(targetPhoneNumber),
+                new PhoneNumberIdentifier(acsPhoneNumber)); // Replace with actual ACS number
+        AddParticipantOptions options = new AddParticipantOptions(callInvite);
+        options.setOperationContext("addPstnUserContext");
+        options.setInvitationTimeout(Duration.ofSeconds(15));
+        Object result = callConnectionService.addParticipantWithResponse(options,Context.NONE);
+        return ResponseEntity.ok(result);
+    }
 
     // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
     // @PostMapping("/addPstnParticipant")
@@ -941,12 +1059,12 @@ public class ProgramSample {
     // }
 
     @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
-    @PostMapping("/addParticipantAsync")
-    public ResponseEntity<String> addParticipantAsync(@RequestParam String targetParticipant) {
+    @PostMapping("/addACSParticipantAsync")
+    public ResponseEntity<String> addParticipantAsync() {
         try {
-            CallInvite callInvite = new CallInvite(new CommunicationUserIdentifier(targetParticipant));
+            CallInvite callInvite = new CallInvite(new CommunicationUserIdentifier(targetAcsUserId));
             AddParticipantOptions options = new AddParticipantOptions(callInvite);
-            options.setOperationContext("addUserContext");
+            options.setOperationContext("addACSUserContext");
             options.setInvitationTimeout(Duration.ofSeconds(15));
 
             CallConnection callConnectionService = getConnection();
@@ -1624,42 +1742,39 @@ public class ProgramSample {
         }
     }
 
-    // @Tag(name = "Create Group Call APIs", description = "Create Group Call APIs")
-    // @PostMapping("/createGroupCallAsync")
-    // public ResponseEntity<String> createGroupCallAsync(@RequestParam String targetPhoneNumber) {
-    //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(targetAcsUserId);
+    @Tag(name = "Create Group Call APIs", description = "Create Group Call APIs")
+    @PostMapping("/createGroupCallAsync")
+    public ResponseEntity<String> createGroupCallAsync(@RequestParam String pstnTarget) {
+        PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+        PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(acsPhoneNumber);
 
-    //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-    //     String websocketUri = callbackUriHost.replace("https", "wss") + "/ws";
+        URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+        // String websocketUri = callbackUriHost.replace("https", "wss") + "/ws";
 
-    //     MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(
-    //             websocketUri,
-    //             MediaStreamingTransport.WEBSOCKET,
-    //             MediaStreamingContent.AUDIO,
-    //             MediaStreamingAudioChannel.UNMIXED,
-    //             false
-    //     );
+        MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
+        // mediaStreamingOptions.setTransportUrl(websocketUriHost);
+        mediaStreamingOptions.setTransportUrl("https://abc.com");
+        mediaStreamingOptions.setStartMediaStreaming(true);
+        // TranscriptionOptions transcriptionOptions = new TranscriptionOptions(
+        //         websocketUri,
+        //         TranscriptionTransport.WEBSOCKET,
+        //         "en-us",
+        //         false
+        // );
 
-    //     TranscriptionOptions transcriptionOptions = new TranscriptionOptions(
-    //             websocketUri,
-    //             TranscriptionTransport.WEBSOCKET,
-    //             "en-us",
-    //             false
-    //     );
+        List<CommunicationIdentifier> targets = List.of(target);
 
-    //     List<CommunicationIdentifier> targets = List.of(target);
+        CreateGroupCallOptions createGroupCallOptions = new CreateGroupCallOptions(targets, callbackUri.toString())
+                .setCallIntelligenceOptions(new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint))
+                .setSourceCallIdNumber(sourceCallerId)
+                .setMediaStreamingOptions(mediaStreamingOptions);
+                // .setTranscriptionOptions(transcriptionOptions);
 
-    //     CreateGroupCallOptions createGroupCallOptions = new CreateGroupCallOptions(targets, callbackUri.toString())
-    //             .setCallIntelligenceOptions(new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint))
-    //             .setSourceCallIdNumber(sourceCallerId)
-    //             .setMediaStreamingOptions(mediaStreamingOptions)
-    //             .setTranscriptionOptions(transcriptionOptions);
-
-    //     Response<CreateCallResult> result = client.createGroupCallWithResponse(createGroupCallOptions, Context.NONE);
-    //     String callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
-    //     log.info("Created async group call with connection id: {}", callConnectionId);
-    // }
+        Response<CreateCallResult> result = client.createGroupCallWithResponse(createGroupCallOptions, Context.NONE);
+        String callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+        log.info("Created async group call with connection id: {}", callConnectionId);
+        return ResponseEntity.ok("Created group call with connection id: " + callConnectionId);
+    }
 
     // @Tag(name = "Create Group Call APIs", description = "Create Group Call APIs")
     // @PostMapping("/createGroupCall")
@@ -2074,7 +2189,8 @@ public class ProgramSample {
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, "en-US");
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions("en-US");
+            transcriptionOptions.setTransportUrl(websocketUri);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setTranscriptionOptions(transcriptionOptions);
 
@@ -2195,12 +2311,50 @@ public class ProgramSample {
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-            String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
-
+            // String websocketUri = callbackUri.toString().replaceFirst("https", "wss") + "/ws";
+            String websocketUri = websocketUriHost;
+            log.info("WEBSOCKET URL:-->"+websocketUri);
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(websocketUri, MediaStreamingAudioChannel.UNMIXED);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
+            mediaStreamingOptions.setTransportUrl(websocketUri);
+            mediaStreamingOptions.setStartMediaStreaming(true);
+            mediaStreamingOptions.setEnableDtmfTones(true);
+            mediaStreamingOptions.setEnableBidirectional(true);
+            mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_24K_MONO);
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+            createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
+
+            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created async call with connection id: " + callConnectionId);
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
+    }
+     @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/createPSTNCallWithMediaStreamingAsync")
+    public ResponseEntity<String> createPSTNCallWithMediaStreamingAsync() {
+        try {
+            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            PhoneNumberIdentifier source = new PhoneNumberIdentifier(acsPhoneNumber);
+            CallInvite callInvite = new CallInvite(target,source);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+            // String websocketUri = callbackUri.toString().replaceFirst("https", "wss") + "/ws";
+            String websocketUri = websocketUriHost;
+            log.info("WEBSOCKET URL:-->"+websocketUri);
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.MIXED);
+            mediaStreamingOptions.setTransportUrl(websocketUri);
+            mediaStreamingOptions.setStartMediaStreaming(true);
+            mediaStreamingOptions.setEnableDtmfTones(true);
+            mediaStreamingOptions.setEnableBidirectional(true);
+            mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_16K_MONO);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
 
@@ -2219,11 +2373,11 @@ public class ProgramSample {
     public ResponseEntity<String> startMediaStreamingAsync() {
         try {
             StartMediaStreamingOptions mediaStreamingOptions = new StartMediaStreamingOptions();
-
+            mediaStreamingOptions.setOperationContext("StartMediaStreamingContext");
             CallMedia callMedia = getCallMedia();
             callMedia.startMediaStreamingWithResponse(mediaStreamingOptions, Context.NONE);
 
-            log.info("Started media streaming asynchronously for call: {}", callConnectionId);
+            // log.info("Started media streaming asynchronously for call: {}", callConnectionId);
             return ResponseEntity.ok("Media streaming started successfully.");
         } catch (Exception e) {
             log.error("Error starting media streaming asynchronously: {}", e.getMessage());

@@ -58,4 +58,13 @@ public class WebSocketHandler extends TextWebSocketHandler {
         // Send an echo response back to the client
         session.sendMessage(new TextMessage("Echo: " + payload));
     }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        String token = (String) session.getAttributes().get("jwt");
+        Claims claims = JwtUtil.getClaims(token);
+        String username = claims.getSubject();
+        System.out.println("Authenticated user: " + username);
+    }
+
 }

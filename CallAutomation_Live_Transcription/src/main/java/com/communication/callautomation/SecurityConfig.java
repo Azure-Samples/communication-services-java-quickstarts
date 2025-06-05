@@ -6,6 +6,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    @Value("ACS resource ID")
+    private String audience;
+
+    @Value("https://acscallautomation.communication.azure.com")
+    private String issuer;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http

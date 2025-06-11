@@ -3,7 +3,6 @@ package com.communication.callautomation;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.socket.TextMessage;
-import com.azure.communication.callautomation.StreamingDataParser;
 import com.azure.communication.callautomation.models.StreamingData;
 import com.azure.communication.callautomation.models.TranscriptionData;
 import com.azure.communication.callautomation.models.TranscriptionMetadata;
@@ -17,7 +16,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         System.out.println("Received message: " + payload);
 
         // Parse the message into StreamingData (custom data parsing logic)
-        StreamingData data = StreamingDataParser.parse(payload);
+        StreamingData data = StreamingData.parse(payload);
 
         // Handle TranscriptionMetadata
         if (data instanceof TranscriptionMetadata) {
@@ -44,10 +43,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     ? transcriptionData.getParticipant().getRawId()
                     : "";
             System.out.println("PARTICIPANT:-->" + participant);
-            System.out.println("RESULT STATUS:-->" + transcriptionData.getResultStatus());
+            System.out.println("RESULT STATUS:-->" + transcriptionData.getResultState());
 
             // Print word data (example of transcribed words)
-            for (WordData word : transcriptionData.getTranscripeWords()) {
+            for (WordData word : transcriptionData.getTranscribedWords()) {
                 System.out.println("TEXT:-->" + word.getText());
                 System.out.println("OFFSET:-->" + word.getOffset());
                 System.out.println("DURATION:-->" + word.getDuration());

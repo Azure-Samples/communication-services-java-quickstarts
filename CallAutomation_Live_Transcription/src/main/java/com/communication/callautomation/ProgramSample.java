@@ -300,10 +300,10 @@ public class ProgramSample {
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                     .setCognitiveServicesEndpoint(appConfig.getCognitiveServicesUrl());
             TranscriptionOptions transcriptionOptions = new TranscriptionOptions(
-                    websocketUrl,
-                    TranscriptionTransport.WEBSOCKET,
-                    appConfig.getLocale(),
-                    true);
+                appConfig.getLocale(),
+                StreamingTransport.WEBSOCKET)
+                .setTransportUrl(websocketUrl)
+                .setStartTranscription(true);
             options = new AnswerCallOptions(data.getString(INCOMING_CALL_CONTEXT),
                     callbackUri).setCallIntelligenceOptions(callIntelligenceOptions)
                     .setTranscriptionOptions(transcriptionOptions);

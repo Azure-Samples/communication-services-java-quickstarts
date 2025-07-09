@@ -10,13 +10,13 @@ server:
   port: 8080
 
 applicationinsights:
-  connection-string: "InstrumentationKey=0132d5b9-d016-4e4b-9229-3718dfe57723;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=362c714c-5715-4881-8491-b70fbdb5513e"
+  connection-string: ""
 
 acs:
-  connectionstring: "endpoint=https://dacsrecordingtest.unitedstates.communication.azure.com/;accesskey=FWMCjVWSbPyivHtGZ3Kph0XKvbMowgHoWYekUDXcfZhzrVdc0l1gJQQJ99ALACULyCpAArohAAAAAZCSNRZe"
-  basecallbackuri: "https://8kvlj5f1.inc1.devtunnels.ms:8080"
-  callerphonenumber: "+1425XXXAAAA"
-  targetphonenumber: "+1425XXXAAAA"
-  cognitiveServiceEndpoint: "https://cognitive-service-waferwire.cognitiveservices.azure.com/"
+  connectionstring: ""
+  basecallbackuri: ""
+  callerphonenumber: ""
+  targetphonenumber: ""
+  cognitiveServiceEndpoint: ""
   targetTeamsUserId: ""
   # (OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870"

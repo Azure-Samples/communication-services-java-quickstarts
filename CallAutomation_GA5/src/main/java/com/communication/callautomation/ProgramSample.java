@@ -396,43 +396,55 @@ public class ProgramSample {
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
     @PostMapping("/outboundCallToPstnAsync")
     public ResponseEntity<String> outboundCallToPstnAsync() {
-        PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-        PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
+        try {
+            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
 
-        URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
-        CallInvite callInvite = new CallInvite(target, caller);
-        CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
-        CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-            .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-        createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+            CallInvite callInvite = new CallInvite(target, caller);
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
 
-        // Make async call and block to get the result
-        Response<CreateCallResult> response = client.createCallWithResponse(createCallOptions, Context.NONE);
+            log.info("Creating async call to PSTN with target: {}, caller: {}, callbackUri: {}",
+                target.getRawId(), caller.getRawId(), callbackUri);
+            // Make async call and block to get the result
+            Response<CreateCallResult> response = client.createCallWithResponse(createCallOptions, Context.NONE);
 
-        if (response != null && response.getValue() != null) {
-            callConnectionId = response.getValue().getCallConnectionProperties().getCallConnectionId();
-            log.info("Created async pstn call with connection id: " + callConnectionId);
-        } else {
-            log.error("Failed to create call. Response or value was null.");
+            if (response != null && response.getValue() != null) {
+                callConnectionId = response.getValue().getCallConnectionProperties().getCallConnectionId();
+                log.info("Created async pstn call with connection id: " + callConnectionId);
+            } else {
+                log.error("Failed to create call. Response or value was null.");
+            }
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
         }
-        return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
     }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
     @PostMapping("/outboundCallToPstn")
     public ResponseEntity<String> outboundCallToPstn() {
-        PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-        PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
+        try {
+            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);
 
-        URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-        CallInvite callInvite = new CallInvite(target, caller);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+            CallInvite callInvite = new CallInvite(target, caller);
 
-        // ✅ Convert URI to String
-        CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
-        callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
-        log.info("Created call with connection id: " + callConnectionId);  
-        return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+            // ✅ Convert URI to String
+            CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
+            callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
+            log.info("Created call with connection id: " + callConnectionId);  
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
     }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
@@ -1034,8 +1046,8 @@ public class ProgramSample {
             callConnectionService.removeParticipant(new CommunicationUserIdentifier(targetParticipant));
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Error removing participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            log.error("Error removing participant: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to remove participant.");
         }
     }
 
@@ -2074,7 +2086,7 @@ public class ProgramSample {
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, "en-US");
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, StreamingTransport.WEBSOCKET);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setTranscriptionOptions(transcriptionOptions);
 
@@ -2153,24 +2165,24 @@ public class ProgramSample {
         }
     }
 
-    @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
-    @PostMapping("/updateTranscriptionAsync")
-    public ResponseEntity<String> updateTranscriptionAsync(@RequestParam String newLocale) {
-        try {
-            UpdateTranscriptionOptions transcriptionOptions = new UpdateTranscriptionOptions()
-                    .setLocale(newLocale)
-                    .setOperationContext("transcriptionContext");
-            // Get CallMedia and update transcription asynchronously
-            CallMedia callMedia = getCallMedia();
-            callMedia.updateTranscriptionWithResponse(transcriptionOptions, Context.NONE);
+    // @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
+    // @PostMapping("/updateTranscriptionAsync")
+    // public ResponseEntity<String> updateTranscriptionAsync(@RequestParam String newLocale) {
+    //     try {
+    //         UpdateTranscriptionOptions transcriptionOptions = new UpdateTranscriptionOptions()
+    //                 .setLocale(newLocale)
+    //                 .setOperationContext("transcriptionContext");
+    //         // Get CallMedia and update transcription asynchronously
+    //         CallMedia callMedia = getCallMedia();
+    //         callMedia.updateTranscriptionWithResponse(transcriptionOptions, Context.NONE);
 
-            log.info("Updated transcription asynchronously.");
-            return ResponseEntity.ok("Transcription updated successfully.");
-        } catch (Exception e) {
-            log.error("Error updating transcription asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update transcription asynchronously.");
-        }
-    }
+    //         log.info("Updated transcription asynchronously.");
+    //         return ResponseEntity.ok("Transcription updated successfully.");
+    //     } catch (Exception e) {
+    //         log.error("Error updating transcription asynchronously: {}", e.getMessage());
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update transcription asynchronously.");
+    //     }
+    // }
 
     @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
     @PostMapping("/updateTranscription")
@@ -2200,7 +2212,8 @@ public class ProgramSample {
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
                 .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(websocketUri, MediaStreamingAudioChannel.UNMIXED);
+                
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED, StreamingTransport.WEBSOCKET);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
 
@@ -2671,9 +2684,19 @@ public class ProgramSample {
     
     private CallAutomationClient initClient() {
         try {
-            return new CallAutomationClientBuilder()
+            if (acsConnectionString == null || acsConnectionString.trim().isEmpty()) {
+                log.error("ACS Connection String is null or empty");
+                return null;
+            }
+            
+            log.info("Initializing Call Automation Client with connection string length: {}", acsConnectionString.length());
+            
+            var client = new CallAutomationClientBuilder()
+                    .endpoint("https://uswc-02.sdf.pma.teams.microsoft.com")
                     .connectionString(acsConnectionString)
                     .buildClient();
+            log.info("Call Automation Client initialized successfully.");
+            return client;
         } catch (NullPointerException e) {
             log.error("Please verify if Application config is properly set up");
             return null;

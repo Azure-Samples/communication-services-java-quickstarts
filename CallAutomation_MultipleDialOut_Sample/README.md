@@ -4,7 +4,7 @@
 
 # Call Automation - Multiple Dial Out Sample
 
-In this sample, we cover how you can use Call Automation SDK
+In this sample, we cover how you can use Call Automation SDK Multiple Dial Out.
 
 ### Setup and host your Azure DevTunnel
 
@@ -24,3 +24,16 @@ devtunnel host
     - Execute the app: mvn exec:java
 - Access the Swagger UI at http://localhost:8080/swagger-ui.html
     - Try the GET and POST methods to run the Sample Application
+
+### Configuring settings
+
+In the swagger app, provide these values for the setConfiguration endpoint to configure settings
+
+1. `acsConnectionString`: Azure Communication Service resource's connection string.
+2. `acsInboundPhoneNumber`: Inbound Phone number associated with the Azure Communication Service resource. For e.g. "+1425XXXAAAA"
+3. `acsOutboundPhoneNumber`: Outbound Phone number associated with the Azure Communication Service resource. For e.g. "+1425XXXAAAA"
+4. `userPhoneNumber`: User phone number to add in the call. For e.g. "+1425XXXAAAA"
+5. `acsTestIdentity2`: An ACS Communication Identifier to add in the call.
+6. `acsTestIdentity3`: Another ACS Communication Identifier to add in the call.
+7. `callbackUriHost`: Base url of the app. (For local development replace the dev tunnel url)
+8. `pmaEndpoint` : PMA service endpoint.

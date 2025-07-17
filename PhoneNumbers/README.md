@@ -12,7 +12,7 @@ products:
 
 # Manage Phone Numbers
 
-For full instructions on how to build this code sample from scratch, look at [Quickstart: Manage Phone Numbers](https://docs.microsoft.com/azure/communication-services/quickstarts/telephony-sms/get-phone-number?pivots=programming-language-java)
+For full instructions on how to build this code sample from scratch, look at [Quickstart: Manage Phone Numbers](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/telephony/get-phone-number?tabs=windows&pivots=programming-language-java)
 
 ## Prerequisites
 
@@ -40,4 +40,4 @@ For full instructions on how to build this code sample from scratch, look at [Qu
 
 1. Navigate to the directory containing the pom.xml file and compile the project by using command `mvn compile`.
 2. Then, build the package using command `mvn package`.
-3. Run the command to execute the app `mvn exec:java -Dexec.mainClass="com.communication.quickstart.App" -Dexec.cleanupDaemonThreads=false`.
+3. Run the command to execute the app `mvn exec:java -D"exec.mainClass=com.communication.quickstart.App" -D"exec.cleanupDaemonThreads=false"`.

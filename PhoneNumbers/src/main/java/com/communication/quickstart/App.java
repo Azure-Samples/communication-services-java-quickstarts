@@ -62,10 +62,10 @@ public class App
 		// Update Phone Number Capabilities
 		
 		PhoneNumberCapabilities updatecapabilities = new PhoneNumberCapabilities();
-		capabilities
+		updatecapabilities
 			.setCalling(PhoneNumberCapabilityType.INBOUND)
 			.setSms(PhoneNumberCapabilityType.INBOUND_OUTBOUND);
-		PurchasedPhoneNumber updatephoneNumber = phoneNumberClient.beginUpdatePhoneNumberCapabilities("<Phone Number>", updatecapabilities, Context.NONE).getFinalResult();
+		PurchasedPhoneNumber updatephoneNumber = phoneNumberClient.beginUpdatePhoneNumberCapabilities(phoneNumber.getPhoneNumber(), updatecapabilities, Context.NONE).getFinalResult();
 
 		System.out.println("Phone Number Calling capabilities: " + updatephoneNumber.getCapabilities().getCalling()); //Phone Number Calling capabilities: inbound
 		System.out.println("Phone Number SMS capabilities: " + updatephoneNumber.getCapabilities().getSms()); //Phone Number SMS capabilities: inbound+outbound		
@@ -73,7 +73,7 @@ public class App
 		
 		// Release Phone Number
 		PollResponse<PhoneNumberOperation> releaseResponse =
-			phoneNumberClient.beginReleasePhoneNumber("<Phone Number>", Context.NONE).waitForCompletion();
+			phoneNumberClient.beginReleasePhoneNumber(phoneNumber.getPhoneNumber(), Context.NONE).waitForCompletion();
 		System.out.println("Release phone number operation is: " + releaseResponse.getStatus());		
 		
 		

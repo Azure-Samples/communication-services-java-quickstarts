@@ -1,11 +1,13 @@
 package com.communication.email;
 import java.time.Duration;
+import java.util.Arrays;
 
 import com.azure.communication.email.EmailClientBuilder;
 import com.azure.communication.email.EmailClient;
 import com.azure.communication.email.models.EmailSendResult;
 import com.azure.communication.email.models.EmailSendStatus;
 import com.azure.communication.email.models.EmailMessage;
+import com.azure.communication.email.models.EmailAddress;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.core.util.polling.LongRunningOperationStatus;
 import com.azure.core.util.polling.PollResponse;
@@ -31,7 +33,7 @@ public class App
             .setToRecipients(recipientAddress, recipientAddress)
             .setCcRecipients(recipientAddress)
             .setBccRecipients(recipientAddress)
-            .setReplyTo(replyToAddress)
+            .setReplyTo(Arrays.asList(new EmailAddress(replyToAddress)))
             .setSubject("Test email from Java Sample")
             .setBodyPlainText("This is plaintext body of test email.")
             .setBodyHtml("<html><h1>This is the html body of test email.</h1></html>");

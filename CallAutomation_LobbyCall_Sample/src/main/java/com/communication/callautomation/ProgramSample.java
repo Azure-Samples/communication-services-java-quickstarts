@@ -404,7 +404,7 @@ public class ProgramSample {
                 return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(msgLog.toString());
             }
         } catch (Exception ex) {
-            System.err.println("Error getting participants for call " + lobbyCallConnectionId + ": " + ex.getMessage());
+            log.error("Error getting participants for call " + lobbyCallConnectionId + ": " + ex.getMessage());
             return ResponseEntity.badRequest().body(
                 String.format("{\"Error\":\"%s\",\"CallConnectionId\":\"%s\"}", ex.getMessage(), lobbyCallConnectionId)
             );

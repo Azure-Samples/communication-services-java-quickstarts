@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: CallAutomation_LobbyCallSample
+
+springdoc:
+  swagger-ui:
+    tagsSorter: alpha
+
+server:
+  port: 8080
+
+applicationinsights:
+  connection-string: ""
+
+acs:
+  acsConnectionString: ""
+  cognitiveServiceEndpoint: ""
+  callbackUriHost: ""
+  pmaEndpoint: ""
+  acsGeneratedId: ""
+  webSocketToken: ""

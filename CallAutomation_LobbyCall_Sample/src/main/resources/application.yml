@@ -6,19 +6,31 @@ springdoc:
   swagger-ui:
     tagsSorter: alpha
     operationsSorter: alpha
+    tryItOutEnabled: true
+    supportedSubmitMethods: ["get", "post", "put", "delete", "patch"]
+    showCommonExtensions: false
+    showExtensions: false
+  api-docs:
+    enabled: true
+  show-actuator: false
 
 server:
-  port: 8443  # HTTPS primary port
+  port: 8443  # Primary port - accepts both HTTP and HTTPS
   ssl:
-    enabled: true
-    key-store: classpath:keystore.p12
-    key-store-password: password
-    key-store-type: PKCS12
-    key-alias: callautomation
-    enabled-protocols: TLSv1.2,TLSv1.3
-  # HTTP port for additional connector
-  http:
-    port: 8080
+    enabled: false  # Disable SSL to allow HTTP requests from dev tunnels
+  # Forward headers for reverse proxy support (dev tunnels)
+  forward-headers-strategy: framework
+  # Tomcat configuration for reverse proxy and dev tunnels
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+      protocol-header-https-value: https
+
+# Dev tunnel configuration
+devtunnel:
+  url: https://2zm3fjdh-8443.inc1.devtunnels.ms  # Set via environment variable or leave empty for local only
+  enabled: true  # Set to true when using dev tunnels
 
 applicationinsights:
   connection-string: ""

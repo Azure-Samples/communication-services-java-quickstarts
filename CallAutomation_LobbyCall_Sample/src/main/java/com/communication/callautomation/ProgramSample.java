@@ -431,34 +431,13 @@ public class ProgramSample {
             }
 
             log.info("Initialized call automation client.");
-            return ResponseEntity.ok("Configuration set successfully. Initialized call automation client. WebSocket endpoint: ws://localhost:8080/ws/" + webSocketToken);
+            return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.\n" +
+                    "WebSocket endpoints available:\n" +
+                    "- HTTP: ws://localhost:8080/ws/" + webSocketToken + "\n" +
+                    "- HTTPS: wss://localhost:8443/ws/" + webSocketToken);
         } catch (Exception e) {
             log.error("Error configuring: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
-        }
-    }
-
-    @Tag(name = "STEP 01. Get WebSocket Info", description = "Get current WebSocket endpoint information")
-    @GetMapping("/api/getWebSocketInfo")
-    public ResponseEntity<String> getWebSocketInfo() {
-        try {
-            String currentToken = webSocketConfig != null ? webSocketConfig.getCurrentSocketToken() : "not-configured";
-            String wsEndpoint = "/ws/" + currentToken;
-            String response = String.format(
-                "{\n" +
-                "  \"webSocketToken\": \"%s\",\n" +
-                "  \"webSocketEndpoint\": \"%s\",\n" +
-                "  \"httpWebSocketUrl\": \"ws://localhost:8080%s\",\n" +
-                "  \"httpsWebSocketUrl\": \"wss://localhost:8443%s\",\n" +
-                "  \"httpUrl\": \"http://localhost:8080\",\n" +
-                "  \"httpsUrl\": \"https://localhost:8443\"\n" +
-                "}", 
-                currentToken, wsEndpoint, wsEndpoint, wsEndpoint
-            );
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response);
-        } catch (Exception e) {
-            log.error("Error getting WebSocket info: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get WebSocket information.");
         }
     }
 
@@ -501,10 +480,10 @@ public class ProgramSample {
     @GetMapping("/getParticipants")
     public ResponseEntity<String> getParticipants() {
         StringBuilder msgLog = new StringBuilder();
-        msgLog.append("\n~~~~~~~~~~~~ /GetParticipants/").append(lobbyCallConnectionId).append(" ~~~~~~~~~~~~\n");
+        msgLog.append("\n~~~~~~~~~~~~ /GetParticipants/").append(targetCallConnectionId).append(" ~~~~~~~~~~~~\n");
 
         try {
-            CallConnection callConnection = acsClient.getCallConnection(lobbyCallConnectionId);
+            CallConnection callConnection = acsClient.getCallConnection(targetCallConnectionId);
             PagedIterable<CallParticipant> participantsResult = callConnection.listParticipants();
             List<CallParticipant> participants = participantsResult.stream().collect(Collectors.toList());
 
@@ -540,9 +519,9 @@ public class ProgramSample {
                 return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(msgLog.toString());
             }
         } catch (Exception ex) {
-            log.error("Error getting participants for call " + lobbyCallConnectionId + ": " + ex.getMessage());
+            log.error("Error getting participants for call " + targetCallConnectionId + ": " + ex.getMessage());
             return ResponseEntity.badRequest().body(
-                String.format("{\"Error\":\"%s\",\"CallConnectionId\":\"%s\"}", ex.getMessage(), lobbyCallConnectionId)
+                String.format("{\"Error\":\"%s\",\"CallConnectionId\":\"%s\"}", ex.getMessage(), targetCallConnectionId)
             );
         }
     }

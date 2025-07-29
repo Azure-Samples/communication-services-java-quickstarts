@@ -5,9 +5,20 @@ spring:
 springdoc:
   swagger-ui:
     tagsSorter: alpha
+    operationsSorter: alpha
 
 server:
-  port: 8080
+  port: 8443  # HTTPS primary port
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: password
+    key-store-type: PKCS12
+    key-alias: callautomation
+    enabled-protocols: TLSv1.2,TLSv1.3
+  # HTTP port for additional connector
+  http:
+    port: 8080
 
 applicationinsights:
   connection-string: ""

@@ -10,9 +10,7 @@ public class ConfigurationRequest {
     private String acsConnectionString;
     private String cognitiveServiceEndpoint;
     private String callbackUriHost;
-    private String pmaEndpoint;
-    private String acsGeneratedId;
-    private String webSocketToken;
+    private String acsGeneratedIdForTargetCallSender;
 
     // Getters and Setters
     public void setAcsConnectionString(String acsConnectionString) {
@@ -27,15 +25,7 @@ public class ConfigurationRequest {
         this.callbackUriHost = callbackUriHost;
     }
 
-    public void setPmaEndpoint(String pmaEndpoint) {
-        this.pmaEndpoint = pmaEndpoint;
-    }
-
-    public void setAcsGeneratedId(String acsGeneratedId) {
-        this.acsGeneratedId = acsGeneratedId;
-    }
-
-    public void setWebSocketToken(String webSocketToken) {
-        this.webSocketToken = webSocketToken;
+    public void setAcsGeneratedIdForTargetCallSender(String acsGeneratedIdForTargetCallSender) {
+        this.acsGeneratedIdForTargetCallSender = acsGeneratedIdForTargetCallSender;
     }
 }

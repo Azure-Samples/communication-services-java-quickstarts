@@ -29,7 +29,7 @@ server:
 
 # Dev tunnel configuration
 devtunnel:
-  url: https://2zm3fjdh-8443.inc1.devtunnels.ms  # Set via environment variable or leave empty for local only
+  url: # Set via environment variable or leave empty for local only
   enabled: true  # Set to true when using dev tunnels
 
 applicationinsights:

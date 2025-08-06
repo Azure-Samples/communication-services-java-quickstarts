@@ -14,27 +14,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Autowired
     private LobbyWebSocketHandler lobbyWebSocketHandler;
     
-    private WebSocketHandlerRegistry currentRegistry;
-    private String currentSocketToken = "default";
-
     @Override
     public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
-        this.currentRegistry = registry;
         // Initial registration with default token
-        registry.addHandler(lobbyWebSocketHandler, "/ws/" + currentSocketToken).setAllowedOrigins("*");
-    }
-    
-    public void updateWebSocketEndpoint(String newToken) {
-        if (newToken != null && !newToken.isEmpty() && !newToken.equals(currentSocketToken)) {
-            this.currentSocketToken = newToken;
-            // Re-register with new token
-            if (currentRegistry != null) {
-                currentRegistry.addHandler(lobbyWebSocketHandler, "/ws/" + newToken).setAllowedOrigins("*");
-            }
-        }
-    }
-    
-    public String getCurrentSocketToken() {
-        return currentSocketToken;
+        registry.addHandler(lobbyWebSocketHandler, "/ws").setAllowedOrigins("*");
     }
 }

@@ -39,11 +39,8 @@ import java.util.Comparator;
 @RestController
 public class ProgramSample {
 
-    private static final Logger log = LoggerFactory.getLogger(ProgramSample.class);
     private CallAutomationClient acsClient;
-    
-    @Autowired
-    private WebSocketConfig webSocketConfig;
+    private static final Logger log = LoggerFactory.getLogger(ProgramSample.class);
     
     @Autowired
     private LobbyWebSocketHandler lobbyWebSocketHandler;
@@ -53,9 +50,12 @@ public class ProgramSample {
     private String acsConnectionString = "";
     private String cognitiveServiceEndpoint = "";
     private String callbackUriHost = "";
-    private String pmaEndpoint;
-    private String acsGeneratedId = "";
-    private String webSocketToken = "";
+    private String acsGeneratedIdForTargetCallSender = "";
+    private String acsGeneratedIdForTargetCallReceiver = "";
+    private String acsGeneratedIdForLobbyCallReceiver = "";
+
+    private String textToPlayToLobbyUser = "You are currently in a lobby call, we will notify the admin that you are waiting.";
+    private String confirmMessageToTargetCall = "A user is waiting in lobby, do you want to add the lobby user to your call?";
 
     private String  lobbyCallConnectionId = "";
     private String  targetCallConnectionId = "";
@@ -67,11 +67,6 @@ public class ProgramSample {
         if (lobbyWebSocketHandler != null) {
             lobbyWebSocketHandler.setProgramSample(this);
         }
-    }
-
-    // Getter method for webSocketToken
-    public String getWebSocketToken() {
-        return webSocketToken;
     }
 
     // Method to handle WebSocket messages (called by LobbyWebSocketHandler)
@@ -96,15 +91,14 @@ public class ProgramSample {
                 CommunicationIdentifier participantToMove;
                 if (lobbyCallerId.startsWith("+")) {
                     participantToMove = new PhoneNumberIdentifier(lobbyCallerId);
-                } else {
+                } else if (lobbyCallerId.startsWith("8:acs")) {
                     participantToMove = new CommunicationUserIdentifier(lobbyCallerId);
+                } else {
+                    log.error("Invalid participant identifier");
+                    return;
                 }
 
-                MoveParticipantsOptions options = new MoveParticipantsOptions(
-                        java.util.Collections.singletonList(participantToMove),
-                        lobbyCallConnectionId
-                );
-                targetConnection.moveParticipants(options);
+                targetConnection.moveParticipants(java.util.Collections.singletonList(participantToMove), lobbyCallConnectionId);
                 // If no exception is thrown, the operation is considered successful
                 log.info("Move Participants operation completed successfully.");
             } catch (Exception ex) {
@@ -113,38 +107,25 @@ public class ProgramSample {
         }
     }
 
-    @Tag(name = "STEP 00. Call Automation Events", description = "Configure Event Grid webhook to point to /api/lobbyCallEventHandler endpoint")
-    @PostMapping("/api/lobbyCallEventHandler")
-    public ResponseEntity<String> lobbyCallEventHandler(@RequestBody final String reqBody) {
-        log.info("Lobby call event received");
-        List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
-        for (EventGridEvent eventGridEvent : events) {
-            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
-                return handleSubscriptionValidation(eventGridEvent.getData());
-            } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
-                handleIncomingCall(eventGridEvent.getData());
-            }
-        }
-        return ResponseEntity.ok().body(null);
-    }
-
-    private ResponseEntity<String> handleSubscriptionValidation(final BinaryData eventData) {
+    private ResponseEntity<Object> handleSubscriptionValidation(final BinaryData eventData) {
         try {
             log.info("Received Subscription Validation Event from Incoming Call API endpoint");
             SubscriptionValidationEventData subscriptioneventData = eventData
                     .toObject(SubscriptionValidationEventData.class);
             SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();
             responseData.setValidationResponse(subscriptioneventData.getValidationCode());
-            return ResponseEntity.ok().body(null);
+            
+            return ResponseEntity.ok().body(responseData);
         } catch (Exception e) {
             log.error("Error at subscription validation event {} {}",
                     e.getMessage(),
                     e.getCause());
-            return ResponseEntity.internalServerError().body(null);
+
+            return ResponseEntity.internalServerError().build();
         }
     }
-    
-    private void handleIncomingCall(final BinaryData eventData) {
+
+    private ResponseEntity<Object> handleIncomingCall(final BinaryData eventData) {
         log.info("Incoming call received");
         JSONObject data = new JSONObject(eventData.toString());
         String callbackUri = URI.create(callbackUriHost + "/api/callbacks").toString();
@@ -156,7 +137,7 @@ public class ProgramSample {
         log.info("Incoming Call Context: " + incomingCallContext);
 
         // Lobby Call: Answer
-        if (toCallerId.contains(acsGeneratedId)) {
+        if (toCallerId.contains(acsGeneratedIdForTargetCallSender)) {
             StringBuilder msgLog = new StringBuilder();
             try {
                 AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
@@ -174,91 +155,41 @@ public class ProgramSample {
                         .append("Lobby Call Connection Id: ").append(lobbyCallConnectionId).append("\n")
                         .append("Correlation Id:           ").append(answerCallResult.getCallConnection().getCallProperties().getCorrelationId()).append("\n")
                         .append("Lobby Call answered successfully.\n");
+                log.info(msgLog.toString());
+
+                return ResponseEntity.ok().build();
             } catch (Exception ex) {
                 msgLog.append("Error answering call: ").append(ex.getMessage()).append("\n");
+                log.info(msgLog.toString());
+
+                return ResponseEntity.internalServerError().body(msgLog.toString());
             }
-            log.info(msgLog.toString());
         }
+
+        return ResponseEntity.ok().build();
     }
 
-    // @Tag(name = "STEP 00. Call Automation Events", description = "Call Back Events")
-    // @PostMapping("/api/callbacks")
-    // public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) {
-    //     StringBuilder msgLog = new StringBuilder();
-    //     try {
-    //         List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
-    //         for (CallAutomationEventBase event : events) {
-    //             String callConnectionId = event.getCallConnectionId();
-    //             log.info(
-    //                     "Received call event callConnectionID: {}, serverCallId: {}, CorrelationId: {}, eventType: {}",
-    //                     callConnectionId,
-    //                     event.getServerCallId(),
-    //                     event.getCorrelationId(),
-    //                     event.getClass().getSimpleName());
+    @Tag(name = "STEP 00. Call Automation Events", description = "Configure Event Grid webhook to point to /api/lobbyCallEventHandler endpoint")
+    @PostMapping("/api/lobbyCallEventHandler")
+    public ResponseEntity<Object> lobbyCallEventHandler(@RequestBody final String reqBody) {
+        log.info("Lobby call event received");
+        List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+        var response = ResponseEntity.ok().build();
 
-    //             // Parse the event using the Azure SDK's parser if available
-    //             // For illustration, we use eventType string matching
-    //             if (event instanceof CallConnected) {
-    //                 String operationContext = ((CallConnected) event).getOperationContext();
-    //                 String correlationId = ((CallConnected) event).getCorrelationId();
+        for (EventGridEvent eventGridEvent : events) {
+            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
+                response = handleSubscriptionValidation(eventGridEvent.getData());
+            } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
+                response = handleIncomingCall(eventGridEvent.getData());
+            }
+        }
 
-    //                 log.info("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ ");
-    //                 log.info("Received callConnected.CallConnectionId : " + callConnectionId);
-
-    //                 if ("LobbyCall".equals(operationContext)) {
-    //                     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
-    //                             .append("Received call event  : ").append(event.getClass()).append("\n")
-    //                             .append("Lobby Call Connection Id: ").append(callConnectionId).append("\n")
-    //                             .append("Correlation Id:           ").append(correlationId).append("\n");
-
-    //                     // Record lobby caller id and connection id
-    //                     CallConnection lobbyCallConnection = acsClient.getCallConnection(callConnectionId);
-    //                     CallConnectionProperties callConnectionProperties = lobbyCallConnection.getCallProperties();
-    //                     lobbyCallerId = callConnectionProperties.getSource().getRawId();
-    //                     lobbyCallConnectionId = callConnectionProperties.getCallConnectionId();
-    //                     log.info("Lobby Caller Id:     " + lobbyCallerId);
-    //                     log.info("Lobby Connection Id: " + lobbyCallConnectionId);
-
-    //                     // Play lobby waiting message
-    //                     CallMedia callMedia = lobbyCallConnection.getCallMedia();
-    //                     TextSource textSource = new TextSource().setText("You are currently in a lobby call, we will notify the admin that you are waiting.");
-    //                     textSource.setVoiceName("en-US-NancyNeural");
-    //                     CommunicationUserIdentifier playTo = new CommunicationUserIdentifier(lobbyCallerId);
-    //                     callMedia.play(textSource, List.of(playTo));
-    //                 }
-    //             } else if (event instanceof PlayCompleted) {
-    //                 msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
-    //                         .append("Received event: ").append(event.getClass()).append("\n");
-
-    //                 // Notify Target Call user via websocket
-    //                 // In Java/Spring, you would use a WebSocket messaging template or similar
-    //                 // For now, just log the message
-    //                 String confirmMessageToTargetCall = "Target Call user has been notified that the lobby call is connected.";
-    //                 msgLog.append("Target Call notified with message: ").append(confirmMessageToTargetCall).append("\n");
-    //                 log.info("Target Call notified with message: " + confirmMessageToTargetCall);
-    //                 return ResponseEntity.ok("Target Call notified with message: " + confirmMessageToTargetCall);
-    //             // } else if (event instanceof MoveParticipantsSucceeded) {
-    //             //     String correlationId = event.getCorrelationId();
-    //             //     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
-    //             //             .append("Received event: ").append(event.getClass()).append("\n")
-    //             //             .append("Call Connection Id: ").append(callConnectionId).append("\n")
-    //             //             .append("Correlation Id:      ").append(correlationId).append("\n");
-    //             } else if (event instanceof CallDisconnected) {
-    //                 msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
-    //                         .append("Received event: ").append(event.getClass()).append("\n")
-    //                         .append("Call Connection Id: ").append(callConnectionId).append("\n");
-    //             }
-    //         }
-    //     } catch (Exception ex) {
-    //         msgLog.append("Error processing event: ").append(ex.getMessage()).append("\n");
-    //     }
-    //     log.info(msgLog.toString());
-    //     return ResponseEntity.ok(msgLog.toString());
-    // }
+        return response;
+    }
 
     @Tag(name = "STEP 00. Call Automation Events", description = "Call Back Events")
     @PostMapping("/api/callbacks")
-    public ResponseEntity<String> callbackEventsOld(@RequestBody final String reqBody) {
+    public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) {
         StringBuilder msgLog = new StringBuilder();
         try {
             List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
@@ -279,7 +210,6 @@ public class ProgramSample {
 
                     log.info("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ ");
                     log.info("Received callConnected.CallConnectionId : " + callConnectionId);
-                    log.info("Operation Context : " + operationContext);
 
                     if ("LobbyCall".equals(operationContext)) {
                         msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
@@ -300,70 +230,37 @@ public class ProgramSample {
                         TextSource textSource = new TextSource().setText("You are currently in a lobby call, we will notify the admin that you are waiting.");
                         textSource.setVoiceName("en-US-NancyNeural");
                         CommunicationUserIdentifier playTo = new CommunicationUserIdentifier(lobbyCallerId);
-                        PlayOptions playToOptions = new PlayOptions(textSource, List.of(playTo));
-                        playToOptions.setOperationContext("playToContext");
                         callMedia.play(textSource, List.of(playTo));
                     }
                 } else if (event instanceof PlayCompleted) {
                     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
                             .append("Received event: ").append(event.getClass()).append("\n");
 
-                    // Move Participant logic
-                    try {
-                        msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~\n")
-                                .append("Move Participant operation started..\n")
-                                .append("Source Caller Id:     ").append(lobbyCallerId).append("\n")
-                                .append("Source Connection Id: ").append(lobbyCallConnectionId).append("\n")
-                                .append("Target Connection Id: ").append(targetCallConnectionId).append("\n");
-
-                        CallConnection targetConnection = acsClient.getCallConnection(targetCallConnectionId);
-                        // CallConnection sourceConnection = client.getCallConnection(lobbyConnectionId);
-
-                        CommunicationIdentifier participantToMove;
-                        if (lobbyCallerId.startsWith("+")) {
-                            participantToMove = new PhoneNumberIdentifier(lobbyCallerId);
-                        } else if (lobbyCallerId.startsWith("8:acs:")) {
-                            participantToMove = new CommunicationUserIdentifier(lobbyCallerId);
-                        } else {
-                            return ResponseEntity.badRequest().body("Invalid participant format. Use phone number (+1234567890) or ACS user ID (8:acs:...)");
-                        }
-
-                        MoveParticipantsOptions options = new MoveParticipantsOptions(
-                                java.util.Collections.singletonList(participantToMove),
-                                lobbyCallConnectionId
-                        );
-                        targetConnection.moveParticipants(options);
-                        // If no exception is thrown, the operation is considered successful
-                        msgLog.append("\nMove Participants operation completed successfully.\n");
-
-                        log.info(msgLog.toString());
-                        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(msgLog.toString());
-                    } catch (Exception ex) {
-                        log.info("Error in manual move participants operation: " + ex.getMessage());
-                        return ResponseEntity.badRequest().body(
-                                String.format("{\"Success\":false,\"Error\":\"%s\",\"Message\":\"Move participants operation failed.\"}", ex.getMessage())
-                        );
-                    }
-                } else if (event instanceof MoveParticipantSucceeded) {
-                    String correlationId = event.getCorrelationId();
+                    // Notify Target Call user via websocket
+                    // In Java/Spring, you would use a WebSocket messaging template or similar
+                    // For now, just log the message
+                    String confirmMessageToTargetCall = "Target Call user has been notified that the lobby call is connected.";
+                    msgLog.append("Target Call notified with message: ").append(confirmMessageToTargetCall).append("\n");
+                    log.info("Target Call notified with message: " + confirmMessageToTargetCall);
+                    return ResponseEntity.ok("Target Call notified with message: " + confirmMessageToTargetCall);
+                // } else if (event instanceof MoveParticipantsSucceeded) {
+                //     String correlationId = event.getCorrelationId();
+                //     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
+                //             .append("Received event: ").append(event.getClass()).append("\n")
+                //             .append("Call Connection Id: ").append(callConnectionId).append("\n")
+                //             .append("Correlation Id:      ").append(correlationId).append("\n");
+                }
+                 else if (event instanceof CallDisconnected) {
                     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
                             .append("Received event: ").append(event.getClass()).append("\n")
-                            .append("Call Connection Id: ").append(callConnectionId).append("\n")
-                            .append("Correlation Id:      ").append(correlationId).append("\n");
-                } else if (event instanceof CallDisconnected) {
-                    msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
-                            .append("Received event: ").append(event.getClass()).append("\n")
-                            .append("Call Connection Id: ").append(((CallDisconnected) event).getCallConnectionId()).append("\n");
+                            .append("Call Connection Id: ").append(callConnectionId).append("\n");
                 }
             }
         } catch (Exception ex) {
             msgLog.append("Error processing event: ").append(ex.getMessage()).append("\n");
         }
-
-        if (msgLog.length() > 0) {
-            log.info(msgLog.toString());
-        }
-        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(msgLog.toString());
+        log.info(msgLog.toString());
+        return ResponseEntity.ok(msgLog.toString());
     }
 
     @Tag(name = "STEP 01. Set Configuration", description = "Assign the global variables for the Call Automation sample")
@@ -374,9 +271,7 @@ public class ProgramSample {
             acsConnectionString = "";
             cognitiveServiceEndpoint = "";
             callbackUriHost = "";
-            pmaEndpoint = "";
-            acsGeneratedId = "";
-            webSocketToken = "";
+            acsGeneratedIdForTargetCallSender = "";
 
             lobbyCallConnectionId = "";
             lobbyCallerId = "";
@@ -392,25 +287,15 @@ public class ProgramSample {
                         .filter(s -> !s.isEmpty())
                         .orElseThrow(() -> new IllegalArgumentException("CognitiveServiceEndpoint is required"))
                 );
-                configuration.setPmaEndpoint(
-                    Optional.ofNullable(configurationRequest.getPmaEndpoint())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("PmaEndpoint is required"))
-                );
                 configuration.setCallbackUriHost(
                     Optional.ofNullable(configurationRequest.getCallbackUriHost())
                         .filter(s -> !s.isEmpty())
                         .orElseThrow(() -> new IllegalArgumentException("CallbackUriHost is required"))
                 );
-                configuration.setAcsGeneratedId(
-                    Optional.ofNullable(configurationRequest.getAcsGeneratedId())
+                configuration.setAcsGeneratedIdForTargetCallSender(
+                    Optional.ofNullable(configurationRequest.getAcsGeneratedIdForTargetCallSender())
                         .filter(s -> !s.isEmpty())
                         .orElseThrow(() -> new IllegalArgumentException("AcsGeneratedId is required"))
-                );
-                configuration.setWebSocketToken(
-                    Optional.ofNullable(configurationRequest.getWebSocketToken())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("WebSocketToken is required"))
                 );
             }
 
@@ -418,23 +303,12 @@ public class ProgramSample {
             acsConnectionString = configuration.getAcsConnectionString();
             cognitiveServiceEndpoint = configuration.getCognitiveServiceEndpoint();
             callbackUriHost = configuration.getCallbackUriHost();
-            pmaEndpoint = configuration.getPmaEndpoint();
-            acsGeneratedId = configuration.getAcsGeneratedId();
-            webSocketToken = configuration.getWebSocketToken();
+            acsGeneratedIdForTargetCallSender = configuration.getAcsGeneratedIdForTargetCallSender();
 
-            acsClient = initClient(pmaEndpoint, acsConnectionString);
-
-            // Update WebSocket configuration with the new token
-            if (webSocketConfig != null) {
-                webSocketConfig.updateWebSocketEndpoint(webSocketToken);
-                log.info("WebSocket endpoint updated with token: /ws/{}", webSocketToken);
-            }
+            acsClient = initClient(acsConnectionString);
 
             log.info("Initialized call automation client.");
-            return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.\n" +
-                    "WebSocket endpoints available:\n" +
-                    "- HTTP: ws://localhost:8080/ws/" + webSocketToken + "\n" +
-                    "- HTTPS: wss://localhost:8443/ws/" + webSocketToken);
+            return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.");
         } catch (Exception e) {
             log.error("Error configuring: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
@@ -555,7 +429,7 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId);
     }
     
-    private CallAutomationClient initClient(String endpoint, String connectionString) {
+    private CallAutomationClient initClient(String connectionString) {
         try {
             if (connectionString == null || connectionString.trim().isEmpty()) {
                 log.error("ACS Connection String is null or empty");
@@ -565,9 +439,9 @@ public class ProgramSample {
             log.info("Initializing Call Automation Client with connection string length: {}", connectionString.length());
             
             var client = new CallAutomationClientBuilder()
-                    .endpoint(endpoint)
                     .connectionString(connectionString)
                     .buildClient();
+
             log.info("Call Automation Client initialized successfully.");
             return client;
         } catch (NullPointerException e) {

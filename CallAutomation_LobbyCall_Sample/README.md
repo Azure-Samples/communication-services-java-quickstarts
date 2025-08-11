@@ -32,6 +32,5 @@ In the swagger app, provide these values for the setConfiguration endpoint to co
 1. `acsConnectionString`: Azure Communication Service resource's connection string.
 2. `cognitiveServiceEndpoint`: Cognitive service endpoint.
 3. `callbackUriHost`: Base url of the app. (For local development replace the dev tunnel url)
-4. `pmaEndpoint` : PMA service endpoint.
-5. `acsGeneratedId`: Communication Identifier generated through the ACS.
-6. `webSocketToken`: Web Socket Token Key.
+4. `acsGeneratedId`: Communication Identifier generated through the ACS.
+5. `webSocketToken`: Web Socket Token Key.

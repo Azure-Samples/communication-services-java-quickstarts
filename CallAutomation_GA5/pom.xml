@@ -19,8 +19,8 @@
     <description>CallAutomation Sample application for instructional usage</description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.version>1.18.26</lombok.version>
     </properties>
@@ -59,7 +59,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
-            <version>1.39.0</version>
+            <version>1.56.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-communication-callautomation</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-beta.1</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
@@ -84,13 +84,14 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-communication-common</artifactId>
-            <version>1.4.0-beta.1</version>
+            <version>1.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
-            <version>${lombok.version}</version>
+            <!-- <version>${lombok.version}</version> -->
+            <version>1.18.32</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -18,17 +18,18 @@ import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
-import com.azure.messaging.eventgrid.systemevents.AcsIncomingCallEventData;
 import com.azure.messaging.eventgrid.systemevents.AcsRecordingFileStatusUpdatedEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.nio.file.Paths;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.json.JSONObject;
 
+
+import org.json.JSONObject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,6 +46,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -58,16 +61,16 @@ public class ProgramSample {
     private static final Logger log = LoggerFactory.getLogger(ProgramSample.class);
     // private CallAutomationClient client;
     // private final CallAutomationAsyncClient asyncClient;
-    
+
     // Configuration state variables
     private ConfigurationRequest configuration = new ConfigurationRequest();
     private String acsConnectionString = "";
     private String cognitiveServicesEndpoint = "";
-    private String acsPhoneNumber = "+18772119545";
-    private String targetPhoneNumber = "+18332638155";
-    private String targetAcsUserId = "8:acs:19ae37ff-1a44-4e19-aade-198eedddbdf2_00000027-b629-e0c6-6a0b-343a0d001e8f";
-    private String callbackUriHost = "https://9430-182-156-148-150.ngrok-free.app";
-    private String websocketUriHost = "wss://09e3-182-156-148-150.ngrok-free.app/ws/server";
+    private String acsPhoneNumber = "";
+    private String targetPhoneNumber = "";
+    private String targetAcsUserId = "";
+    private String callbackUriHost = "https://a4c603d89a00.ngrok-free.app";
+    private String websocketUriHost = "wss://a978d082cf74.ngrok-free.app/ws/server";
 
     private String callConnectionId = "";
     private String recordingId = "";
@@ -76,92 +79,103 @@ public class ProgramSample {
 
     private String confirmLabel = "Confirm";
     private String cancelLabel = "Cancel";
-    
+
     private CallAutomationClient client = initClient();
 
     // @Tag(name = "01. Set Configuration", description = "Set Configuration")
     // @PostMapping("/api/setConfigurations")
-    // public ResponseEntity<String> setConfigurations(@RequestBody ConfigurationRequest configurationRequest) {
-    //     try {
-    //         // Reset variables
-    //         acsConnectionString = "";
-    //         cognitiveServicesEndpoint = "";
-    //         acsPhoneNumber = "";
-    //         targetPhoneNumber = "";
-    //         targetAcsUserId = "";
-    //         callbackUriHost = "";
-    //         websocketUriHost = "";
+    // public ResponseEntity<String> setConfigurations(@RequestBody
+    // ConfigurationRequest configurationRequest) {
+    // try {
+    // // Reset variables
+    // acsConnectionString = "";
+    // cognitiveServicesEndpoint = "";
+    // acsPhoneNumber = "";
+    // targetPhoneNumber = "";
+    // targetAcsUserId = "";
+    // callbackUriHost = "";
+    // websocketUriHost = "";
 
-    //         if (configurationRequest != null) {
-    //             configuration.setAcsConnectionString(
-    //                 Optional.ofNullable(configurationRequest.getAcsConnectionString())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("AcsConnectionString is required"))
-    //             );
+    // if (configurationRequest != null) {
+    // configuration.setAcsConnectionString(
+    // Optional.ofNullable(configurationRequest.getAcsConnectionString())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("AcsConnectionString is
+    // required"))
+    // );
 
-    //             configuration.setCognitiveServiceEndpoint(
-    //                 Optional.ofNullable(configurationRequest.getCognitiveServiceEndpoint())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("CognitiveServiceEndpoint is required"))
-    //             );
+    // configuration.setCognitiveServiceEndpoint(
+    // Optional.ofNullable(configurationRequest.getCognitiveServiceEndpoint())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("CognitiveServiceEndpoint is
+    // required"))
+    // );
 
-    //             configuration.setAcsPhoneNumber(
-    //                 Optional.ofNullable(configurationRequest.getAcsPhoneNumber())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("AcsPhoneNumber is required"))
-    //             );
+    // configuration.setAcsPhoneNumber(
+    // Optional.ofNullable(configurationRequest.getAcsPhoneNumber())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("AcsPhoneNumber is
+    // required"))
+    // );
 
-    //             configuration.setTargetPhoneNumber(
-    //                 Optional.ofNullable(configurationRequest.getTargetPhoneNumber())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("TargetPhoneNumber is required"))
-    //             );
+    // configuration.setTargetPhoneNumber(
+    // Optional.ofNullable(configurationRequest.getTargetPhoneNumber())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("TargetPhoneNumber is
+    // required"))
+    // );
 
-    //             configuration.setTargetAcsUserId(
-    //                 Optional.ofNullable(configurationRequest.getTargetAcsUserId())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("TargetAcsUserId is required"))
-    //             );
+    // configuration.setTargetAcsUserId(
+    // Optional.ofNullable(configurationRequest.getTargetAcsUserId())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("TargetAcsUserId is
+    // required"))
+    // );
 
-    //             configuration.setCallbackUriHost(
-    //                 Optional.ofNullable(configurationRequest.getCallbackUriHost())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("CallbackUriHost is required"))
-    //             );
+    // configuration.setCallbackUriHost(
+    // Optional.ofNullable(configurationRequest.getCallbackUriHost())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("CallbackUriHost is
+    // required"))
+    // );
 
-    //             configuration.setWebsocketUriHost(
-    //                 Optional.ofNullable(configurationRequest.getWebsocketUriHost())
-    //                     .filter(s -> !s.isEmpty())
-    //                     .orElseThrow(() -> new IllegalArgumentException("WebsocketUriHost is required"))
-    //             );
-    //         }
-
-    //         // Assign to global variables
-    //         acsConnectionString = configuration.getAcsConnectionString();
-    //         cognitiveServicesEndpoint = configuration.getCognitiveServiceEndpoint();
-    //         acsPhoneNumber = configuration.getAcsPhoneNumber();
-    //         targetPhoneNumber = configuration.getTargetPhoneNumber();
-    //         targetAcsUserId = configuration.getTargetAcsUserId();
-    //         callbackUriHost = configuration.getCallbackUriHost();
-    //         websocketUriHost = configuration.getWebsocketUriHost();
-
-    //         // client = initClient();
-    //         // asyncClient =  initAsyncClient();
-
-    //         log.info("Initialized call automation client.");
-    //         return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.");
-    //     } catch (Exception e) {
-    //         log.error("Error configuring: {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
-    //     }
+    // configuration.setWebsocketUriHost(
+    // Optional.ofNullable(configurationRequest.getWebsocketUriHost())
+    // .filter(s -> !s.isEmpty())
+    // .orElseThrow(() -> new IllegalArgumentException("WebsocketUriHost is
+    // required"))
+    // );
     // }
-    
+
+    // // Assign to global variables
+    // acsConnectionString = configuration.getAcsConnectionString();
+    // cognitiveServicesEndpoint = configuration.getCognitiveServiceEndpoint();
+    // acsPhoneNumber = configuration.getAcsPhoneNumber();
+    // targetPhoneNumber = configuration.getTargetPhoneNumber();
+    // targetAcsUserId = configuration.getTargetAcsUserId();
+    // callbackUriHost = configuration.getCallbackUriHost();
+    // websocketUriHost = configuration.getWebsocketUriHost();
+
+    // // client = initClient();
+    // // asyncClient = initAsyncClient();
+
+    // log.info("Initialized call automation client.");
+    // return ResponseEntity.ok("Configuration set successfully. Initialized call
+    // automation client.");
+    // } catch (Exception e) {
+    // log.error("Error configuring: {}", e.getMessage());
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed
+    // to configure call automation client.");
+    // }
+    // }
+
     @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
     @GetMapping("/api/logs")
     public ResponseEntity<String> getAzureLogStream(@RequestParam(required = false) String severityLevel) {
         try {
             String appId = "362c714c-5715-4881-8491-b70fbdb5513e"; // Replace with your Application Insights app ID
-            String apiKey = "x8q6e2g4i0vowb4refgx6ovj2h6tuxqrmrhn5ocn"; // Replace with your Application Insights API key
+            String apiKey = "x8q6e2g4i0vowb4refgx6ovj2h6tuxqrmrhn5ocn"; // Replace with your Application Insights API
+                                                                        // key
             // Application Insights REST API endpoint
             String url = "https://api.applicationinsights.io/v1/apps/" + appId + "/query";
             // Kusto query to get latest traces
@@ -192,10 +206,10 @@ public class ProgramSample {
                 String msg = row.get(1).asText();
                 int sev = row.get(2).asInt();
                 html.append("<tr>")
-                    .append("<td>").append(ts).append("</td>")
-                    .append("<td>").append(msg).append("</td>")
-                    .append("<td>").append(sev).append("</td>")
-                    .append("</tr>\n");
+                        .append("<td>").append(ts).append("</td>")
+                        .append("<td>").append(msg).append("</td>")
+                        .append("<td>").append(sev).append("</td>")
+                        .append("</tr>\n");
             }
             html.append("</table>");
 
@@ -213,7 +227,7 @@ public class ProgramSample {
         try {
             List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
             for (CallAutomationEventBase event : events) {
-                 callConnectionId = event.getCallConnectionId();
+                callConnectionId = event.getCallConnectionId();
                 log.info(
                         "Received call event callConnectionID: {}, serverCallId: {}, CorrelationId: {}, eventType: {}",
                         callConnectionId,
@@ -222,43 +236,132 @@ public class ProgramSample {
                         event.getClass().getSimpleName());
 
                 if (event instanceof CallConnected) {
-                log.info("****************************************");
-                log.info("CORRELATION ID: {}", event.getCorrelationId());
-                log.info("****************************************");
-                log.info("CALL CONNECTION ID: {}", event.getCallConnectionId());
-                log.info("****************************************");
-                var mediaStreamingSubscription = client.getCallConnection(callConnectionId).getCallProperties().getMediaStreamingSubscription();
-                var transcriptionSubscription = client.getCallConnection(callConnectionId).getCallProperties().getTranscriptionSubscription();
-                log.info("MediaStreaming State: {}", mediaStreamingSubscription.getState());
-                log.info("Transcription State: {}", transcriptionSubscription.getState());
-                
+                    log.info("****************************************");
+                    log.info("CORRELATION ID: {}", event.getCorrelationId());
+                    log.info("****************************************");
+                    log.info("CALL CONNECTION ID: {}", event.getCallConnectionId());
+                    log.info("****************************************");
+                    var mediaStreamingSubscription = client.getCallConnection(callConnectionId).getCallProperties()
+                            .getMediaStreamingSubscription();
+                    var transcriptionSubscription = client.getCallConnection(callConnectionId).getCallProperties()
+                            .getTranscriptionSubscription();
+                    log.info("MediaStreaming State: {}", mediaStreamingSubscription.getState());
+                    log.info("Transcription State: {}", transcriptionSubscription.getState());
+
                 } else if (event instanceof MediaStreamingStarted) {
                     MediaStreamingStarted acsEvent = (MediaStreamingStarted) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
-                    log.info("MediaSteaming Status: {}", acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
-                    
-                }
-                else if (event instanceof MediaStreamingStopped) {
+                    log.info("MediaSteaming Status: {}",
+                            acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+
+                } else if (event instanceof MediaStreamingStopped) {
                     MediaStreamingStopped acsEvent = (MediaStreamingStopped) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
-                    log.info("MediaSteaming Status: {}", acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
-                    
-                }
-                else if (event instanceof MediaStreamingFailed) {
+                    log.info("MediaSteaming Status: {}",
+                            acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+
+                } else if (event instanceof MediaStreamingFailed) {
                     MediaStreamingFailed acsEvent = (MediaStreamingFailed) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
-                    log.info("MediaSteaming Status: {}", acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    log.info("MediaSteaming Status: {}",
+                            acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
                     log.error("Received failed event: {}", acsEvent
-                        .getResultInformation().getMessage());
+                            .getResultInformation().getMessage());
+                } else if (event instanceof TranscriptionStarted) {
+                    TranscriptionStarted acsEvent = (TranscriptionStarted) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("Transcription Status: {}",
+                            acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+
+                } else if (event instanceof TranscriptionUpdated) {
+                    TranscriptionUpdated acsEvent = (TranscriptionUpdated) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("Transcription Status: {}",
+                            acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+
+                } else if (event instanceof TranscriptionStopped) {
+                    TranscriptionStopped acsEvent = (TranscriptionStopped) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("Transcription Status: {}",
+                            acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+
+                } else if (event instanceof TranscriptionCallSummaryUpdate) {
+                    TranscriptionCallSummaryUpdate acsEvent = (TranscriptionCallSummaryUpdate) event;
+                    log.info("RECEIVED TRANSCRIPTION CALL SUMMARY EVENT");
+                    log.info("Summarization message: {}",
+                            acsEvent.getTranscriptionUpdateResult().getTranscriptionMessage());
+                } else if (event instanceof TranscriptionFailed) {
+                    TranscriptionFailed acsEvent = (TranscriptionFailed) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("Transcription Status: {}",
+                            acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    log.error("Received failed event: {}", acsEvent
+                            .getResultInformation().getMessage());
                 } else if (event instanceof RecognizeCompleted) {
-                    // handle RecognizeCompleted
+                    RecognizeCompleted acsEvent = (RecognizeCompleted) event;
+                    RecognizeResult recognizeResult = acsEvent.getRecognizeResult().get();
+                    if (recognizeResult instanceof DtmfResult) {
+                        // Take action on collect tones
+                        DtmfResult dtmfResult = (DtmfResult) recognizeResult;
+                        List<DtmfTone> tones = dtmfResult.getTones();
+                        log.info("Recognition completed, tones=" + tones + ", context="
+                                + acsEvent.getOperationContext());
+                    } else if (recognizeResult instanceof ChoiceResult) {
+                        ChoiceResult collectChoiceResult = (ChoiceResult) recognizeResult;
+                        String labelDetected = collectChoiceResult.getLabel();
+                        String phraseDetected = collectChoiceResult.getRecognizedPhrase();
+
+                        String languageIdentified = collectChoiceResult.getLanguageIdentified();
+
+                        log.info("Recognition completed, labelDetected=" + labelDetected + ", phraseDetected="
+                                + phraseDetected + ", context=" + acsEvent.getOperationContext());
+
+                        log.info("Language Identified " + languageIdentified);
+
+                        if (collectChoiceResult.getSentimentAnalysisResult() != null) {
+                            log.info("SENTIMENT " + collectChoiceResult.getSentimentAnalysisResult().getSentiment());
+                        }
+                    } else if (recognizeResult instanceof SpeechResult) {
+                        SpeechResult speechResult = (SpeechResult) recognizeResult;
+                        String text = speechResult.getSpeech();
+                        log.info("Recognition completed, text=" + text + ", context=" + acsEvent.getOperationContext());
+                        String languageIdentified = speechResult.getLanguageIdentified();
+                        log.info("Language Identified " + languageIdentified);
+
+                        if (speechResult.getSentimentAnalysisResult() != null) {
+                            log.info("SENTIMENT " + speechResult.getSentimentAnalysisResult().getSentiment());
+                        }
+
+                    } else {
+                        log.info("Recognition completed, result=" + recognizeResult + ", context="
+                                + acsEvent.getOperationContext());
+                    }
                 } else if (event instanceof RecognizeFailed) {
-                    // handle RecognizeFailed
-                } else if (event instanceof PlayCompleted || event instanceof PlayFailed) {
-                    // handle PlayCompleted or PlayFailed
-                } else if (event instanceof RecordingStateChanged || event instanceof RecordingStateChanged) {
-                    // log.info("Recording State Changed event received: {}", event.getCallConnectionId());
-                    // log.info("Recording State: {}", getRecordingState());
+
+                    RecognizeFailed acsEvent = (RecognizeFailed) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("FailedPlaySourceIndex: {}",
+                            acsEvent.getFailedPlaySourceIndex());
+                    log.error("Received failed event: {}", acsEvent
+                            .getResultInformation().getMessage());
+
+                } else if (event instanceof PlayCompleted) {
+                    PlayCompleted acsEvent = (PlayCompleted) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                } else if (event instanceof PlayFailed) {
+
+                    PlayFailed acsEvent = (PlayFailed) event;
+                    log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    log.info("FailedPlaySourceIndex: {}",
+                            acsEvent.getFailedPlaySourceIndex());
+                    log.error("Received failed event: {}", acsEvent
+                            .getResultInformation().getMessage());
+
+                } else if (event instanceof RecordingStateChanged) {
+                    RecordingStateChanged acsEvent = (RecordingStateChanged) event;
+                    log.info("Recording State Changed event received: {}",
+                    event.getCallConnectionId());
+                    log.info("Recording State: {}", acsEvent.getRecordingState());
                 }
             }
             return ResponseEntity.ok().body("");
@@ -280,28 +383,50 @@ public class ProgramSample {
             // Replace "https://" with "wss://" for WebSocket protocol
             websocketUrl = websocketUriHost;
             System.out.println("WebSocket URL: " + websocketUrl);
-            cognitiveServicesUrl = cognitiveServicesEndpoint;
-            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-                    .setCognitiveServicesEndpoint(cognitiveServicesUrl);
+            // cognitiveServicesUrl = cognitiveServicesEndpoint;
 
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.MIXED);
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                    .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
             mediaStreamingOptions.setTransportUrl(websocketUrl);
             mediaStreamingOptions.setStartMediaStreaming(true);
             mediaStreamingOptions.setEnableDtmfTones(true);
-            mediaStreamingOptions.setEnableBidirectional(true);
+            mediaStreamingOptions.setEnableBidirectional(false);
             mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_16K_MONO);
-            
-            
+
+            PiiRedactionOptions piiRedactionOptions = new PiiRedactionOptions();
+            piiRedactionOptions.setEnabled(true);
+            piiRedactionOptions.setRedactionType(RedactionType.MASK_WITH_CHARACTER);
+
+            SummarizationOptions summarizationOptions = new SummarizationOptions();
+            summarizationOptions.setEnableEndCallSummary(false);
+            summarizationOptions.setLocale("en-US");
+
+            List<String> locales = new ArrayList<>();
+            locales.add("en-US");
+            locales.add("es-ES");
+
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions("en-ES");
+            transcriptionOptions.setTransportUrl(websocketUriHost);
+            // transcriptionOptions.setTransportUrl("https://abc.com");
+
+            transcriptionOptions.setPiiRedactionOptions(piiRedactionOptions);
+            transcriptionOptions.setEnableSentimentAnalysis(false);
+            transcriptionOptions.setSummarizationOptions(summarizationOptions);
+            transcriptionOptions.setLocales(locales);
+
+            transcriptionOptions.setStartTranscription(true);
+
             options = new AnswerCallOptions(data.getString("incomingCallContext"),
                     callbackUri).setCallIntelligenceOptions(callIntelligenceOptions);
-                options.setMediaStreamingOptions(mediaStreamingOptions);
-                    
+            options.setMediaStreamingOptions(mediaStreamingOptions);
+            // options.setTranscriptionOptions(transcriptionOptions);
+            options.setLoopbackAudioEnabled(true);
+
             Response<AnswerCallResult> answerCallResponse = client.answerCallWithResponse(options, Context.NONE);
 
-            // answerCallConnection = answerCallResponse.getValue().getCallConnection();
-
             log.info("Incoming call answered. Cognitive Services Url: {}\nCallbackUri: {}\nCallConnectionId: {}",
-                    cognitiveServicesUrl,
+                    cognitiveServicesEndpoint,
                     callbackUri,
                     answerCallResponse.getValue().getCallConnectionProperties().getCallConnectionId());
         } catch (Exception e) {
@@ -327,8 +452,7 @@ public class ProgramSample {
         }
     }
 
-
-     @PostMapping(path = "/api/incomingCall")
+    @PostMapping(path = "/api/incomingCall")
     public ResponseEntity<SubscriptionValidationResponse> recordinApiEventGridEvents(
             @RequestBody final String reqBody) {
         List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
@@ -342,172 +466,229 @@ public class ProgramSample {
         return ResponseEntity.ok().body(null);
     }
 
-    // @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
+    @PostMapping("/api/recordingFileStatus")
+    public ResponseEntity<SubscriptionValidationResponse> handleRecordingFileStatus(@RequestBody String reqBody) {
+        List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+        log.info("RECORDING FILE STATUS UPDATED EVENT GRDI EVENT RECEIVED.");
+        for (EventGridEvent eventGridEvent : events) {
+            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
+                return handleSubscriptionValidation(eventGridEvent.getData());
+            } else if (eventGridEvent.getEventType()
+                    .equals(SystemEventNames.COMMUNICATION_RECORDING_FILE_STATUS_UPDATED)) {
+                log.info("The event received for recording file status update");
+                AcsRecordingFileStatusUpdatedEventData recordingFileStatusUpdatedEventData = eventGridEvent.getData()
+                        .toObject(AcsRecordingFileStatusUpdatedEventData.class);
+                recordingLocation = recordingFileStatusUpdatedEventData.getRecordingStorageInfo().getRecordingChunks()
+                        .get(0).getContentLocation();
+                String recordingMetadataLocation = recordingFileStatusUpdatedEventData.getRecordingStorageInfo()
+                        .getRecordingChunks()
+                        .get(0).getMetadataLocation();
+                String recordingDeleteLocation = recordingFileStatusUpdatedEventData.getRecordingStorageInfo()
+                        .getRecordingChunks()
+                        .get(0).getDeleteLocation();
+                log.info("The recording location is : {}", recordingLocation);
+                log.info("The recording metadata location is : {}", recordingMetadataLocation);
+                log.info("The recording delete location is : {}", recordingDeleteLocation);
+
+            } else {
+                log.debug("Unhandled event.");
+            }
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    // @Tag(name = "02. Call Automation Events", description = "CallAutomation
+    // Events")
     // @PostMapping("/api/events")
-    // public ResponseEntity<Object> handleEvents(@RequestBody final String reqBody) {
-    //     try {
-    //         List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
-    //         for (EventGridEvent eventGridEvent : events) {
-    //             log.info("Recording event received: {}", eventGridEvent.getEventType());
+    // public ResponseEntity<Object> handleEvents(@RequestBody final String reqBody)
+    // {
+    // try {
+    // List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+    // for (EventGridEvent eventGridEvent : events) {
+    // log.info("Recording event received: {}", eventGridEvent.getEventType());
 
-    //             // Try to parse system event data
-    //             Object eventData = eventGridEvent.getData().toObject(Object.class);
+    // // Try to parse system event data
+    // Object eventData = eventGridEvent.getData().toObject(Object.class);
 
-    //             // SubscriptionValidationEventData
-    //             if ("Microsoft.EventGrid.SubscriptionValidationEvent".equals(eventGridEvent.getEventType())
-    //                     && eventData instanceof SubscriptionValidationEventData) {
+    // // SubscriptionValidationEventData
+    // if
+    // ("Microsoft.EventGrid.SubscriptionValidationEvent".equals(eventGridEvent.getEventType())
+    // && eventData instanceof SubscriptionValidationEventData) {
 
-    //                 SubscriptionValidationEventData validationData =
-    //                         (SubscriptionValidationEventData) eventData;
+    // SubscriptionValidationEventData validationData =
+    // (SubscriptionValidationEventData) eventData;
 
-    //                 Map<String, String> responseData = Map.of("validationResponse", validationData.getValidationCode());
-    //                 return ResponseEntity.ok(responseData);
-    //             }
-
-    //             // AcsIncomingCallEventData
-    //             if ("Microsoft.Communication.IncomingCall".equals(eventGridEvent.getEventType())
-    //                     && eventData instanceof AcsIncomingCallEventData) {
-
-    //                 AcsIncomingCallEventData incomingCallEventData =
-    //                         (AcsIncomingCallEventData) eventData;
-
-    //                 String callerId = incomingCallEventData.getFromCommunicationIdentifier().getRawId();
-    //                 System.out.println("Caller Id--> " + callerId);
-
-    //                 URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
-    //                 log.info("Incoming call - correlationId: {}, Callback url: {}",
-    //                         incomingCallEventData.getCorrelationId(), callbackUri);
-
-    //                 AnswerCallOptions options = new AnswerCallOptions(
-    //                     incomingCallEventData.getIncomingCallContext(),
-    //                     callbackUri.toString()
-    //                 );
-                    
-    //                 options.setCallIntelligenceOptions(
-    //                         new CallIntelligenceOptions()
-    //                         .setCognitiveServicesEndpoint(cognitiveServicesEndpoint
-    //                         )
-    //                 );
-
-    //                 // Call client to answer call
-    //                 AnswerCallResult result = client.answerCallWithResponse(options, Context.NONE).getValue();
-    //                 result.getCallConnection().getCallMedia();
-    //             }
-
-    //             // AcsRecordingFileStatusUpdatedEventData
-    //             if ("Microsoft.Communication.RecordingFileStatusUpdated".equals(eventGridEvent.getEventType())
-    //                     && eventData instanceof AcsRecordingFileStatusUpdatedEventData) {
-
-    //                 AcsRecordingFileStatusUpdatedEventData statusUpdated =
-    //                         (AcsRecordingFileStatusUpdatedEventData) eventData;
-
-    //                 recordingLocation = statusUpdated
-    //                         .getRecordingStorageInfo()
-    //                         .getRecordingChunks()
-    //                         .get(0)
-    //                         .getContentLocation();
-
-    //                         log.info("The recording location is : {}", recordingLocation);
-    //             }
-    //         }
-
-    //         return ResponseEntity.ok("Processed");
-
-    //     } catch (Exception ex) {
-    //         log.error("Error processing events", ex);
-    //         return ResponseEntity.status(500).body("Failed to process events");
-    //     }
+    // Map<String, String> responseData = Map.of("validationResponse",
+    // validationData.getValidationCode());
+    // return ResponseEntity.ok(responseData);
     // }
 
-    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // // AcsIncomingCallEventData
+    // if
+    // ("Microsoft.Communication.IncomingCall".equals(eventGridEvent.getEventType())
+    // && eventData instanceof AcsIncomingCallEventData) {
+
+    // AcsIncomingCallEventData incomingCallEventData =
+    // (AcsIncomingCallEventData) eventData;
+
+    // String callerId =
+    // incomingCallEventData.getFromCommunicationIdentifier().getRawId();
+    // System.out.println("Caller Id--> " + callerId);
+
+    // URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
+    // log.info("Incoming call - correlationId: {}, Callback url: {}",
+    // incomingCallEventData.getCorrelationId(), callbackUri);
+
+    // AnswerCallOptions options = new AnswerCallOptions(
+    // incomingCallEventData.getIncomingCallContext(),
+    // callbackUri.toString()
+    // );
+
+    // options.setCallIntelligenceOptions(
+    // new CallIntelligenceOptions()
+    // .setCognitiveServicesEndpoint(cognitiveServicesEndpoint
+    // )
+    // );
+
+    // // Call client to answer call
+    // AnswerCallResult result = client.answerCallWithResponse(options,
+    // Context.NONE).getValue();
+    // result.getCallConnection().getCallMedia();
+    // }
+
+    // // AcsRecordingFileStatusUpdatedEventData
+    // if
+    // ("Microsoft.Communication.RecordingFileStatusUpdated".equals(eventGridEvent.getEventType())
+    // && eventData instanceof AcsRecordingFileStatusUpdatedEventData) {
+
+    // AcsRecordingFileStatusUpdatedEventData statusUpdated =
+    // (AcsRecordingFileStatusUpdatedEventData) eventData;
+
+    // recordingLocation = statusUpdated
+    // .getRecordingStorageInfo()
+    // .getRecordingChunks()
+    // .get(0)
+    // .getContentLocation();
+
+    // log.info("The recording location is : {}", recordingLocation);
+    // }
+    // }
+
+    // return ResponseEntity.ok("Processed");
+
+    // } catch (Exception ex) {
+    // log.error("Error processing events", ex);
+    // return ResponseEntity.status(500).body("Failed to process events");
+    // }
+    // }
+
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering
+    // incoming calls")
     // @PostMapping("/answerCallAsync")
     // public ResponseEntity<String> answerCallAsync() {
-    //     try {
-    //         // Construct the callback URI
-    //         String callbackUri = callbackUriHost + "/api/callbacks";
+    // try {
+    // // Construct the callback URI
+    // String callbackUri = callbackUriHost + "/api/callbacks";
 
-    //         String incomingCallContext = "IncomingCallContext";
-    //         // Create AnswerCallOptions
-    //         AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
-    //         options.setCallIntelligenceOptions(
-    //                 new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
-    //         );
+    // String incomingCallContext = "IncomingCallContext";
+    // // Create AnswerCallOptions
+    // AnswerCallOptions options = new AnswerCallOptions(incomingCallContext,
+    // callbackUri);
+    // options.setCallIntelligenceOptions(
+    // new
+    // CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
+    // );
 
-    //         // Answer the call asynchronously
-    //         Response<AnswerCallResult> result = client.answerCallWithResponse(options, Context.NONE);
-    //         if (result.getStatusCode() == 200) {
-    //             log.info("Answered call asynchronously. Connection ID: {}", result.getValue().getCallConnectionProperties().getCallConnectionId());
-    //         } else {
-    //             log.error("Failed to answer call asynchronously. Status code: {}", result.getStatusCode());
-    //         }
-
-    //         return ResponseEntity.ok("Answer call request sent asynchronously.");
-    //     } catch (Exception e) {
-    //         log.error("Error answering call asynchronously: {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to answer call asynchronously.");
-    //     }
+    // // Answer the call asynchronously
+    // Response<AnswerCallResult> result = client.answerCallWithResponse(options,
+    // Context.NONE);
+    // if (result.getStatusCode() == 200) {
+    // log.info("Answered call asynchronously. Connection ID: {}",
+    // result.getValue().getCallConnectionProperties().getCallConnectionId());
+    // } else {
+    // log.error("Failed to answer call asynchronously. Status code: {}",
+    // result.getStatusCode());
     // }
 
-    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // return ResponseEntity.ok("Answer call request sent asynchronously.");
+    // } catch (Exception e) {
+    // log.error("Error answering call asynchronously: {}", e.getMessage());
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed
+    // to answer call asynchronously.");
+    // }
+    // }
+
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering
+    // incoming calls")
     // @PostMapping("/answerCall")
     // public ResponseEntity<String> answerCall() {
-    //     try {
-    //         // Construct the callback URI
-    //         String callbackUri = callbackUriHost + "/api/callbacks";
+    // try {
+    // // Construct the callback URI
+    // String callbackUri = callbackUriHost + "/api/callbacks";
 
-    //         String incomingCallContext = "IncomingCallContext";
-    //         // Create AnswerCallOptions
-    //         AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
-    //         options.setCallIntelligenceOptions(
-    //                 new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
-    //         );
+    // String incomingCallContext = "IncomingCallContext";
+    // // Create AnswerCallOptions
+    // AnswerCallOptions options = new AnswerCallOptions(incomingCallContext,
+    // callbackUri);
+    // options.setCallIntelligenceOptions(
+    // new
+    // CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint)
+    // );
 
-    //         // Answer the call 
-    //         AnswerCallResult result = client.answerCall(incomingCallContext, callbackUri);
-    //         if (result != null) {
-    //             log.info("Answered call. Connection ID: {}", result.getCallConnectionProperties().getCallConnectionId());
-    //         } else {
-    //             log.error("Failed to answer call.");
-    //         }
-
-    //         return ResponseEntity.ok("Answer call request sent.");
-    //     } catch (Exception e) {
-    //         log.error("Error answering call: {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to answer call.");
-    //     }
+    // // Answer the call
+    // AnswerCallResult result = client.answerCall(incomingCallContext,
+    // callbackUri);
+    // if (result != null) {
+    // log.info("Answered call. Connection ID: {}",
+    // result.getCallConnectionProperties().getCallConnectionId());
+    // } else {
+    // log.error("Failed to answer call.");
     // }
 
-    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // return ResponseEntity.ok("Answer call request sent.");
+    // } catch (Exception e) {
+    // log.error("Error answering call: {}", e.getMessage());
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed
+    // to answer call.");
+    // }
+    // }
+
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering
+    // incoming calls")
     // @PostMapping("/rejectCallAsync")
     // public ResponseEntity<String> rejectCallAsync() {
-    //     try {
-    //         String incomingCallContext = "IncomingCallContext";
-    //         // Create RejectCallOptions
-    //         RejectCallOptions options = new RejectCallOptions(incomingCallContext);
+    // try {
+    // String incomingCallContext = "IncomingCallContext";
+    // // Create RejectCallOptions
+    // RejectCallOptions options = new RejectCallOptions(incomingCallContext);
 
-    //         // Reject the call asynchronously
-    //         client.rejectCallWithResponse(options, Context.NONE);
-    //         log.info("Rejected call asynchronously.");
-    //         return ResponseEntity.ok("Reject call request sent asynchronously.");
-    //     } catch (Exception e) {
-    //         log.error("Error rejecting call asynchronously: {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to reject call asynchronously.");
-    //     }
+    // // Reject the call asynchronously
+    // client.rejectCallWithResponse(options, Context.NONE);
+    // log.info("Rejected call asynchronously.");
+    // return ResponseEntity.ok("Reject call request sent asynchronously.");
+    // } catch (Exception e) {
+    // log.error("Error rejecting call asynchronously: {}", e.getMessage());
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed
+    // to reject call asynchronously.");
+    // }
     // }
 
-    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering incoming calls")
+    // @Tag(name = "04. Inbound Call APIs", description = "APIs for answering
+    // incoming calls")
     // @PostMapping("/rejectCall")
     // public ResponseEntity<String> rejectCall() {
-    //     try {
-    //         String incomingCallContext = "IncomingCallContext";
-    //         // Reject the call 
-    //         client.rejectCall(incomingCallContext);
-    //         log.info("Rejected call.");
-    //         return ResponseEntity.ok("Reject call request sent.");
-    //     } catch (Exception e) {
-    //         log.error("Error rejecting call : {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to reject call.");
-    //     }
+    // try {
+    // String incomingCallContext = "IncomingCallContext";
+    // // Reject the call
+    // client.rejectCall(incomingCallContext);
+    // log.info("Rejected call.");
+    // return ResponseEntity.ok("Reject call request sent.");
+    // } catch (Exception e) {
+    // log.error("Error rejecting call : {}", e.getMessage());
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed
+    // to reject call.");
+    // }
     // }
 
     // POST: /outboundCallToPstnAsync
@@ -522,7 +703,7 @@ public class ProgramSample {
         CallInvite callInvite = new CallInvite(target, caller);
         CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
         CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-            .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
         createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
 
         // Make async call and block to get the result
@@ -549,7 +730,7 @@ public class ProgramSample {
         // ✅ Convert URI to String
         CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
         callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
-        log.info("Created call with connection id: " + callConnectionId);  
+        log.info("Created call with connection id: " + callConnectionId);
         return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
     }
 
@@ -563,7 +744,7 @@ public class ProgramSample {
 
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+                    .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
 
             Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
@@ -596,39 +777,49 @@ public class ProgramSample {
 
     // @Tag(name = "Outbound Call APIs", description = "Outbound Call APIs")
     // @PostMapping("/outboundCallToTeamsAsync")
-    // public ResponseEntity<String> outboundCallToTeamsAsync(@RequestParam String teamsObjectId) {
-    //     MicrosoftTeamsUserIdentifier target = new MicrosoftTeamsUserIdentifier(teamsObjectId);
-    //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+    // public ResponseEntity<String> outboundCallToTeamsAsync(@RequestParam String
+    // teamsObjectId) {
+    // MicrosoftTeamsUserIdentifier target = new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId);
+    // URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
-    //     CallInvite callInvite = new CallInvite(target);
-    //     CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+    // CallInvite callInvite = new CallInvite(target);
+    // CreateCallOptions createCallOptions = new CreateCallOptions(callInvite,
+    // callbackUri.toString());
 
-    //     // CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-    //     //     .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-    //     // createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+    // // CallIntelligenceOptions callIntelligenceOptions = new
+    // CallIntelligenceOptions()
+    // // .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+    // // createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
 
-    //     Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
-    //     callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
-    //     log.info("Created async Teams call with connection id: " + callConnectionId);
+    // Response<CreateCallResult> result =
+    // client.createCallWithResponse(createCallOptions, Context.NONE);
+    // callConnectionId =
+    // result.getValue().getCallConnectionProperties().getCallConnectionId();
+    // log.info("Created async Teams call with connection id: " + callConnectionId);
     // }
 
     // @Tag(name = "Outbound Call APIs", description = "Outbound Call APIs")
     // @PostMapping("/outboundCallToTeams")
-    // public ResponseEntity<String> outboundCallToTeams(@RequestParam String teamsObjectId) {
-    //     MicrosoftTeamsUserIdentifier target = new MicrosoftTeamsUserIdentifier(teamsObjectId);
-    //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+    // public ResponseEntity<String> outboundCallToTeams(@RequestParam String
+    // teamsObjectId) {
+    // MicrosoftTeamsUserIdentifier target = new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId);
+    // URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
-    //     CallInvite callInvite = new CallInvite(target);
-    //     CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
-    //     callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
-    //     log.info("Created Teams call with connection id: " + callConnectionId);
+    // CallInvite callInvite = new CallInvite(target);
+    // CreateCallResult result = client.createCall(callInvite,
+    // callbackUri.toString());
+    // callConnectionId =
+    // result.getCallConnectionProperties().getCallConnectionId();
+    // log.info("Created Teams call with connection id: " + callConnectionId);
     // }
 
     @Tag(name = "05. Disconnect Call APIs", description = "Disconnect call APIs")
     @PostMapping("/hangupAsync")
     public ResponseEntity<String> hangupAsync(@RequestParam boolean isForEveryOne) {
         try {
-        CallConnection callConnection = getConnection();
+            CallConnection callConnection = getConnection();
 
             callConnection.hangUpWithResponse(isForEveryOne, Context.NONE);
             log.info("Call hangup requested (async) forEveryone={}", isForEveryOne);
@@ -678,7 +869,35 @@ public class ProgramSample {
             return ResponseEntity.ok("Participant held (async).");
         } catch (Exception e) {
             log.error("Error holding participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to hold participant asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to hold participant asynchronously.");
+        }
+    }
+
+    @Tag(name = "06. Hold Participant APIs", description = "Hold Participant APIs")
+    @PostMapping("/holdPSTNParticipantAsync")
+    public ResponseEntity<String> holdPSTNParticipantAsync(@RequestParam boolean isPlaySource) {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            HoldOptions holdOptions = new HoldOptions(target).setOperationContext("holdUserContext");
+            CallMedia callMediaService = getCallMedia();
+
+            if (isPlaySource) {
+                TextSource textSource = new TextSource()
+                        .setText("You are on hold. Please wait...")
+                        .setVoiceName("en-US-NancyNeural")
+                        .setSourceLocale("en-US")
+                        .setVoiceKind(VoiceKind.MALE);
+                holdOptions.setPlaySource(textSource);
+            }
+
+            callMediaService.holdWithResponse(holdOptions, Context.NONE);
+            log.info("Held participant asynchronously with playSource = {}", isPlaySource);
+            return ResponseEntity.ok("Participant held (async).");
+        } catch (Exception e) {
+            log.error("Error holding participant asynchronously: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to hold participant asynchronously.");
         }
     }
 
@@ -707,41 +926,72 @@ public class ProgramSample {
         }
     }
 
+    @Tag(name = "06. Hold Participant APIs", description = "Hold Participant APIs")
+    @PostMapping("/holdPSTNParticipant")
+    public ResponseEntity<String> holdPSTNParticipant(@RequestParam boolean isPlaySource) {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            TextSource textSource = null;
+            CallMedia callMediaService = getCallMedia();
+
+            if (isPlaySource) {
+                textSource = new TextSource()
+                        .setText("You are on hold. Please wait...")
+                        .setVoiceName("en-US-NancyNeural")
+                        .setSourceLocale("en-US")
+                        .setVoiceKind(VoiceKind.MALE);
+            }
+
+            callMediaService.hold(target, textSource);
+            log.info("Held participant synchronously with playSource = {}", isPlaySource);
+            return ResponseEntity.ok("Participant held.");
+        } catch (Exception e) {
+            log.error("Error holding participant: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to hold participant.");
+        }
+    }
+
     // @Tag(name = "Hold Participant APIs", description = "Hold Participant APIs")
     // @PostMapping("/interruptAudioAndAnnounceAsync")
-    // public ResponseEntity<String> interruptAudioAndAnnounceAsync(@RequestParam String targetParticipant) {
-    //     CommunicationIdentifier target = new CommunicationUserIdentifier(targetParticipant);
-    //     CallMedia callMediaService = getCallMedia();
+    // public ResponseEntity<String> interruptAudioAndAnnounceAsync(@RequestParam
+    // String targetParticipant) {
+    // CommunicationIdentifier target = new
+    // CommunicationUserIdentifier(targetParticipant);
+    // CallMedia callMediaService = getCallMedia();
 
-    //     TextSource textSource = new TextSource()
-    //             .setText("Hi, this is interrupt audio and announcement test.")
-    //             .setVoiceName("en-US-NancyNeural")
-    //             .setSourceLocale("en-US")
-    //             .setVoiceKind(VoiceKind.MALE);
+    // TextSource textSource = new TextSource()
+    // .setText("Hi, this is interrupt audio and announcement test.")
+    // .setVoiceName("en-US-NancyNeural")
+    // .setSourceLocale("en-US")
+    // .setVoiceKind(VoiceKind.MALE);
 
-    //     InterruptAudioAndAnnounceOptions options = new InterruptAudioAndAnnounceOptions(textSource, target)
-    //             .setOperationContext("interruptContext");
+    // InterruptAudioAndAnnounceOptions options = new
+    // InterruptAudioAndAnnounceOptions(textSource, target)
+    // .setOperationContext("interruptContext");
 
-    //     callMediaService.interruptAudioAndAnnounceWithResponse(options, Context.NONE);
-    //     log.info("InterruptAudioAndAnnounce (async) sent to {}", targetParticipant);
-    //     return ResponseEntity.ok("Interrupt audio and announce sent (async).");
+    // callMediaService.interruptAudioAndAnnounceWithResponse(options,
+    // Context.NONE);
+    // log.info("InterruptAudioAndAnnounce (async) sent to {}", targetParticipant);
+    // return ResponseEntity.ok("Interrupt audio and announce sent (async).");
     // }
 
     // @Tag(name = "Hold Participant APIs", description = "Hold Participant APIs")
     // @PostMapping("/interruptAudioAndAnnounce")
-    // public ResponseEntity<String> interruptAudioAndAnnounce(@RequestParam String targetParticipant) {
-    //     CommunicationIdentifier target = new PhoneNumberIdentifier(targetParticipant);
-    //     CallMedia callMediaService = getCallMedia();
+    // public ResponseEntity<String> interruptAudioAndAnnounce(@RequestParam String
+    // targetParticipant) {
+    // CommunicationIdentifier target = new
+    // PhoneNumberIdentifier(targetParticipant);
+    // CallMedia callMediaService = getCallMedia();
 
-    //     TextSource textSource = new TextSource()
-    //             .setText("Hi, this is interrupt audio and announcement test.")
-    //             .setVoiceName("en-US-NancyNeural")
-    //             .setSourceLocale("en-US")
-    //             .setVoiceKind(VoiceKind.MALE);
+    // TextSource textSource = new TextSource()
+    // .setText("Hi, this is interrupt audio and announcement test.")
+    // .setVoiceName("en-US-NancyNeural")
+    // .setSourceLocale("en-US")
+    // .setVoiceKind(VoiceKind.MALE);
 
-    //     callMediaService.interruptAudioAndAnnounce(textSource, target);
-    //     log.info("InterruptAudioAndAnnounce (sync) sent to {}", targetParticipant);
-    //     return ResponseEntity.ok("Interrupt audio and announce sent.");
+    // callMediaService.interruptAudioAndAnnounce(textSource, target);
+    // log.info("InterruptAudioAndAnnounce (sync) sent to {}", targetParticipant);
+    // return ResponseEntity.ok("Interrupt audio and announce sent.");
     // }
 
     @Tag(name = "06. Hold Participant APIs", description = "Hold Participant APIs")
@@ -755,10 +1005,28 @@ public class ProgramSample {
             callMediaService.unholdWithResponse(unholdOptions, Context.NONE);
             log.info("Unhold participant asynchronously {}", targetAcsUserId);
             return ResponseEntity.ok("Participant unheld (async).");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error unholding participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to unhold participant asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to unhold participant asynchronously.");
+        }
+    }
+
+    @Tag(name = "06. Hold Participant APIs", description = "Hold Participant APIs")
+    @PostMapping("/unholdPSTNParticipantAsync")
+    public ResponseEntity<String> unholdPSTNParticipantAsync() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            UnholdOptions unholdOptions = new UnholdOptions(target).setOperationContext("unholdUserContext");
+            CallMedia callMediaService = getCallMedia();
+
+            callMediaService.unholdWithResponse(unholdOptions, Context.NONE);
+            log.info("Unhold participant asynchronously {}", targetPhoneNumber);
+            return ResponseEntity.ok("Participant unheld (async).");
+        } catch (Exception e) {
+            log.error("Error unholding participant asynchronously: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to unhold participant asynchronously.");
         }
     }
 
@@ -771,6 +1039,22 @@ public class ProgramSample {
 
             callMediaService.unhold(target);
             log.info("Unhold participant synchronously {}", targetAcsUserId);
+            return ResponseEntity.ok("Participant unheld.");
+        } catch (Exception e) {
+            log.error("Error unholding participant: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to unhold participant.");
+        }
+    }
+
+    @Tag(name = "06. Hold Participant APIs", description = "Hold Participant APIs")
+    @PostMapping("/unPSTNholdParticipant")
+    public ResponseEntity<String> unholdPSTNParticipant() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            CallMedia callMediaService = getCallMedia();
+
+            callMediaService.unhold(target);
+            log.info("Unhold participant synchronously {}", targetPhoneNumber);
             return ResponseEntity.ok("Participant unheld.");
         } catch (Exception e) {
             log.error("Error unholding participant: {}", e.getMessage());
@@ -793,8 +1077,8 @@ public class ProgramSample {
 
             List<CommunicationIdentifier> playTo = Collections.singletonList(target);
             PlayOptions playOptions = new PlayOptions(textSource, playTo)
-                .setOperationContext("playToContext");
-                //.setInterruptHoldAudio(true);
+                    .setOperationContext("playToContext");
+            // .setInterruptHoldAudio(true);
 
             callMediaService.playWithResponse(playOptions, Context.NONE);
             log.info("Interrupt hold with play sent (async) to {}", targetAcsUserId);
@@ -802,7 +1086,8 @@ public class ProgramSample {
 
         } catch (Exception e) {
             log.error("Error interrupting hold with play asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to interrupt hold with play asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to interrupt hold with play asynchronously.");
         }
     }
 
@@ -832,73 +1117,84 @@ public class ProgramSample {
 
     // @Tag(name = "Get Participant APIs", description = "Get Participant APIs")
     // @PostMapping("/getPstnParticipantAsync")
-    // public ResponseEntity<String> getPstnParticipantAsync(@RequestParam String targetParticipant) {
-    //     CallConnection callConnection = getConnection();
-        
-    //     Response<CallParticipant> response = callConnection.getParticipantWithResponse(
-    //         new PhoneNumberIdentifier(targetParticipant),
-    //         Context.NONE
-    //     );
-    
-    //     CallParticipant participant = response.getValue();
-    
-    //     if (participant != null) {
-    //         log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-    //         log.info("Is Participant on hold: --> {}", participant.isOnHold());
-    //     }
-    
-    //     return ResponseEntity.ok().build();
-    // }
-    
-    // @Tag(name = "Get Participant APIs", description = "Get Participant APIs")
-    // @PostMapping("/getPstnParticipant")
-    // public ResponseEntity<String> getPstnParticipant(@RequestParam String targetParticipant) {
-    //     CallConnection callConnection = getConnection();
-    //     CallParticipant participant = callConnection.getParticipant(new PhoneNumberIdentifier(targetParticipant));
+    // public ResponseEntity<String> getPstnParticipantAsync(@RequestParam String
+    // targetParticipant) {
+    // CallConnection callConnection = getConnection();
 
-    //     if (participant != null) {
-    //         log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-    //         log.info("Is Participant on hold: --> {}", participant.isOnHold());
-    //     }
-    //     return ResponseEntity.ok().build();
+    // Response<CallParticipant> response =
+    // callConnection.getParticipantWithResponse(
+    // new PhoneNumberIdentifier(targetParticipant),
+    // Context.NONE
+    // );
+
+    // CallParticipant participant = response.getValue();
+
+    // if (participant != null) {
+    // log.info("Participant: --> {}", participant.getIdentifier().getRawId());
+    // log.info("Is Participant on hold: --> {}", participant.isOnHold());
     // }
+
+    // return ResponseEntity.ok().build();
+    // }
+
+    @Tag(name = "09. Get Participant APIs", description = "Get Participant APIs")
+    @PostMapping("/getPstnParticipant")
+    public ResponseEntity<String> getPstnParticipant(@RequestParam String targetParticipant) {
+        CallConnection callConnection = getConnection();
+        CallParticipant participant = callConnection.getParticipant(new PhoneNumberIdentifier(targetParticipant));
+
+        if (participant != null) {
+            log.info("Participant: --> {}", participant.getIdentifier().getRawId());
+            log.info("Is Participant on hold: --> {}", participant.isOnHold());
+            log.info("Is Participant on mute: --> {}", participant.isMuted());
+        }
+        return ResponseEntity.ok().build();
+    }
 
     @Tag(name = "09. Get Participant APIs", description = "Get Participant APIs")
     @PostMapping("/getParticipantAsync")
     public ResponseEntity<String> getParticipantAsync() {
         try {
             CallConnection callConnection = getConnection();
-        
+
             Response<CallParticipant> response = callConnection.getParticipantWithResponse(
-                new CommunicationUserIdentifier(targetAcsUserId),
-                Context.NONE
-            );
-        
+                    new CommunicationUserIdentifier(targetAcsUserId),
+                    Context.NONE);
+
+            // Response<CallParticipant> response =
+            // callConnection.getParticipantWithResponse(
+            // new PhoneNumberIdentifier(targetPhoneNumber),
+            // Context.NONE);
+
             CallParticipant participant = response.getValue();
-        
+
             if (participant != null) {
                 log.info("Participant: --> {}", participant.getIdentifier().getRawId());
                 log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                log.info("Is Participant on Muted: --> {}", participant.isMuted());
             } else {
                 log.warn("No participant found for identifier: {}", targetAcsUserId);
             }
             return ResponseEntity.ok("Participant found");
         } catch (Exception e) {
             log.error("Error getting participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get participant asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to get participant asynchronously.");
         }
     }
-    
+
     @Tag(name = "09. Get Participant APIs", description = "Get Participant APIs")
     @PostMapping("/getParticipant")
     public ResponseEntity<String> getParticipant() {
         try {
             CallConnection callConnection = getConnection();
-            CallParticipant participant = callConnection.getParticipant(new CommunicationUserIdentifier(targetAcsUserId));
+            CallParticipant participant = callConnection
+                    .getParticipant(new CommunicationUserIdentifier(targetAcsUserId));
 
             if (participant != null) {
                 log.info("Participant: --> {}", participant.getIdentifier().getRawId());
                 log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                log.info("Is Participant on Mute: --> {}", participant.isMuted());
             }
             return ResponseEntity.ok("Participant found");
         } catch (Exception e) {
@@ -909,38 +1205,42 @@ public class ProgramSample {
 
     // @Tag(name = "Get Participant APIs", description = "Get Participant APIs")
     // @PostMapping("/getTeamsParticipantAsync")
-    // public ResponseEntity<String> getTeamsParticipantAsync(@RequestParam String teamsObjectId) {
-    //     CallConnection callConnection = getConnection();
-    
-    //     // Call the method correctly and extract the participant from the response
-    //     Response<CallParticipant> response = callConnection.getParticipantWithResponse(
-    //         new MicrosoftTeamsUserIdentifier(teamsObjectId),
-    //         Context.NONE
-    //     );
-    
-    //     CallParticipant participant = response.getValue();
-    
-    //     if (participant != null) {
-    //         log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-    //         log.info("Is Participant on hold: --> {}", participant.isOnHold());
-    //     } else {
-    //         log.warn("No participant found for Teams Object ID: {}", teamsObjectId);
-    //     }
-    
-    //     return ResponseEntity.ok().build();
+    // public ResponseEntity<String> getTeamsParticipantAsync(@RequestParam String
+    // teamsObjectId) {
+    // CallConnection callConnection = getConnection();
+
+    // // Call the method correctly and extract the participant from the response
+    // Response<CallParticipant> response =
+    // callConnection.getParticipantWithResponse(
+    // new MicrosoftTeamsUserIdentifier(teamsObjectId),
+    // Context.NONE
+    // );
+
+    // CallParticipant participant = response.getValue();
+
+    // if (participant != null) {
+    // log.info("Participant: --> {}", participant.getIdentifier().getRawId());
+    // log.info("Is Participant on hold: --> {}", participant.isOnHold());
+    // } else {
+    // log.warn("No participant found for Teams Object ID: {}", teamsObjectId);
     // }
-    
+
+    // return ResponseEntity.ok().build();
+    // }
+
     // @Tag(name = "Get Participant APIs", description = "Get Participant APIs")
     // @PostMapping("/getTeamsParticipant")
-    // public ResponseEntity<String> getTeamsParticipant(@RequestParam String teamsObjectId) {
-    //     CallConnection callConnection = getConnection();
-    //     CallParticipant participant = callConnection.getParticipant(new MicrosoftTeamsUserIdentifier(teamsObjectId));
+    // public ResponseEntity<String> getTeamsParticipant(@RequestParam String
+    // teamsObjectId) {
+    // CallConnection callConnection = getConnection();
+    // CallParticipant participant = callConnection.getParticipant(new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId));
 
-    //     if (participant != null) {
-    //         log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-    //         log.info("Is Participant on hold: --> {}", participant.isOnHold());
-    //     }
-    //     return ResponseEntity.ok().build();
+    // if (participant != null) {
+    // log.info("Participant: --> {}", participant.getIdentifier().getRawId());
+    // log.info("Is Participant on hold: --> {}", participant.isOnHold());
+    // }
+    // return ResponseEntity.ok().build();
     // }
 
     @Tag(name = "09. Get Participant APIs", description = "Get Participant APIs")
@@ -955,8 +1255,10 @@ public class ProgramSample {
                 StringBuilder participantList = new StringBuilder();
                 for (CallParticipant participant : participants) {
                     participantList.append("----------------------------------------------------------------------\n");
-                    participantList.append("Participant: --> ").append(participant.getIdentifier().getRawId()).append("\n");
+                    participantList.append("Participant: --> ").append(participant.getIdentifier().getRawId())
+                            .append("\n");
                     participantList.append("Is Participant on hold: --> ").append(participant.isOnHold()).append("\n");
+                    participantList.append("Is Participant on Mute: --> ").append(participant.isMuted()).append("\n");
                     participantList.append("----------------------------------------------------------------------\n");
                 }
                 return ResponseEntity.ok(participantList.toString());
@@ -966,7 +1268,8 @@ public class ProgramSample {
             }
         } catch (Exception e) {
             log.error("Error getting participant list asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get participant list asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to get participant list asynchronously.");
         }
     }
 
@@ -983,6 +1286,7 @@ public class ProgramSample {
                     log.info("----------------------------------------------------------------------");
                     log.info("Participant: --> {}", participant.getIdentifier().getRawId());
                     log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                    log.info("Is Participant on Mute: --> {}", participant.isMuted());
                     log.info("----------------------------------------------------------------------");
                 }
                 return ResponseEntity.ok("Participant list retrieved");
@@ -1006,14 +1310,16 @@ public class ProgramSample {
             MuteParticipantOptions options = new MuteParticipantOptions(target)
                     .setOperationContext("muteContext");
 
-            // Assuming you're calling a method like muteParticipantWithResponse(options, context)
+            // Assuming you're calling a method like muteParticipantWithResponse(options,
+            // context)
             callConnection.muteParticipantWithResponse(options, Context.NONE);
 
             log.info("Muted participant asynchronously: {}", targetAcsUserId);
             return ResponseEntity.ok("Muted participant (async).");
         } catch (Exception e) {
             log.error("Error muting participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to mute participant asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to mute participant asynchronously.");
         }
     }
 
@@ -1036,26 +1342,29 @@ public class ProgramSample {
     @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
     @PostMapping("/addPstnParticipantAsync")
     public ResponseEntity<Object> addPstnParticipantAsync() {
-        CallConnection  callConnectionService = getConnection();
+        CallConnection callConnectionService = getConnection();
         CallInvite callInvite = new CallInvite(
                 new PhoneNumberIdentifier(targetPhoneNumber),
                 new PhoneNumberIdentifier(acsPhoneNumber)); // Replace with actual ACS number
         AddParticipantOptions options = new AddParticipantOptions(callInvite);
         options.setOperationContext("addPstnUserContext");
         options.setInvitationTimeout(Duration.ofSeconds(15));
-        Object result = callConnectionService.addParticipantWithResponse(options,Context.NONE);
+        Object result = callConnectionService.addParticipantWithResponse(options, Context.NONE);
         return ResponseEntity.ok(result);
     }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove
+    // Participant APIs")
     // @PostMapping("/addPstnParticipant")
-    // public ResponseEntity<Object> addPstnParticipant(@RequestParam String pstnParticipant) {
-    //     CallConnection  callConnectionService = getConnection();
-    //     CallInvite callInvite = new CallInvite(
-    //             new PhoneNumberIdentifier(pstnParticipant),
-    //             new PhoneNumberIdentifier(targetAcsUserId)).setSourceCallerIdNumber(new PhoneNumberIdentifier(targetAcsUserId)); // Replace with actual ACS number
-    //     Object result = callConnectionService.addParticipant(callInvite);
-    //     return ResponseEntity.ok(result);
+    // public ResponseEntity<Object> addPstnParticipant(@RequestParam String
+    // pstnParticipant) {
+    // CallConnection callConnectionService = getConnection();
+    // CallInvite callInvite = new CallInvite(
+    // new PhoneNumberIdentifier(pstnParticipant),
+    // new PhoneNumberIdentifier(targetAcsUserId)).setSourceCallerIdNumber(new
+    // PhoneNumberIdentifier(targetAcsUserId)); // Replace with actual ACS number
+    // Object result = callConnectionService.addParticipant(callInvite);
+    // return ResponseEntity.ok(result);
     // }
 
     @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
@@ -1068,11 +1377,13 @@ public class ProgramSample {
             options.setInvitationTimeout(Duration.ofSeconds(15));
 
             CallConnection callConnectionService = getConnection();
-            Response<AddParticipantResult> result = callConnectionService.addParticipantWithResponse(options, Context.NONE);
+            Response<AddParticipantResult> result = callConnectionService.addParticipantWithResponse(options,
+                    Context.NONE);
             return ResponseEntity.ok("Invitation Id: " + result.getValue().getInvitationId());
         } catch (Exception e) {
             log.error("Error adding participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add participant asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to add participant asynchronously.");
         }
     }
 
@@ -1090,50 +1401,58 @@ public class ProgramSample {
         }
     }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove
+    // Participant APIs")
     // @PostMapping("/addTeamsParticipantAsync")
-    // public ResponseEntity<Object> addTeamsParticipantAsync(@RequestParam String teamsObjectId) {
-    //     CallInvite callInvite = new CallInvite(new MicrosoftTeamsUserIdentifier(teamsObjectId));
-    //     AddParticipantOptions options = new AddParticipantOptions(callInvite);
-    //     options.setOperationContext("addTeamsUserContext");
-    //     options.setInvitationTimeout(Duration.ofSeconds(15));
-    //     CallConnection  callConnectionService = getConnection();
-    //     Object result = callConnectionService.addParticipantWithResponse(options, Context.NONE);
-    //     return ResponseEntity.ok(result);
+    // public ResponseEntity<Object> addTeamsParticipantAsync(@RequestParam String
+    // teamsObjectId) {
+    // CallInvite callInvite = new CallInvite(new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId));
+    // AddParticipantOptions options = new AddParticipantOptions(callInvite);
+    // options.setOperationContext("addTeamsUserContext");
+    // options.setInvitationTimeout(Duration.ofSeconds(15));
+    // CallConnection callConnectionService = getConnection();
+    // Object result = callConnectionService.addParticipantWithResponse(options,
+    // Context.NONE);
+    // return ResponseEntity.ok(result);
     // }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove
+    // Participant APIs")
     // @PostMapping("/addTeamsParticipant")
-    // public ResponseEntity<Object> addTeamsParticipant(@RequestParam String teamsObjectId) {
-    //     CallInvite callInvite = new CallInvite(new MicrosoftTeamsUserIdentifier(teamsObjectId));
-    //     CallConnection  callConnectionService = getConnection();
-    //     Object result = callConnectionService.addParticipant(callInvite);
-    //     return ResponseEntity.ok(result);
+    // public ResponseEntity<Object> addTeamsParticipant(@RequestParam String
+    // teamsObjectId) {
+    // CallInvite callInvite = new CallInvite(new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId));
+    // CallConnection callConnectionService = getConnection();
+    // Object result = callConnectionService.addParticipant(callInvite);
+    // return ResponseEntity.ok(result);
     // }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
-    // @PostMapping("/removePstnParticipantAsync")
-    // public ResponseEntity<String> removePstnParticipantAsync(@RequestParam String targetParticipant) {
-    //     RemoveParticipantOptions options = new RemoveParticipantOptions(new PhoneNumberIdentifier(targetParticipant));
-    //     options.setOperationContext("removePstnParticipantContext");
-    //     CallConnection  callConnectionService = getConnection();
-    //     callConnectionService.removeParticipantWithResponse(options,Context.NONE);
-    //     return ResponseEntity.ok().build();
-    // }
+    @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    @PostMapping("/removePstnParticipantAsync")
+    public ResponseEntity<String> removePstnParticipantAsync(@RequestParam String targetParticipant) {
+        RemoveParticipantOptions options = new RemoveParticipantOptions(new PhoneNumberIdentifier(targetParticipant));
+        options.setOperationContext("removePstnParticipantContext");
+        CallConnection callConnectionService = getConnection();
+        callConnectionService.removeParticipantWithResponse(options, Context.NONE);
+        return ResponseEntity.ok().build();
+    }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
-    // @PostMapping("/removePstnParticipant")
-    // public ResponseEntity<String> removePstnParticipant(@RequestParam String targetParticipant) {
-    //     CallConnection  callConnectionService = getConnection();
-    //     callConnectionService.removeParticipant(new PhoneNumberIdentifier(targetParticipant));
-    //     return ResponseEntity.ok().build();
-    // }
+    @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    @PostMapping("/removePstnParticipant")
+    public ResponseEntity<String> removePstnParticipant(@RequestParam String targetParticipant) {
+        CallConnection callConnectionService = getConnection();
+        callConnectionService.removeParticipant(new PhoneNumberIdentifier(targetParticipant));
+        return ResponseEntity.ok().build();
+    }
 
     @Tag(name = "07. Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
     @PostMapping("/removeParticipantAsync")
     public ResponseEntity<String> removeParticipantAsync(@RequestParam String targetParticipant) {
         try {
-            RemoveParticipantOptions options = new RemoveParticipantOptions(new CommunicationUserIdentifier(targetParticipant));
+            RemoveParticipantOptions options = new RemoveParticipantOptions(
+                    new CommunicationUserIdentifier(targetParticipant));
             options.setOperationContext("removeParticipantContext");
             CallConnection callConnectionService = getConnection();
             callConnectionService.removeParticipantWithResponse(options, Context.NONE);
@@ -1157,22 +1476,28 @@ public class ProgramSample {
         }
     }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove
+    // Participant APIs")
     // @PostMapping("/removeTeamsParticipantAsync")
-    // public ResponseEntity<String> removeTeamsParticipantAsync(@RequestParam String teamsObjectId) {
-    //     RemoveParticipantOptions options = new RemoveParticipantOptions(new MicrosoftTeamsUserIdentifier(teamsObjectId));
-    //     options.setOperationContext("removeTeamsParticipantContext");
-    //     CallConnection  callConnectionService = getConnection();
-    //     callConnectionService.removeParticipantWithResponse(options,Context.NONE);
-    //     return ResponseEntity.ok().build();
+    // public ResponseEntity<String> removeTeamsParticipantAsync(@RequestParam
+    // String teamsObjectId) {
+    // RemoveParticipantOptions options = new RemoveParticipantOptions(new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId));
+    // options.setOperationContext("removeTeamsParticipantContext");
+    // CallConnection callConnectionService = getConnection();
+    // callConnectionService.removeParticipantWithResponse(options,Context.NONE);
+    // return ResponseEntity.ok().build();
     // }
 
-    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove Participant APIs")
+    // @Tag(name = "Add/Remove Participant APIs", description = "Add/Remove
+    // Participant APIs")
     // @PostMapping("/removeTeamsParticipant")
-    // public ResponseEntity<String> removeTeamsParticipant(@RequestParam String teamsObjectId) {
-    //     CallConnection  callConnectionService = getConnection();
-    //     callConnectionService.removeParticipant(new MicrosoftTeamsUserIdentifier(teamsObjectId));
-    //     return ResponseEntity.ok().build();
+    // public ResponseEntity<String> removeTeamsParticipant(@RequestParam String
+    // teamsObjectId) {
+    // CallConnection callConnectionService = getConnection();
+    // callConnectionService.removeParticipant(new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId));
+    // return ResponseEntity.ok().build();
     // }
 
     // region Cancel Add Participant
@@ -1187,7 +1512,8 @@ public class ProgramSample {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error canceling add participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to cancel add participant asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to cancel add participant asynchronously.");
         }
     }
 
@@ -1204,28 +1530,31 @@ public class ProgramSample {
         }
     }
 
-    // @Tag(name = "Transfer Call APIs", description = "APIs for transferring calls to participants")
-    // @PostMapping("/transferCallToParticipantAsync")
-    // public ResponseEntity<String> transferCallToParticipantAsync(@RequestParam String targetParticipant) {
-    //     try {
-    //         // Create the target participant
-    //         CommunicationIdentifier target = new CommunicationUserIdentifier(targetParticipant);
+    @Tag(name = "10. Transfer Call APIs", description = "APIs for transferring calls to participants")
+    @PostMapping("/transferCallToParticipantWithOptions")
+    public ResponseEntity<String> transferCallToParticipantAsync(@RequestParam String targetParticipant) {
+        try {
+            // Create the target participant
+            CommunicationIdentifier target = new CommunicationUserIdentifier(targetParticipant);
 
-    //         // Create TransferCallToParticipantOptions
-    //         TransferCallToParticipantOptions options = new TransferCallToParticipantOptions(target)
-    //                 .setOperationContext("TransferCallContext");
+            // Create TransferCallToParticipantOptions
+            TransferCallToParticipantOptions options = new TransferCallToParticipantOptions(target)
+                    .setTransferee(new PhoneNumberIdentifier(targetPhoneNumber))
+                    .setOperationContext("TransferCallContext");
 
-    //         // Transfer the call asynchronously
-    //         client.getCallConnection(callConnectionId)
-    //                 .transferCallToParticipantWithResponse(options, Context.NONE);
+            // Transfer the call asynchronously
+            client.getCallConnection(callConnectionId)
+                    .transferCallToParticipantWithResponse(options, Context.NONE);
 
-    //         log.info("Call transferred asynchronously to participant: {}", targetParticipant);
-    //         return ResponseEntity.ok("Transfer call request sent asynchronously.");
-    //     } catch (Exception e) {
-    //         log.error("Error transferring call asynchronously: {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to transfer call asynchronously.");
-    //     }
-    // }
+            log.info("Call transferred asynchronously to participant: {}",
+                    targetParticipant);
+            return ResponseEntity.ok("Transfer call request sent asynchronously.");
+        } catch (Exception e) {
+            log.error("Error transferring call asynchronously: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to transfer call asynchronously.");
+        }
+    }
 
     @Tag(name = "10. Transfer Call APIs", description = "APIs for transferring calls to participants")
     @PostMapping("/transferCallToParticipant")
@@ -1234,7 +1563,7 @@ public class ProgramSample {
             // Create the target participant
             CommunicationIdentifier target = new CommunicationUserIdentifier(targetParticipant);
 
-            // Transfer the call 
+            // Transfer the call
             client.getCallConnection(callConnectionId)
                     .transferCallToParticipant(target);
 
@@ -1250,12 +1579,13 @@ public class ProgramSample {
     @PostMapping("/playTextSourceToPstnTargetAsync")
     public ResponseEntity<String> playTextSourceToPstnTargetAsync(@RequestParam String targetParticipant) {
         CallMedia callMedia = getCallMedia();
-        TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
+        TextSource textSource = createTextSource(
+                "Hi, this is test source played through play source thanks. Goodbye!.");
         List<CommunicationIdentifier> playTo = Collections.singletonList(new PhoneNumberIdentifier(targetParticipant));
 
         PlayOptions options = new PlayOptions(textSource, playTo);
         options.setOperationContext("playToContext");
-        callMedia.playWithResponse(options,Context.NONE);
+        callMedia.playWithResponse(options, Context.NONE);
         return ResponseEntity.ok().build();
     }
 
@@ -1263,9 +1593,10 @@ public class ProgramSample {
     @PostMapping("/playTextSourceToPstnTarget")
     public ResponseEntity<String> playTextSourceToPstnTarget(@RequestParam String targetParticipant) {
         CallMedia callMedia = getCallMedia();
-        TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
+        TextSource textSource = createTextSource(
+                "Hi, this is test source played through play source thanks. Goodbye!.");
         List<CommunicationIdentifier> playTo = Collections.singletonList(new PhoneNumberIdentifier(targetParticipant));
-        callMedia.play(textSource,playTo);
+        callMedia.play(textSource, playTo);
         return ResponseEntity.ok().build();
     }
 
@@ -1274,15 +1605,18 @@ public class ProgramSample {
     public ResponseEntity<String> playTextSourceTargetToAcsAsync() {
         try {
             CallMedia callMedia = getCallMedia();
-            List<CommunicationIdentifier> playTo = Collections.singletonList(new CommunicationUserIdentifier(targetAcsUserId));
-            TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
+            List<CommunicationIdentifier> playTo = Collections
+                    .singletonList(new CommunicationUserIdentifier(targetAcsUserId));
+            TextSource textSource = createTextSource(
+                    "Hi, this is test source played through play source thanks. Goodbye!.");
             PlayOptions options = new PlayOptions(textSource, playTo);
             options.setOperationContext("playToContext");
             callMedia.playWithResponse(options, Context.NONE);
             return ResponseEntity.ok("Successfully played text source to target asynchronously.");
         } catch (Exception e) {
             log.error("Error playing text source to target asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to play text source to target asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to play text source to target asynchronously.");
         }
     }
 
@@ -1291,33 +1625,41 @@ public class ProgramSample {
     public ResponseEntity<String> playTextSourceToAcsTarget() {
         try {
             CallMedia callMedia = getCallMedia();
-            TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-            callMedia.play(textSource,Collections.singletonList(new CommunicationUserIdentifier(targetAcsUserId)));
+            TextSource textSource = createTextSource(
+                    "Hi, this is test source played through play source thanks. Goodbye!.");
+            callMedia.play(textSource, Collections.singletonList(new CommunicationUserIdentifier(targetAcsUserId)));
             return ResponseEntity.ok("Successfully played text source to target.");
         } catch (Exception e) {
             log.error("Error playing text source to target: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to play text source to target.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to play text source to target.");
         }
     }
 
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playTextSourceToTeamsTargetAsync")
-    // public ResponseEntity<String> playTextSourceToTeamsTargetAsync(@RequestParam String teamsObjectId) {
-    //     CallMedia callMedia = getCallMedia();
-    //     TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-    //     PlayOptions options = new PlayOptions(textSource, Collections.singletonList(new MicrosoftTeamsUserIdentifier(teamsObjectId)));
-    //     options.setOperationContext("playToContext");
-    //     callMedia.playWithResponse(options,Context.NONE);
-    //     return ResponseEntity.ok().build();
+    // public ResponseEntity<String> playTextSourceToTeamsTargetAsync(@RequestParam
+    // String teamsObjectId) {
+    // CallMedia callMedia = getCallMedia();
+    // TextSource textSource = createTextSource("Hi, this is test source played
+    // through play source thanks. Goodbye!.");
+    // PlayOptions options = new PlayOptions(textSource,
+    // Collections.singletonList(new MicrosoftTeamsUserIdentifier(teamsObjectId)));
+    // options.setOperationContext("playToContext");
+    // callMedia.playWithResponse(options,Context.NONE);
+    // return ResponseEntity.ok().build();
     // }
 
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playTextSourceToTeamsTarget")
-    // public ResponseEntity<String> playTextSourceToTeamsTarget(@RequestParam String teamsObjectId) {
-    //     CallMedia callMedia = getCallMedia();
-    //     TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-    //     callMedia.play(textSource, Collections.singletonList(new MicrosoftTeamsUserIdentifier(teamsObjectId)));
-    //     return ResponseEntity.ok().build();
+    // public ResponseEntity<String> playTextSourceToTeamsTarget(@RequestParam
+    // String teamsObjectId) {
+    // CallMedia callMedia = getCallMedia();
+    // TextSource textSource = createTextSource("Hi, this is test source played
+    // through play source thanks. Goodbye!.");
+    // callMedia.play(textSource, Collections.singletonList(new
+    // MicrosoftTeamsUserIdentifier(teamsObjectId)));
+    // return ResponseEntity.ok().build();
     // }
 
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
@@ -1325,14 +1667,17 @@ public class ProgramSample {
     public ResponseEntity<String> playTextSourceToAllAsync() {
         try {
             CallMedia callMedia = getCallMedia();
-            TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
+            TextSource textSource = createTextSource(
+                    "Hi, this is test source played through play source thanks. Goodbye!.");
             PlayToAllOptions options = new PlayToAllOptions(textSource);
             options.setOperationContext("playToAllContext");
-            callMedia.playToAllWithResponse(options,Context.NONE);
+            options.setLoop(true);
+            callMedia.playToAllWithResponse(options, Context.NONE);
             return ResponseEntity.ok("Successfully played text source to all asynchronously.");
         } catch (Exception e) {
             log.error("Error playing text source to all asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to play text source to all asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to play text source to all asynchronously.");
         }
     }
 
@@ -1341,9 +1686,9 @@ public class ProgramSample {
     public ResponseEntity<String> playTextSourceToAll() {
         try {
             CallMedia callMedia = getCallMedia();
-            TextSource textSource = createTextSource("Hi, this is test source played through play source thanks. Goodbye!.");
-            PlayToAllOptions options = new PlayToAllOptions(textSource);
-            options.setOperationContext("playToAllContext");
+            TextSource textSource = createTextSource(
+                    "Hi, this is test source played through play source thanks. Goodbye!.");
+
             callMedia.playToAll(textSource);
             return ResponseEntity.ok("Successfully played text source to all.");
         } catch (Exception e) {
@@ -1357,11 +1702,12 @@ public class ProgramSample {
     public ResponseEntity<String> playTextSourceBargeInAsync() {
         try {
             CallMedia callMedia = getCallMedia();
-            TextSource textSource = createTextSource("Hi, this is barge in test played through play source thanks. Goodbye!.");
+            TextSource textSource = createTextSource(
+                    "Hi, this is barge in test played through play source thanks. Goodbye!.");
             PlayToAllOptions options = new PlayToAllOptions(textSource);
             options.setOperationContext("playToAllContext");
             options.setInterruptCallMediaOperation(true);
-            callMedia.playToAllWithResponse(options,Context.NONE);
+            callMedia.playToAllWithResponse(options, Context.NONE);
             return ResponseEntity.ok("Successfully played text source to all.");
         } catch (Exception e) {
             log.error("Error playing text source to all: {}", e.getMessage());
@@ -1371,25 +1717,27 @@ public class ProgramSample {
 
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playSsmlSourceToPstnTargetAsync")
-    // public ResponseEntity<String> playSsmlSourceToPstnTargetAsync(@RequestParam String targetParticipant) {
-    //     return playSsml(targetParticipant, TargetType.PSTN, true, false);
+    // public ResponseEntity<String> playSsmlSourceToPstnTargetAsync(@RequestParam
+    // String targetParticipant) {
+    // return playSsml(targetParticipant, TargetType.PSTN, true, false);
     // }
 
     // // 2. PSTN - Sync
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playSsmlSourceToPstnTarget")
-    // public ResponseEntity<String> playSsmlSourceToPstnTarget(@RequestParam String targetParticipant) {
-    //     return playSsml(targetParticipant, TargetType.PSTN, false, false);
+    // public ResponseEntity<String> playSsmlSourceToPstnTarget(@RequestParam String
+    // targetParticipant) {
+    // return playSsml(targetParticipant, TargetType.PSTN, false, false);
     // }
 
-    // 3.  - Async
+    // 3. - Async
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playSsmlSourceTargetAsync")
     public ResponseEntity<String> playSsmlSourceTargetAsync() {
         return playSsml(targetAcsUserId, TargetType.ACS, true, false);
     }
 
-    // 4.  - Sync
+    // 4. - Sync
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playSsmlSourceToTarget")
     public ResponseEntity<String> playSsmlSourceToTarget() {
@@ -1399,15 +1747,17 @@ public class ProgramSample {
     // // 5. Teams - Async
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playSsmlSourceToTeamsTargetAsync")
-    // public ResponseEntity<String> playSsmlSourceToTeamsTargetAsync(@RequestParam String teamsUserId) {
-    //     return playSsml(teamsUserId, TargetType.TEAMS, true, false);
+    // public ResponseEntity<String> playSsmlSourceToTeamsTargetAsync(@RequestParam
+    // String teamsUserId) {
+    // return playSsml(teamsUserId, TargetType.TEAMS, true, false);
     // }
 
     // // 6. Teams - Sync
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playSsmlSourceToTeamsTarget")
-    // public ResponseEntity<String> playSsmlSourceToTeamsTarget(@RequestParam String teamsUserId) {
-    //     return playSsml(teamsUserId, TargetType.TEAMS, false, false);
+    // public ResponseEntity<String> playSsmlSourceToTeamsTarget(@RequestParam
+    // String teamsUserId) {
+    // return playSsml(teamsUserId, TargetType.TEAMS, false, false);
     // }
 
     // 7. All - Async
@@ -1431,28 +1781,30 @@ public class ProgramSample {
         return playSsml(null, TargetType.ALL, true, true);
     }
 
-    //     // 1. PSTN - Async
+    // // 1. PSTN - Async
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playFileSourceToPstnTargetAsync")
-    // public ResponseEntity<String> playFileSourceToPstnTargetAsync(@RequestParam String targetParticipant) {
-    //     return playFile(targetParticipant, TargetType.PSTN, true, false);
+    // public ResponseEntity<String> playFileSourceToPstnTargetAsync(@RequestParam
+    // String targetParticipant) {
+    // return playFile(targetParticipant, TargetType.PSTN, true, false);
     // }
 
     // // 2. PSTN - Sync
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playFileSourceToPstnTarget")
-    // public ResponseEntity<String> playFileSourceToPstnTarget(@RequestParam String targetParticipant) {
-    //     return playFile(targetParticipant, TargetType.PSTN, false, false);
+    // public ResponseEntity<String> playFileSourceToPstnTarget(@RequestParam String
+    // targetParticipant) {
+    // return playFile(targetParticipant, TargetType.PSTN, false, false);
     // }
 
-    // 3.  - Async
+    // 3. - Async
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playFileSourceToTargetAsync")
     public ResponseEntity<String> playFileSourceToTargetAsync() {
         return playFile(targetAcsUserId, TargetType.ACS, true, false);
     }
 
-    // 4.  - Sync
+    // 4. - Sync
     @Tag(name = "11. Play Media APIs", description = "Play Media APIs")
     @PostMapping("/playFileSourceToTarget")
     public ResponseEntity<String> playFileSourceToTarget() {
@@ -1462,15 +1814,17 @@ public class ProgramSample {
     // // 5. Teams - Async
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playFileSourceToTeamsTargetAsync")
-    // public ResponseEntity<String> playFileSourceToTeamsTargetAsync(@RequestParam String teamsUserId) {
-    //     return playFile(teamsUserId, TargetType.TEAMS, true, false);
+    // public ResponseEntity<String> playFileSourceToTeamsTargetAsync(@RequestParam
+    // String teamsUserId) {
+    // return playFile(teamsUserId, TargetType.TEAMS, true, false);
     // }
 
     // // 6. Teams - Sync
     // @Tag(name = "Play Media APIs", description = "Play Media APIs")
     // @PostMapping("/playFileSourceToTeamsTarget")
-    // public ResponseEntity<String> playFileSourceToTeamsTarget(@RequestParam String teamsUserId) {
-    //     return playFile(teamsUserId, TargetType.TEAMS, false, false);
+    // public ResponseEntity<String> playFileSourceToTeamsTarget(@RequestParam
+    // String teamsUserId) {
+    // return playFile(teamsUserId, TargetType.TEAMS, false, false);
     // }
 
     // 7. All - Async
@@ -1687,7 +2041,8 @@ public class ProgramSample {
             return ResponseEntity.ok("Started continuous DTMF recognition (async simulation).");
         } catch (Exception e) {
             log.error("Error starting continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting continuous DTMF recognition");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error starting continuous DTMF recognition");
         }
     }
 
@@ -1704,7 +2059,8 @@ public class ProgramSample {
             return ResponseEntity.ok("Started continuous DTMF recognition.");
         } catch (Exception e) {
             log.error("Error starting continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting continuous DTMF recognition");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error starting continuous DTMF recognition");
         }
     }
 
@@ -1721,7 +2077,8 @@ public class ProgramSample {
             return ResponseEntity.ok("Stopped continuous DTMF recognition (async simulation).");
         } catch (Exception e) {
             log.error("Error stopping continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error stopping continuous DTMF recognition");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error stopping continuous DTMF recognition");
         }
     }
 
@@ -1738,37 +2095,145 @@ public class ProgramSample {
             return ResponseEntity.ok("Stopped continuous DTMF recognition.");
         } catch (Exception e) {
             log.error("Error stopping continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error stopping continuous DTMF recognition");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error stopping continuous DTMF recognition");
+        }
+    }
+
+    // Async Equivalent: /sendDTMFTonesAsync (C#)
+    @Tag(name = "Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
+    @PostMapping("/sendDTMFTonesToPSTNAsync")
+    public ResponseEntity<String> sendDTMFTonesAsyncPSTN() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            List<DtmfTone> tones = Arrays.asList(DtmfTone.ZERO, DtmfTone.ONE);
+            CallMedia callMediaService = getCallMedia();
+            callMediaService.sendDtmfTones(tones, target); // .block() internally
+
+            log.info("Async DTMF tones sent to {}", targetAcsUserId);
+            return ResponseEntity.ok("DTMF tones sent (async simulation).");
+        } catch (Exception e) {
+            log.error("Error sending DTMF tones to {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sending DTMF tones");
+        }
+    }
+
+    // Sync Equivalent: /sendDTMFTones (C#)
+    @Tag(name = "Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
+    @PostMapping("/sendDTMFTonesToPSTN")
+    public ResponseEntity<String> sendDTMFTonesPSTN() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            List<DtmfTone> tones = Arrays.asList(DtmfTone.ZERO, DtmfTone.ONE);
+            CallMedia callMediaService = getCallMedia();
+            callMediaService.sendDtmfTones(tones, target);
+
+            log.info("DTMF tones sent to {}", targetAcsUserId);
+            return ResponseEntity.ok("DTMF tones sent.");
+        } catch (Exception e) {
+            log.error("Error sending DTMF tones to {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sending DTMF tones");
+        }
+    }
+
+    // Async Equivalent: /startContinuousDTMFTonesAsync (C#)
+    @Tag(name = "Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
+    @PostMapping("/startContinuousDTMFTonesToPSTNAsync")
+    public ResponseEntity<String> startContinuousDTMFTonesAsynPSTN() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            CallMedia callMediaService = getCallMedia();
+            callMediaService.startContinuousDtmfRecognition(target); // .block() internally
+
+            log.info("Async continuous DTMF started for {}", targetAcsUserId);
+            return ResponseEntity.ok("Started continuous DTMF recognition (async simulation).");
+        } catch (Exception e) {
+            log.error("Error starting continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error starting continuous DTMF recognition");
+        }
+    }
+
+    // Sync Equivalent: /startContinuousDTMFTones (C#)
+    @Tag(name = "Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
+    @PostMapping("/startContinuousDTMFTonesToPSTN")
+    public ResponseEntity<String> startContinuousDTMFTonesPSTN() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            CallMedia callMediaService = getCallMedia();
+            callMediaService.startContinuousDtmfRecognition(target);
+
+            log.info("Started continuous DTMF for {}", targetAcsUserId);
+            return ResponseEntity.ok("Started continuous DTMF recognition.");
+        } catch (Exception e) {
+            log.error("Error starting continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error starting continuous DTMF recognition");
+        }
+    }
+
+    // Async Equivalent: /stopContinuousDTMFTonesAsync (C#)
+    @Tag(name = "Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
+    @PostMapping("/stopContinuousDTMFTonesToPSTNAsync")
+    public ResponseEntity<String> stopContinuousDTMFTonesAsyncPSTN() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            CallMedia callMediaService = getCallMedia();
+            callMediaService.stopContinuousDtmfRecognition(target); // .block() internally
+
+            log.info("Async stop continuous DTMF for {}", targetAcsUserId);
+            return ResponseEntity.ok("Stopped continuous DTMF recognition (async simulation).");
+        } catch (Exception e) {
+            log.error("Error stopping continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error stopping continuous DTMF recognition");
+        }
+    }
+
+    // Sync Equivalent: /stopContinuousDTMFTones (C#)
+    @Tag(name = "Send or Start DTMF APIs", description = "Send or Start DTMF APIs")
+    @PostMapping("/stopContinuousDTMFTonesToPSTN")
+    public ResponseEntity<String> stopContinuousDTMFTonesPSTN() {
+        try {
+            CommunicationIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            CallMedia callMediaService = getCallMedia();
+            callMediaService.stopContinuousDtmfRecognition(target);
+
+            log.info("Stopped continuous DTMF for {}", targetAcsUserId);
+            return ResponseEntity.ok("Stopped continuous DTMF recognition.");
+        } catch (Exception e) {
+            log.error("Error stopping continuous DTMF recognition for {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error stopping continuous DTMF recognition");
         }
     }
 
     @Tag(name = "Create Group Call APIs", description = "Create Group Call APIs")
-    @PostMapping("/createGroupCallAsync")
+    @PostMapping("/createGroupCall")
     public ResponseEntity<String> createGroupCallAsync(@RequestParam String pstnTarget) {
         PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
         PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(acsPhoneNumber);
-
+        CommunicationUserIdentifier acsTarget = new CommunicationUserIdentifier(targetAcsUserId);
         URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-        // String websocketUri = callbackUriHost.replace("https", "wss") + "/ws";
-
         MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
-        // mediaStreamingOptions.setTransportUrl(websocketUriHost);
-        mediaStreamingOptions.setTransportUrl("https://abc.com");
+        mediaStreamingOptions.setTransportUrl(websocketUriHost);
+        // mediaStreamingOptions.setTransportUrl("https://abc.com");
         mediaStreamingOptions.setStartMediaStreaming(true);
-        // TranscriptionOptions transcriptionOptions = new TranscriptionOptions(
-        //         websocketUri,
-        //         TranscriptionTransport.WEBSOCKET,
-        //         "en-us",
-        //         false
-        // );
 
-        List<CommunicationIdentifier> targets = List.of(target);
+        TranscriptionOptions transcriptionOptions = new TranscriptionOptions("en-US");
+        transcriptionOptions.setTransportUrl(websocketUriHost);
+        transcriptionOptions.setStartTranscription(true);
+
+        List<CommunicationIdentifier> targets = List.of(target, acsTarget);
 
         CreateGroupCallOptions createGroupCallOptions = new CreateGroupCallOptions(targets, callbackUri.toString())
-                .setCallIntelligenceOptions(new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint))
+                .setCallIntelligenceOptions(
+                        new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint))
                 .setSourceCallIdNumber(sourceCallerId)
+                .setEnableLoopbackAudio(false)
+
                 .setMediaStreamingOptions(mediaStreamingOptions);
-                // .setTranscriptionOptions(transcriptionOptions);
+        // .setTranscriptionOptions(transcriptionOptions);
 
         Response<CreateCallResult> result = client.createGroupCallWithResponse(createGroupCallOptions, Context.NONE);
         String callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
@@ -1778,63 +2243,82 @@ public class ProgramSample {
 
     // @Tag(name = "Create Group Call APIs", description = "Create Group Call APIs")
     // @PostMapping("/createGroupCall")
-    // public ResponseEntity<String> createGroupCall(@RequestParam String targetPhoneNumber) {
-    //     PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-    //     PhoneNumberIdentifier sourceCallerId = new PhoneNumberIdentifier(targetAcsUserId);
+    // public ResponseEntity<String> createGroupCall(@RequestParam String
+    // targetPhoneNumber) {
+    // PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+    // PhoneNumberIdentifier sourceCallerId = new
+    // PhoneNumberIdentifier(targetAcsUserId);
 
-    //     URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+    // URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
 
-    //     List<CommunicationIdentifier> targets = List.of(target,sourceCallerId);
+    // List<CommunicationIdentifier> targets = List.of(target,sourceCallerId);
 
-    //     CreateCallResult result = client.createGroupCall(targets,callbackUri.toString());
-    //     callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
-    //     log.info("Created group call with connection id: {}", callConnectionId);
+    // CreateCallResult result =
+    // client.createGroupCall(targets,callbackUri.toString());
+    // callConnectionId =
+    // result.getCallConnectionProperties().getCallConnectionId();
+    // log.info("Created group call with connection id: {}", callConnectionId);
     // }
 
-    // @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
-    // @PostMapping("/connectRoomCallAsync")
-    // public ResponseEntity<String> connectRoomCallAsync(@RequestParam String roomId) {
-    //     return connectCallAsync(new RoomCallLocator(roomId), "ConnectRoomCallContext");
-    // }
+    @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
+    @PostMapping("/connectRoomCallWithOptions")
+    public ResponseEntity<String> connectRoomCallAsync(@RequestParam String roomId) {
+        return connectCallWithOptions(new RoomCallLocator(roomId),
+                "ConnectRoomCallContext");
+    }
 
-    // @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
-    // @PostMapping("/connectRoomCall")
-    // public ResponseEntity<String> connectRoomCall(@RequestParam String roomId) {
-    //     return connectCall(new RoomCallLocator(roomId), "ConnectRoomCallContext");
-    // }
+    @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
+    @PostMapping("/connectRoomCall")
+    public ResponseEntity<String> connectRoomCall(@RequestParam String roomId) {
+        return connectCall(new RoomCallLocator(roomId), "ConnectRoomCallContext");
+    }
 
     // @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
     // @PostMapping("/connectGroupCallAsync")
-    // public ResponseEntity<String> connectGroupCallAsync(@RequestParam String groupId) {
-    //     return connectCallAsync(new GroupCallLocator(groupId), "ConnectGroupCallContext");
+    // public ResponseEntity<String> connectGroupCallAsync(@RequestParam String
+    // groupId) {
+    // return connectCallAsync(new GroupCallLocator(groupId),
+    // "ConnectGroupCallContext");
     // }
 
     // @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
     // @PostMapping("/connectGroupCall")
-    // public ResponseEntity<String> connectGroupCall(@RequestParam String groupId) {
-    //     return connectCall(new GroupCallLocator(groupId), "ConnectGroupCallContext");
+    // public ResponseEntity<String> connectGroupCall(@RequestParam String groupId)
+    // {
+    // return connectCall(new GroupCallLocator(groupId), "ConnectGroupCallContext");
     // }
 
     // @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
     // @PostMapping("/connectOneToNCallAsync")
-    // public ResponseEntity<String> connectOneToNCallAsync(@RequestParam String serverCallId) {
-    //     return connectCallAsync(new ServerCallLocator(serverCallId), "ConnectOneToNCallContext");
+    // public ResponseEntity<String> connectOneToNCallAsync(@RequestParam String
+    // serverCallId) {
+    // return connectCallAsync(new ServerCallLocator(serverCallId),
+    // "ConnectOneToNCallContext");
     // }
 
     // @Tag(name = "Connect Call APIs", description = "Connect Call APIs")
     // @PostMapping("/connectOneToNCall")
-    // public ResponseEntity<String> connectOneToNCall(@RequestParam String serverCallId) {
-    //     return connectCall(new ServerCallLocator(serverCallId), "ConnectOneToNCallContext");
+    // public ResponseEntity<String> connectOneToNCall(@RequestParam String
+    // serverCallId) {
+    // return connectCall(new ServerCallLocator(serverCallId),
+    // "ConnectOneToNCallContext");
     // }
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithVideoMp4MixedAsync")
-    public ResponseEntity<String> startRecordingWithVideoMp4MixedAsync(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithVideoMp4MixedAsync(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new
+            // StartRecordingOptions(properties.getCallConnectionId());
+
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO_VIDEO);
             options.setRecordingFormat(RecordingFormat.MP4);
@@ -1843,8 +2327,8 @@ public class ProgramSample {
             options.setPauseOnStart(isPauseOnStart);
             recordingFileFormat = "mp4";
 
-                Response<RecordingStateResult> response = client.getCallRecording()
-            .startWithResponse(options, Context.NONE);
+            Response<RecordingStateResult> response = client.getCallRecording()
+                    .startWithResponse(options, Context.NONE);
 
             recordingId = response.getValue().getRecordingId();
             log.info("Recording started. RecordingId: {}", recordingId);
@@ -1857,12 +2341,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithVideoMp4Mixed")
-    public ResponseEntity<String> startRecordingWithVideoMp4Mixed(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithVideoMp4Mixed(@RequestParam boolean isRecordingWithCallConnectionId,
+            @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO_VIDEO);
             options.setRecordingFormat(RecordingFormat.MP4);
@@ -1882,12 +2370,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithAudioMp3MixedAsync")
-    public ResponseEntity<String> startRecordingWithAudioMp3MixedAsync(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithAudioMp3MixedAsync(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO);
             options.setRecordingFormat(RecordingFormat.MP3);
@@ -1896,8 +2388,8 @@ public class ProgramSample {
             options.setPauseOnStart(isPauseOnStart);
             recordingFileFormat = "mp3";
 
-                Response<RecordingStateResult> response = client.getCallRecording()
-            .startWithResponse(options, Context.NONE);
+            Response<RecordingStateResult> response = client.getCallRecording()
+                    .startWithResponse(options, Context.NONE);
 
             recordingId = response.getValue().getRecordingId();
             log.info("Recording started. RecordingId: {}", recordingId);
@@ -1910,12 +2402,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithAudioMp3Mixed")
-    public ResponseEntity<String> startRecordingWithAudioMp3Mixed(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithAudioMp3Mixed(@RequestParam boolean isRecordingWithCallConnectionId,
+            @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO);
             options.setRecordingFormat(RecordingFormat.MP3);
@@ -1935,12 +2431,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithAudioMp3UnMixedAsync")
-    public ResponseEntity<String> startRecordingWithAudioMp3UnMixedAsync(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithAudioMp3UnMixedAsync(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO);
             options.setRecordingFormat(RecordingFormat.MP3);
@@ -1949,8 +2449,8 @@ public class ProgramSample {
             options.setPauseOnStart(isPauseOnStart);
             recordingFileFormat = "mp3";
 
-                Response<RecordingStateResult> response = client.getCallRecording()
-            .startWithResponse(options, Context.NONE);
+            Response<RecordingStateResult> response = client.getCallRecording()
+                    .startWithResponse(options, Context.NONE);
 
             recordingId = response.getValue().getRecordingId();
             log.info("Recording started. RecordingId: {}", recordingId);
@@ -1963,12 +2463,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithAudioMp3Unmixed")
-    public ResponseEntity<String> startRecordingWithAudioMp3Unmixed(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithAudioMp3Unmixed(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO);
             options.setRecordingFormat(RecordingFormat.MP3);
@@ -1988,12 +2492,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithAudioWavUnMixedAsync")
-    public ResponseEntity<String> startRecordingWithAudioWavUnMixedAsync(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithAudioWavUnMixedAsync(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO);
             options.setRecordingFormat(RecordingFormat.WAV);
@@ -2002,8 +2510,8 @@ public class ProgramSample {
             options.setPauseOnStart(isPauseOnStart);
             recordingFileFormat = "mp3";
 
-                Response<RecordingStateResult> response = client.getCallRecording()
-            .startWithResponse(options, Context.NONE);
+            Response<RecordingStateResult> response = client.getCallRecording()
+                    .startWithResponse(options, Context.NONE);
 
             recordingId = response.getValue().getRecordingId();
             log.info("Recording started. RecordingId: {}", recordingId);
@@ -2016,12 +2524,16 @@ public class ProgramSample {
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingWithAudioWavUnmixed")
-    public ResponseEntity<String> startRecordingWithAudioWavUnmixed(@RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+    public ResponseEntity<String> startRecordingWithAudioWavUnmixed(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         try {
             CallConnectionProperties properties = getCallConnectionProperties();
             String eventCallbackUri = callbackUriHost + "/api/callbacks";
             CallLocator locator = new ServerCallLocator(properties.getServerCallId());
-            StartRecordingOptions options = new StartRecordingOptions(locator);
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
 
             options.setRecordingContent(RecordingContent.AUDIO);
             options.setRecordingFormat(RecordingFormat.WAV);
@@ -2038,6 +2550,39 @@ public class ProgramSample {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }
+
+    @Tag(name = "12. Recording APIs", description = "Recording APIs")
+    @PostMapping("/startRecordingWithAudioWavMixedAsync")
+    public ResponseEntity<String> startRecordingWithAudioWavMixedAsync(
+            @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
+        try {
+            CallConnectionProperties properties = getCallConnectionProperties();
+            CallLocator locator = new ServerCallLocator(properties.getServerCallId());
+            String eventCallbackUri = callbackUriHost + "/api/callbacks";
+            // StartRecordingOptions options = new StartRecordingOptions(locator);
+            StartRecordingOptions options = isRecordingWithCallConnectionId == true
+                    ? new StartRecordingOptions(properties.getCallConnectionId())
+                    : new StartRecordingOptions(locator);
+
+            options.setRecordingContent(RecordingContent.AUDIO);
+            options.setRecordingFormat(RecordingFormat.WAV);
+            options.setRecordingChannel(RecordingChannel.MIXED);
+            options.setRecordingStateCallbackUrl(eventCallbackUri);
+            options.setPauseOnStart(isPauseOnStart);
+            recordingFileFormat = "mp3";
+
+            Response<RecordingStateResult> response = client.getCallRecording()
+                    .startWithResponse(options, Context.NONE);
+
+            recordingId = response.getValue().getRecordingId();
+            log.info("Recording started. RecordingId: {}", recordingId);
+            return ResponseEntity.ok("Recording started successfully.");
+        } catch (Exception e) {
+            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
+        }
+    }
+
 
     @Tag(name = "12. Recording APIs", description = "Recording APIs")
     @PostMapping("/pauseRecordingAsync")
@@ -2117,30 +2662,44 @@ public class ProgramSample {
         }
     }
 
-    @Tag(name = "12. Recording APIs", description = "Recording APIs")
-    @GetMapping("/downloadRecording")
-    public ResponseEntity<String> downloadRecording() {
-        try {
-            if (recordingLocation != null && !recordingLocation.isEmpty()) {
-                String downloadsPath = System.getProperty("user.home") + "/Downloads";
-                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-                String fileName = "Recording_" + timestamp + "." + recordingFileFormat;
-                String filePath = downloadsPath + "/" + fileName;
+    // @Tag(name = "12. Recording APIs", description = "Recording APIs")
+    // @GetMapping("/downloadRecording")
+    // public ResponseEntity<String> downloadRecording() {
+    //     try {
+    //         if (recordingLocation != null && !recordingLocation.isEmpty()) {
+    //             String downloadsPath = System.getProperty("user.home") + "/Downloads";
+    //             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+    //             String fileName = "Recording_" + timestamp + "." + recordingFileFormat;
+    //             String filePath = downloadsPath + "/" + fileName;
 
-                try (OutputStream outputStream = new FileOutputStream(filePath)) {
-                    client.getCallRecording().downloadTo(recordingLocation, outputStream);
-                    log.info("Recording downloaded to: {}", filePath);
-                } catch (IOException e) {
-                    log.error("Error while downloading recording", e);
-                }
-            } else {
-                log.error("Recording is not available");
-            }
-            return ResponseEntity.ok("Recording downloaded successfully.");
-        } catch (Exception e) {
-            log.error("Error while downloading recording", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error downloading recording");
+    //             try (OutputStream outputStream = new FileOutputStream(filePath)) {
+    //                 client.getCallRecording().downloadTo(recordingLocation, outputStream);
+    //                 log.info("Recording downloaded to: {}", filePath);
+    //             } catch (IOException e) {
+    //                 log.error("Error while downloading recording", e);
+    //             }
+    //         } else {
+    //             log.error("Recording is not available");
+    //         }
+    //         return ResponseEntity.ok("Recording downloaded successfully.");
+    //     } catch (Exception e) {
+    //         log.error("Error while downloading recording", e);
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error downloading recording");
+    //     }
+    // }
+
+     @GetMapping("/download")
+    public ResponseEntity<Void> callRecordingDownload() {
+        try {
+            String userHome = System.getProperty("user.home");
+            String downloadsPath = Paths.get(userHome, "Downloads").toString();
+            System.out.println("Downloads path: " + downloadsPath);
+            client.getCallRecording().downloadTo(recordingLocation,
+                    new FileOutputStream(downloadsPath + "/testfile.mp4"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
+        return ResponseEntity.ok().build();
     }
 
     @Tag(name = "13. Cancel All Media Operation APIs", description = "Cancel All Media Operation APIs")
@@ -2148,7 +2707,8 @@ public class ProgramSample {
     public ResponseEntity<String> cancelAllMediaOperationAsync() {
         try {
             CallMedia callMedia = getCallMedia();
-            // Simulate async operation in Java (can use CompletableFuture or similar if truly async)
+            // Simulate async operation in Java (can use CompletableFuture or similar if
+            // truly async)
             CompletableFuture.runAsync(() -> {
                 try {
                     callMedia.cancelAllMediaOperationsWithResponse(Context.NONE); // If reactive
@@ -2178,21 +2738,43 @@ public class ProgramSample {
     }
 
     @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
-    @PostMapping("/createCallWithTranscriptionAsync")
+    @PostMapping("/createPSTNCallWithTranscription")
     public ResponseEntity<String> createCallWithTranscriptionAsync() {
         try {
-            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
-            CallInvite callInvite = new CallInvite(target);
+
+            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            PhoneNumberIdentifier source = new PhoneNumberIdentifier(acsPhoneNumber);
+            CallInvite callInvite = new CallInvite(target, source);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-            String websocketUri = websocketUriHost.replace("https", "wss") + "/ws";
 
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+                    .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+
+            PiiRedactionOptions piiRedactionOptions = new PiiRedactionOptions();
+            piiRedactionOptions.setEnabled(true);
+            piiRedactionOptions.setRedactionType(RedactionType.MASK_WITH_CHARACTER);
+
+            SummarizationOptions summarizationOptions = new SummarizationOptions();
+            summarizationOptions.setEnableEndCallSummary(true);
+            summarizationOptions.setLocale("en-US");
+
+            List<String> locales = new ArrayList<>();
+            locales.add("en-US");
+            locales.add("es-ES");
+
             TranscriptionOptions transcriptionOptions = new TranscriptionOptions("en-US");
-            transcriptionOptions.setTransportUrl(websocketUri);
+            transcriptionOptions.setTransportUrl(websocketUriHost);
+            // transcriptionOptions.setTransportUrl("https://abc.com");
+            transcriptionOptions.setPiiRedactionOptions(piiRedactionOptions);
+            transcriptionOptions.setEnableSentimentAnalysis(true);
+            transcriptionOptions.setLocales(locales);
+            // transcriptionOptions.setSummarizationOptions(summarizationOptions);
+            transcriptionOptions.setStartTranscription(true);
+
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setTranscriptionOptions(transcriptionOptions);
+            createCallOptions.setEnableLoopbackAudio(false);
 
             Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
             callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
@@ -2205,11 +2787,73 @@ public class ProgramSample {
     }
 
     @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
-    @PostMapping("/startTranscriptionAsync")
+    @PostMapping("/createCallACSWithTranscription")
+    public ResponseEntity<String> createACSCallWithTranscriptionAsync() {
+        try {
+            CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
+            CallInvite callInvite = new CallInvite(target);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                    .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+
+            PiiRedactionOptions piiRedactionOptions = new PiiRedactionOptions();
+            piiRedactionOptions.setEnabled(true);
+            piiRedactionOptions.setRedactionType(RedactionType.MASK_WITH_CHARACTER);
+
+            SummarizationOptions summarizationOptions = new SummarizationOptions();
+            summarizationOptions.setEnableEndCallSummary(true);
+            summarizationOptions.setLocale("en-US");
+
+            List<String> locales = new ArrayList<>();
+            locales.add("en-US");
+            locales.add("es-ES");
+
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions("es-ES");
+            transcriptionOptions.setTransportUrl(websocketUriHost);
+            transcriptionOptions.setPiiRedactionOptions(piiRedactionOptions);
+            transcriptionOptions.setEnableSentimentAnalysis(true);
+            // transcriptionOptions.setLocales(locales);
+            // transcriptionOptions.setSummarizationOptions(summarizationOptions);
+            transcriptionOptions.setStartTranscription(true);
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+            createCallOptions.setTranscriptionOptions(transcriptionOptions);
+
+            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created acs tanscription call with connection id: " + callConnectionId);
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
+    }
+
+    @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
+    @PostMapping("/startTranscriptionWithOptions")
     public ResponseEntity<String> startTranscriptionAsync() {
         try {
+
+            PiiRedactionOptions piiRedactionOptions = new PiiRedactionOptions();
+            piiRedactionOptions.setEnabled(true);
+            piiRedactionOptions.setRedactionType(RedactionType.MASK_WITH_CHARACTER);
+
+            SummarizationOptions summarizationOptions = new SummarizationOptions();
+            summarizationOptions.setEnableEndCallSummary(true);
+            summarizationOptions.setLocale("en-US");
+
+            List<String> locales = new ArrayList<>();
+            locales.add("en-US");
+            locales.add("es-ES");
+
             StartTranscriptionOptions transcriptionOptions = new StartTranscriptionOptions()
-                    .setLocale("en-us");
+                    .setLocale("en-us")
+                    // .setPiiRedactionOptions(piiRedactionOptions)
+                    // .setEnableSentimentAnalysis(true)
+                    // .setSummarizationOptions(summarizationOptions)
+                    // .setLocales(locales)
+                    .setOperationContext("StartTranscriptionContext");
 
             CallMedia callMedia = getCallMedia();
             callMedia.startTranscriptionWithResponse(transcriptionOptions, Context.NONE);
@@ -2238,10 +2882,11 @@ public class ProgramSample {
     }
 
     @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
-    @PostMapping("/stopTranscriptionAsync")
-    public ResponseEntity<String> stopTranscriptionAsync() {
+    @PostMapping("/stopTranscriptionWithOptions")
+    public ResponseEntity<String> stopTranscriptionWithOptions() {
         try {
-            StopTranscriptionOptions transcriptionOptions = new StopTranscriptionOptions();
+            StopTranscriptionOptions transcriptionOptions = new StopTranscriptionOptions()
+                    .setOperationContext("StopOperationContext");
 
             CallMedia callMedia = getCallMedia();
             callMedia.stopTranscriptionWithResponse(transcriptionOptions, Context.NONE);
@@ -2270,21 +2915,38 @@ public class ProgramSample {
     }
 
     @Tag(name = "16. Transcription APIs", description = "APIs for managing call transcriptions")
-    @PostMapping("/updateTranscriptionAsync")
+    @PostMapping("/updateTranscriptionWithOptions")
     public ResponseEntity<String> updateTranscriptionAsync(@RequestParam String newLocale) {
         try {
+
+            PiiRedactionOptions piiRedactionOptions = new PiiRedactionOptions();
+            piiRedactionOptions.setEnabled(true);
+            piiRedactionOptions.setRedactionType(RedactionType.MASK_WITH_CHARACTER);
+
+            SummarizationOptions summarizationOptions = new SummarizationOptions();
+            summarizationOptions.setEnableEndCallSummary(false);
+            summarizationOptions.setLocale("en-US");
+
+            List<String> locales = new ArrayList<>();
+            locales.add("en-US");
+            locales.add("es-ES");
+
             UpdateTranscriptionOptions transcriptionOptions = new UpdateTranscriptionOptions()
                     .setLocale(newLocale)
-                    .setOperationContext("transcriptionContext");
-            // Get CallMedia and update transcription asynchronously
+                    .setPiiRedactionOptions(piiRedactionOptions)
+                    .setSummarizationOptions(summarizationOptions)
+                    .setEnableSentimentAnalysis(true)
+                    .setOperationContext("UpdateTranscriptionContext");
             CallMedia callMedia = getCallMedia();
-            callMedia.updateTranscriptionWithResponse(transcriptionOptions, Context.NONE);
+            callMedia.updateTranscriptionWithResponse(transcriptionOptions,
+                    Context.NONE);
 
             log.info("Updated transcription asynchronously.");
             return ResponseEntity.ok("Transcription updated successfully.");
         } catch (Exception e) {
             log.error("Error updating transcription asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update transcription asynchronously.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to update transcription asynchronously.");
         }
     }
 
@@ -2305,56 +2967,25 @@ public class ProgramSample {
     }
 
     @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
-    @PostMapping("/createCallWithMediaStreamingAsync")
+    @PostMapping("/createCallWithMediaStreaming")
     public ResponseEntity<String> createCallWithMediaStreamingAsync() {
         try {
             CommunicationUserIdentifier target = new CommunicationUserIdentifier(targetAcsUserId);
             CallInvite callInvite = new CallInvite(target);
             URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-            // String websocketUri = callbackUri.toString().replaceFirst("https", "wss") + "/ws";
+            // String websocketUri = callbackUri.toString().replaceFirst("https", "wss") +
+            // "/ws";
             String websocketUri = websocketUriHost;
-            log.info("WEBSOCKET URL:-->"+websocketUri);
+            log.info("WEBSOCKET URL:-->" + websocketUri);
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+                    .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
             MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
             mediaStreamingOptions.setTransportUrl(websocketUri);
             mediaStreamingOptions.setStartMediaStreaming(true);
             mediaStreamingOptions.setEnableDtmfTones(true);
-            mediaStreamingOptions.setEnableBidirectional(true);
+            mediaStreamingOptions.setEnableBidirectional(false);
             mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_24K_MONO);
-            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
-            createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
-
-            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
-            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
-            log.info("Created async call with connection id: " + callConnectionId);
-            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
-        } catch (Exception e) {
-            log.error("Error creating call : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
-        }
-    }
-     @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
-    @PostMapping("/createPSTNCallWithMediaStreamingAsync")
-    public ResponseEntity<String> createPSTNCallWithMediaStreamingAsync() {
-        try {
-            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
-            PhoneNumberIdentifier source = new PhoneNumberIdentifier(acsPhoneNumber);
-            CallInvite callInvite = new CallInvite(target,source);
-            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
-            // String websocketUri = callbackUri.toString().replaceFirst("https", "wss") + "/ws";
-            String websocketUri = websocketUriHost;
-            log.info("WEBSOCKET URL:-->"+websocketUri);
-            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
-            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
-                .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
-            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.MIXED);
-            mediaStreamingOptions.setTransportUrl(websocketUri);
-            mediaStreamingOptions.setStartMediaStreaming(true);
-            mediaStreamingOptions.setEnableDtmfTones(true);
-            mediaStreamingOptions.setEnableBidirectional(true);
-            mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_16K_MONO);
             createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
             createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
 
@@ -2369,7 +3000,49 @@ public class ProgramSample {
     }
 
     @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
-    @PostMapping("/startMediaStreamingAsync")
+    @PostMapping("/createPSTNCallWithMediaStreaming")
+    public ResponseEntity<String> createPSTNCallWithMediaStreamingAsync() {
+        try {
+            PhoneNumberIdentifier target = new PhoneNumberIdentifier(targetPhoneNumber);
+            PhoneNumberIdentifier source = new PhoneNumberIdentifier(acsPhoneNumber);
+            CallInvite callInvite = new CallInvite(target, source);
+            URI callbackUri = URI.create(callbackUriHost + "/api/callbacks");
+            // String websocketUri = callbackUri.toString().replaceFirst("https", "wss") +
+            // "/ws";
+            String websocketUri = websocketUriHost;
+            log.info("WEBSOCKET URL:-->" + websocketUri);
+            CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
+            CallIntelligenceOptions callIntelligenceOptions = new CallIntelligenceOptions()
+                    .setCognitiveServicesEndpoint(cognitiveServicesEndpoint);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
+            mediaStreamingOptions.setTransportUrl(websocketUri);
+            mediaStreamingOptions.setStartMediaStreaming(true);
+            mediaStreamingOptions.setEnableDtmfTones(true);
+            mediaStreamingOptions.setEnableBidirectional(false);
+            mediaStreamingOptions.setAudioFormat(AudioFormat.PCM_16K_MONO);
+            // MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(
+            // websocketUri,
+            // MediaStreamingTransport.WEBSOCKET,
+            // MediaStreamingContent.AUDIO,
+            // MediaStreamingAudioChannel.UNMIXED,
+            // true
+            // );
+            createCallOptions.setCallIntelligenceOptions(callIntelligenceOptions);
+            createCallOptions.setMediaStreamingOptions(mediaStreamingOptions);
+            createCallOptions.setEnableLoopbackAudio(false);
+
+            Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
+            callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+            log.info("Created async call with connection id: " + callConnectionId);
+            return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+        } catch (Exception e) {
+            log.error("Error creating call : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+        }
+    }
+
+    @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
+    @PostMapping("/startMediaStreamingWithOptions")
     public ResponseEntity<String> startMediaStreamingAsync() {
         try {
             StartMediaStreamingOptions mediaStreamingOptions = new StartMediaStreamingOptions();
@@ -2377,7 +3050,8 @@ public class ProgramSample {
             CallMedia callMedia = getCallMedia();
             callMedia.startMediaStreamingWithResponse(mediaStreamingOptions, Context.NONE);
 
-            // log.info("Started media streaming asynchronously for call: {}", callConnectionId);
+            // log.info("Started media streaming asynchronously for call: {}",
+            // callConnectionId);
             return ResponseEntity.ok("Media streaming started successfully.");
         } catch (Exception e) {
             log.error("Error starting media streaming asynchronously: {}", e.getMessage());
@@ -2399,12 +3073,13 @@ public class ProgramSample {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to start media streaming.");
         }
     }
-        
+
     @Tag(name = "17. Media Streaming APIs", description = "Media Streaming APIs")
-    @PostMapping("/stopMediaStreamingAsync")
+    @PostMapping("/stopMediaStreamingWithOptions")
     public ResponseEntity<String> stopMediaStreamingAsync() {
         try {
             StopMediaStreamingOptions stopOptions = new StopMediaStreamingOptions();
+            stopOptions.setOperationContext("StopMediaStreamingContext");
             CallMedia callMedia = getCallMedia();
             callMedia.stopMediaStreamingWithResponse(stopOptions, Context.NONE);
 
@@ -2431,6 +3106,26 @@ public class ProgramSample {
         }
     }
 
+    @Tag(name = "18. Summarize Call", description = "Create Group Call APIs")
+    @PostMapping("/summarizeCall")
+    public ResponseEntity<String> summarizeCall() {
+        CallMedia mediaService = getCallMedia();
+
+        SummarizationOptions summarizationOptions = new SummarizationOptions();
+        summarizationOptions.setEnableEndCallSummary(false);
+        summarizationOptions.setLocale("en-ES");
+
+        SummarizeCallOptions summarizeCallOptions = new SummarizeCallOptions();
+        summarizeCallOptions.setOperationContext("SummarizeCallOperationContext");
+        summarizeCallOptions.setOperationCallbackUrl(callbackUriHost + "/api/callbacks");
+        summarizeCallOptions.setSummarizationOptions(summarizationOptions);
+
+        mediaService.summarizeCallWithResponse(summarizeCallOptions, Context.NONE);
+
+        log.info("Summarize call with call connection id: {}", callConnectionId);
+        return ResponseEntity.ok("Summarize call with connection id: " + callConnectionId);
+    }
+
     // 🔄 Shared Method
     private CallMedia getCallMedia() {
         if (callConnectionId == null || callConnectionId.isEmpty()) {
@@ -2453,62 +3148,60 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId).getCallProperties();
     }
 
-    // private ResponseEntity<String> connectCall(CallLocator locator, String context) {
-    //     try {
-    //         URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
-    //         ConnectCallResult result = client.connectCall(locator,callbackUri.toString());
-    //         log.info("Connected sync call with connection ID: {}", result.getCallConnectionProperties().getCallConnectionId());
-    //         return ResponseEntity.ok("Call connected successfully");
+    private ResponseEntity<String> connectCall(CallLocator locator, String context) {
+        try {
+            URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
+            ConnectCallResult result = client.connectCall(locator, callbackUri.toString());
+            log.info("Connected sync call with connection ID: {}",
+                    result.getCallConnectionProperties().getCallConnectionId());
+            return ResponseEntity.ok("Call connected successfully");
 
-    //     } catch (Exception e) {
-    //         log.error("Error connecting call: {}", e.getMessage());
-    //         return ResponseEntity.status(500).body("Call connection failed");
-    //     }
-    // }
+        } catch (Exception e) {
+            log.error("Error connecting call: {}", e.getMessage());
+            return ResponseEntity.status(500).body("Call connection failed");
+        }
+    }
 
-    // private ResponseEntity<String> connectCallAsync(CallLocator locator, String context) {
-    //     try {
-    //         String callbackUri = callbackUriHost + "/api/callbacks";
-    //         String websocketUri = callbackUriHost.replace("https", "wss") + "/ws";
+    private ResponseEntity<String> connectCallWithOptions(CallLocator locator, String context) {
+        try {
+            String callbackUri = callbackUriHost + "/api/callbacks";
+            // String websocketUri = callbackUriHost.replace("https", "wss") + "/ws";
 
-    //         MediaStreamingOptions mediaOptions = new MediaStreamingOptions(websocketUri, MediaStreamingTransport.WEBSOCKET, MediaStreamingContent.AUDIO,
-    //                 MediaStreamingAudioChannel.UNMIXED, false);
+            MediaStreamingOptions mediaStreamingOptions = new MediaStreamingOptions(MediaStreamingAudioChannel.UNMIXED);
+            mediaStreamingOptions.setTransportUrl(websocketUriHost);
+            mediaStreamingOptions.setStartMediaStreaming(false);
 
-    //         TranscriptionOptions transcriptionOptions = new TranscriptionOptions(websocketUri, TranscriptionTransport.WEBSOCKET,
-    //                 "en-us", false);
+            TranscriptionOptions transcriptionOptions = new TranscriptionOptions("en-US");
+            transcriptionOptions.setTransportUrl(websocketUriHost);
+            transcriptionOptions.setStartTranscription(false);
 
-    //         ConnectCallOptions options = new ConnectCallOptions(locator, callbackUri)
-    //                 .setOperationContext(context)
-    //                // .setCallIntelligenceOptions(new CallIntelligenceOptions().setCognitiveServicesEndpoint(CognitiveServiceEndpoint))
-    //                 .setMediaStreamingOptions(mediaOptions)
-    //                 .setTranscriptionOptions(transcriptionOptions);
-
-    //     Mono<Response<ConnectCallResult>> response  = asyncClient.connectCallWithResponse(options);
-    //         response.subscribe(res -> {
-    //             if (res.getStatusCode() == 200) {
-    //                 log.info("Connected async call. Connection ID: {}", res.getValue().getCallConnectionProperties().getCallConnectionId());
-    //             } else {
-    //                 log.error("Call async connection failed with status code: {}", res.getStatusCode());
-    //             }
-    //         });
-    //         return ResponseEntity.ok("Async call request sent");
-
-    //     } catch (Exception e) {
-    //         log.error("Error connecting async call: {}", e.getMessage());
-    //         return ResponseEntity.status(500).body("Async call connection failed");
-    //     }
-    // }
+            ConnectCallOptions options = new ConnectCallOptions(locator, callbackUri)
+                    .setOperationContext(context)
+                    .setCallIntelligenceOptions(
+                            new CallIntelligenceOptions().setCognitiveServicesEndpoint(cognitiveServicesEndpoint))
+                    .setMediaStreamingOptions(mediaStreamingOptions)
+                    .setTranscriptionOptions(transcriptionOptions);
+            Response<ConnectCallResult> result = client.connectCallWithResponse(options, Context.NONE);
+            log.info("Connected call with connection ID: {}",
+                    result.getValue().getCallConnectionProperties().getCallConnectionId());
+            return ResponseEntity.ok("Call connected successfully");
+        } catch (Exception e) {
+            log.error("Error connecting call: {}", e.getMessage());
+            return ResponseEntity.status(500).body("call connection failed");
+        }
+    }
 
     private TextSource createTextSource(String message) {
         var textSource = new TextSource()
-        .setText(message)
-        .setVoiceName("en-US-NancyNeural");
-            return textSource;
+                .setText(message)
+                .setVoiceName("en-US-NancyNeural");
+        return textSource;
     }
 
-    private static final String SSML_STRING = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>" +
-        "<voice name='en-US-JennyNeural'>Hi, this is %s test played through SSML source. Goodbye!</voice></speak>";
-    
+    private static final String SSML_STRING = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>"
+            +
+            "<voice name='en-US-JennyNeural'>Hi, this is %s test played through SSML source. Goodbye!</voice></speak>";
+
     private SsmlSource createSsmlSource(boolean bargeIn) {
         String bargeText = bargeIn ? "barge in" : "test";
         SsmlSource ssmlSource = new SsmlSource();
@@ -2542,7 +3235,7 @@ public class ProgramSample {
 
                 PlayOptions options = new PlayOptions(ssmlSource, playTo);
                 options.setOperationContext(context);
-                //options.setInterruptHoldAudio(bargeIn);
+                // options.setInterruptHoldAudio(bargeIn);
 
                 if (async) {
                     mediaService.play(ssmlSource, playTo);
@@ -2558,28 +3251,35 @@ public class ProgramSample {
         }
     }
 
-    private static final String FILE_SOURCE_URI = "https://sample-videos.com/audio/mp3/crowd-cheering.mp3"; // replace with actual URI
+    private static final String FILE_SOURCE_URI = "https://sample-videos.com/audio/mp3/crowd-cheering.mp3"; // replace
+                                                                                                            // with
+                                                                                                            // actual
+                                                                                                            // URI
 
-    private ResponseEntity<String> playMultipleWithValidFileName(String target, TargetType targetType, boolean async, boolean bargeIn) {
+    private ResponseEntity<String> playMultipleWithValidFileName(String target, TargetType targetType, boolean async,
+            boolean bargeIn) {
         return playMultiple(FILE_SOURCE_URI, target, targetType, async, bargeIn);
     }
 
-    private ResponseEntity<String> playMultipleWithInvalidFileName(String target, TargetType targetType, boolean async, boolean bargeIn) {
+    private ResponseEntity<String> playMultipleWithInvalidFileName(String target, TargetType targetType, boolean async,
+            boolean bargeIn) {
         String filePath = "http://yourdomain.com/sample.wava"; // replace with invalid URI
         return playMultiple(filePath, target, targetType, async, bargeIn);
     }
 
-    private ResponseEntity<String> playMultiple(String filePath, String target, TargetType targetType, boolean async, boolean bargeIn) {
+    private ResponseEntity<String> playMultiple(String filePath, String target, TargetType targetType, boolean async,
+            boolean bargeIn) {
         try {
             log.info("1. Successfully.");
             FileSource fileSource = new FileSource().setUrl(filePath);
             SsmlSource ssmlSource = createSsmlSource(bargeIn);
-            TextSource textSource = createTextSource("Hi, this is barge in test played through play source thanks. Goodbye!.");
+            TextSource textSource = createTextSource(
+                    "Hi, this is barge in test played through play source thanks. Goodbye!.");
 
             log.info("2. Successfully.");
             String context = bargeIn ? "playBargeInContext" : "playContext";
             CallMedia mediaService = getCallMedia();
-    
+
             log.info("3. Successfully.");
             if (targetType == TargetType.ALL) {
                 log.info("4. Successfully.");
@@ -2606,7 +3306,7 @@ public class ProgramSample {
                 log.info("8. Successfully.");
                 PlayOptions options = new PlayOptions(List.of(fileSource, ssmlSource, textSource), playTo);
                 options.setOperationContext(context);
-                //options.setInterruptHoldAudio(bargeIn);
+                // options.setInterruptHoldAudio(bargeIn);
 
                 log.info("9. Successfully.");
                 if (async) {
@@ -2629,16 +3329,17 @@ public class ProgramSample {
             FileSource fileSource = new FileSource().setUrl(FILE_SOURCE_URI);
             String context = bargeIn ? "playBargeInContext" : "playContext";
             CallMedia mediaService = getCallMedia();
-    
+
             if (targetType == TargetType.ALL) {
                 PlayToAllOptions options = new PlayToAllOptions(fileSource);
                 options.setOperationContext(context);
                 options.setInterruptCallMediaOperation(bargeIn);
-    
+                options.setLoop(true);
+
                 if (async) {
-                    mediaService.playToAll(Collections.singletonList(fileSource));
-                } else {
                     mediaService.playToAllWithResponse(options, Context.NONE);
+                } else {
+                    mediaService.playToAll(Collections.singletonList(fileSource));
                 }
             } else {
                 List<CommunicationIdentifier> playTo = switch (targetType) {
@@ -2647,11 +3348,11 @@ public class ProgramSample {
                     case TEAMS -> List.of(new MicrosoftTeamsUserIdentifier(target));
                     default -> throw new IllegalArgumentException("Unsupported target type.");
                 };
-    
+
                 PlayOptions options = new PlayOptions(fileSource, playTo);
                 options.setOperationContext(context);
-                //options.setInterruptHoldAudio(bargeIn);
-    
+                // options.setInterruptHoldAudio(bargeIn);
+
                 if (async) {
                     mediaService.play(fileSource, playTo);
                 } else {
@@ -2670,25 +3371,25 @@ public class ProgramSample {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
-                .setText("Hi, this is recognize test. Please provide input. Thanks!")
-                .setVoiceName("en-US-NancyNeural")
-                .setSourceLocale("en-US")
-                .setVoiceKind(VoiceKind.MALE); // Optional: if enum NEURAL is available
-    
+                    .setText("Hi, this is recognize test. Please provide input. Thanks!")
+                    .setVoiceName("en-US-NancyNeural")
+                    .setSourceLocale("en-US")
+                    .setVoiceKind(VoiceKind.MALE); // Optional: if enum NEURAL is available
+
             CommunicationIdentifier participant = switch (targetType) {
-                    case PSTN -> new PhoneNumberIdentifier(target);
-                    case ACS -> new CommunicationUserIdentifier(target);
-                    case TEAMS -> new MicrosoftTeamsUserIdentifier(target);
-                    default -> throw new IllegalArgumentException("Unsupported target type.");
-                };
-    
+                case PSTN -> new PhoneNumberIdentifier(target);
+                case ACS -> new CommunicationUserIdentifier(target);
+                case TEAMS -> new MicrosoftTeamsUserIdentifier(target);
+                default -> throw new IllegalArgumentException("Unsupported target type.");
+            };
+
             CallMediaRecognizeDtmfOptions options = new CallMediaRecognizeDtmfOptions(participant, 4)
-                .setInterruptPrompt(false)
-                .setInterToneTimeout(Duration.ofSeconds(5))
-                .setInitialSilenceTimeout(Duration.ofSeconds(15))
-                .setPlayPrompt(prompt)
-                .setOperationContext("DtmfContext");
-    
+                    .setInterruptPrompt(false)
+                    .setInterToneTimeout(Duration.ofSeconds(5))
+                    .setInitialSilenceTimeout(Duration.ofSeconds(15))
+                    .setPlayPrompt(prompt)
+                    .setOperationContext("DtmfContext");
+
             if (async) {
                 callMedia.startRecognizingWithResponse(options, Context.NONE); // async version
             } else {
@@ -2701,15 +3402,15 @@ public class ProgramSample {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     private ResponseEntity<String> startSpeechRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
-                .setText("Hi, this is recognize test. Please provide input. Thanks!")
-                .setVoiceName("en-US-NancyNeural")
-                .setSourceLocale("en-US")
-                .setVoiceKind(VoiceKind.MALE);
+                    .setText("Hi, this is recognize test. Please provide input. Thanks!")
+                    .setVoiceName("en-US-NancyNeural")
+                    .setSourceLocale("en-US")
+                    .setVoiceKind(VoiceKind.MALE);
 
             CommunicationIdentifier participant = switch (targetType) {
                 case PSTN -> new PhoneNumberIdentifier(target);
@@ -2718,12 +3419,15 @@ public class ProgramSample {
                 default -> throw new IllegalArgumentException("Unsupported target type.");
             };
 
-            CallMediaRecognizeSpeechOptions options = new CallMediaRecognizeSpeechOptions(participant, Duration.ofSeconds(15))
-            .setInterruptPrompt(false)
-            .setInitialSilenceTimeout(Duration.ofSeconds(15))
-            .setPlayPrompt(prompt) // Fixed method call
-            .setOperationContext("SpeechContext");
-    
+            CallMediaRecognizeSpeechOptions options = new CallMediaRecognizeSpeechOptions(participant,
+                    Duration.ofSeconds(15))
+                    .setInterruptPrompt(false)
+                    .setInitialSilenceTimeout(Duration.ofSeconds(15))
+                    .setPlayPrompt(prompt) // Fixed method call
+                    .setSentimentAnalysisEnabled(true)
+                    .setSpeechLanguages("en-US", "en-AU")
+                    .setOperationContext("SpeechContext");
+
             if (async) {
                 callMedia.startRecognizingWithResponse(options, Context.NONE); // async version
             } else {
@@ -2736,15 +3440,17 @@ public class ProgramSample {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     private ResponseEntity<String> startSpeechOrDtmfRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
-                .setText("Hi, this is recognize test. Please provide input. Thanks!")
-                .setVoiceName("en-US-NancyNeural")
-                .setSourceLocale("en-US")
-                .setVoiceKind(VoiceKind.MALE);
+                    .setText("Hi, this is recognize test. Please provide input. Thanks!")
+                    .setVoiceName("en-US-NancyNeural")
+                    .setSourceLocale("en-US")
+                    .setVoiceKind(VoiceKind.MALE);
+
+            // FileSource fileSource = new FileSource().setUrl(FILE_SOURCE_URI);
 
             CommunicationIdentifier participant = switch (targetType) {
                 case PSTN -> new PhoneNumberIdentifier(target);
@@ -2753,12 +3459,15 @@ public class ProgramSample {
                 default -> throw new IllegalArgumentException("Unsupported target type.");
             };
 
-            var options = new CallMediaRecognizeSpeechOrDtmfOptions(participant, 4, Duration.ofSeconds(15))
-            .setInterruptPrompt(false)
-            .setInitialSilenceTimeout(Duration.ofSeconds(15))
-            .setPlayPrompts(prompt) // Fixed method call
-            .setOperationContext("SpeechContext");
-    
+            CallMediaRecognizeSpeechOrDtmfOptions options = new CallMediaRecognizeSpeechOrDtmfOptions(participant, 4,
+                    Duration.ofSeconds(15));
+            options.setInterruptPrompt(false);
+            options.setInitialSilenceTimeout(Duration.ofSeconds(15));
+            options.setPlayPrompts(prompt, prompt); // Fixed method call
+            options.setOperationContext("SpeechContext");
+            options.setSentimentAnalysisEnabled(true);
+            options.setSpeechLanguages("en-US", "en-AU");
+
             if (async) {
                 callMedia.startRecognizingWithResponse(options, Context.NONE); // async version
             } else {
@@ -2771,16 +3480,15 @@ public class ProgramSample {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     private ResponseEntity<String> startChoiceRecognition(String target, TargetType targetType, boolean async) {
         try {
             CallMedia callMedia = getCallMedia();
             TextSource prompt = new TextSource()
-                .setText("Hi, this is recognize test. Please provide input. Thanks!")
-                .setVoiceName("en-US-NancyNeural")
-                .setSourceLocale("en-US")
-                .setVoiceKind(VoiceKind.MALE);
-
+                    .setText("Hi, this is recognize test. Please provide input. Thanks!")
+                    .setVoiceName("en-US-NancyNeural")
+                    .setSourceLocale("en-US")
+                    .setVoiceKind(VoiceKind.MALE);
             CommunicationIdentifier participant = switch (targetType) {
                 case PSTN -> new PhoneNumberIdentifier(target);
                 case ACS -> new CommunicationUserIdentifier(target);
@@ -2789,12 +3497,14 @@ public class ProgramSample {
             };
 
             CallMediaRecognizeChoiceOptions options = new CallMediaRecognizeChoiceOptions(participant, getChoices())
-                .setInterruptPrompt(false)
-                .setInterruptCallMediaOperation(false)
-                .setInitialSilenceTimeout(Duration.ofSeconds(10))
-                .setPlayPrompt(prompt)
-                .setOperationContext("ChoiceContext");
-    
+                    .setInterruptPrompt(false)
+                    .setInterruptCallMediaOperation(false)
+                    .setInitialSilenceTimeout(Duration.ofSeconds(10))
+                    .setPlayPrompt(prompt)
+                    .setSentimentAnalysisEnabled(true)
+                    .setSpeechLanguages("en-US", "en-AU")
+                    .setOperationContext("ChoiceContext");
+
             if (async) {
                 callMedia.startRecognizingWithResponse(options, Context.NONE); // async version
             } else {
@@ -2815,18 +3525,23 @@ public class ProgramSample {
         ALL
     }
 
-    private List<RecognitionChoice> getChoices(){
+    private List<RecognitionChoice> getChoices() {
         var choices = Arrays.asList(
-            new RecognitionChoice().setLabel(confirmLabel).setPhrases(Arrays.asList("Confirm", "First", "One")).setTone(DtmfTone.ONE),
-            new RecognitionChoice().setLabel(cancelLabel).setPhrases(Arrays.asList("Cancel", "Second", "Two")).setTone(DtmfTone.TWO)
-            );
-            return choices;
+                new RecognitionChoice().setLabel(confirmLabel).setPhrases(Arrays.asList("Confirm", "First", "One"))
+                        .setTone(DtmfTone.ONE),
+                new RecognitionChoice().setLabel(cancelLabel).setPhrases(Arrays.asList("Cancel", "Second", "Two"))
+                        .setTone(DtmfTone.TWO));
+        return choices;
     }
-    
+
     private CallAutomationClient initClient() {
+        System.out.println("RUNNING JAVA VERSION: " + System.getProperty("java.version"));
         try {
             return new CallAutomationClientBuilder()
                     .connectionString(acsConnectionString)
+                    .endpoint("https://uswe-03.sdf.pma.teams.microsoft.com")
+                    // .endpoint("https://nextpma.plat.skype.com:6448")
+                    // .endpoint("https://nextpma-us.plat.skype.com:6448")
                     .buildClient();
         } catch (NullPointerException e) {
             log.error("Please verify if Application config is properly set up");
@@ -2838,20 +3553,21 @@ public class ProgramSample {
     }
 
     // private CallAutomationAsyncClient initAsyncClient() {
-    //     CallAutomationAsyncClient client;
-    //     try {
-    //         client = new CallAutomationClientBuilder()
-    //                 .connectionString(acsConnectionString)
-    //                 .buildAsyncClient();
-    //         return client;
-    //     } catch (NullPointerException e) {
-    //         log.error("Please verify if Application config is properly set up");
-    //         return null;
-    //     } catch (Exception e) {
-    //         log.error("Error occurred when initializing Call Automation Async Client: {} {}",
-    //                 e.getMessage(),
-    //                 e.getCause());
-    //         return null;
-    //     }
+    // CallAutomationAsyncClient client;
+    // try {
+    // client = new CallAutomationClientBuilder()
+    // .connectionString(acsConnectionString)
+    // .buildAsyncClient();
+    // return client;
+    // } catch (NullPointerException e) {
+    // log.error("Please verify if Application config is properly set up");
+    // return null;
+    // } catch (Exception e) {
+    // log.error("Error occurred when initializing Call Automation Async Client: {}
+    // {}",
+    // e.getMessage(),
+    // e.getCause());
+    // return null;
+    // }
     // }
 }

@@ -4,7 +4,8 @@
 
 # Call Automation - Lobby Call Sample
 
-This sample demonstrates how to implement a lobby call feature using Azure Communication Services Call Automation SDK. The application manages incoming calls by placing callers in a lobby, playing a waiting message, and then moving participants to a target call when approved.
+This sample demonstrates how to utilize the Call Automation SDK to implement a Lobby Call scenario. Users join a lobby call and remain on hold until an user in the target call confirms their participation. Once approved, Call Automation (bot) automatically connects the lobby users to the designated target call.
+The sample uses a client application (java script sample) available in [Web Client Quickstart](https://github.com/Azure-Samples/communication-services-javascript-quickstarts/tree/users/v-kuppu/LobbyCallConfirmSample).
 
 ## Features
 
@@ -14,6 +15,11 @@ This sample demonstrates how to implement a lobby call feature using Azure Commu
 - **WebSocket Support**: Real-time communication for call state updates
 - **Event-Driven Architecture**: Handle Call Automation events via webhooks
 - **Dev Tunnel Integration**: Easy development with Azure Dev Tunnels for webhook delivery
+
+# Design
+
+![Lobby Call Support](./resources/Lobby_Call_Support_Scenario.jpg)
+
 
 ## Prerequisites
 

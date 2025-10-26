@@ -5,7 +5,7 @@
 
 # Azure Communication Services Call Automation - Multiple Dial Out Sample
 
-This sample demonstrates how to use the Azure Communication Services Call Automation SDK to manage multiple dial-out scenarios, including moving participants between calls and monitoring call status.
+This sample demonstrates how to utilize the Call Automation SDK to implement a Move Participants Call scenario.
 
 ## Features
 
@@ -17,6 +17,10 @@ This sample demonstrates how to use the Azure Communication Services Call Automa
 - **Event Grid integration** for incoming call handling and call redirection scenarios
 - **Automatic call redirection** based on workflow call types
 - **Comprehensive logging** and error handling
+
+# Design
+
+![Move Participant](./resources/Move_Participant_Sample.jpg)
 
 ## Setup and Host Your Azure DevTunnel
 

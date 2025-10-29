@@ -1380,7 +1380,6 @@ public class ProgramSample {
                 } else {
                     options.setRecordingFormat(RecordingFormat.MP4);
                 }
-                options.setRecordingFormat(RecordingFormat.MP4);
                 if(isMixed){
                     options.setRecordingChannel(RecordingChannel.MIXED);
                 } else {
@@ -1410,7 +1409,6 @@ public class ProgramSample {
                 } else {
                     options.setRecordingFormat(RecordingFormat.MP4);
                 }
-                options.setRecordingFormat(RecordingFormat.MP4);
                 if(isMixed){
                     options.setRecordingChannel(RecordingChannel.MIXED);
                 } else {
@@ -1431,7 +1429,7 @@ public class ProgramSample {
                 return ResponseEntity.ok("Recording started successfully.");
             }
         } catch (Exception e) {
-            log.error("Error starting recording for {}: {}", targetAcsUserId, e.getMessage());
+            log.error("Error starting recording for {}: {}", recordingId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
         }
     }

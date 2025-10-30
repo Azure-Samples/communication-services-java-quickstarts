@@ -153,7 +153,9 @@ public class ProgramSample {
                             acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
                     log.error("Received failed event: {}", acsEvent
                             .getResultInformation().getMessage());
-                } else if (event instanceof RecognizeCompleted) {
+                } else {
+                    log.debug("Received unhandled event: {}", event.getClass().getSimpleName());
+                } if (event instanceof RecognizeCompleted) {
                     RecognizeCompleted acsEvent = (RecognizeCompleted) event;
                     RecognizeResult recognizeResult = acsEvent.getRecognizeResult().get();
                     if (recognizeResult instanceof DtmfResult) {
@@ -609,21 +611,20 @@ public class ProgramSample {
             PagedIterable<CallParticipant> participants = callConnection.listParticipants(Context.NONE);
 
             if (participants != null) {
-                StringBuilder participantList = new StringBuilder();
                 for (CallParticipant participant : participants) {
-                    participantList.append("----------------------------------------------------------------------\n");
-                    participantList.append("Participant: --> ").append(participant.getIdentifier().getRawId()).append("\n");
-                    participantList.append("Is Participant on hold: --> ").append(participant.isOnHold()).append("\n");
-                    participantList.append("----------------------------------------------------------------------\n");
+                    log.info("----------------------------------------------------------------------");
+                    log.info("Participant: --> {}", participant.getIdentifier().getRawId());
+                    log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                    log.info("----------------------------------------------------------------------");
                 }
-                return ResponseEntity.ok(participantList.toString());
+                return ResponseEntity.ok("Participant list retrieved");
             } else {
                 log.warn("No participants returned in the response.");
                 return ResponseEntity.ok("No participants found");
             }
         } catch (Exception e) {
-            log.error("Error getting participant list asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get participant list asynchronously.");
+            log.error("Error getting participant list: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -1283,11 +1284,10 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId).getCallProperties();
     }
 
-    private static final String FILE_SOURCE_URI = "https://sample-videos.com/audio/mp3/crowd-cheering.mp3"; // replace with actual URI
-
     private ResponseEntity<String> playFile(String callConnectionId, String target, boolean isPSTN, boolean async, boolean bargeIn, boolean isPlayToAll) {
         try {
-            FileSource fileSource = new FileSource().setUrl(FILE_SOURCE_URI);
+            log.info(callbackUriHost);
+            PlaySource fileSource = new FileSource().setUrl(callbackUriHost + "/prompt.wav").setPlaySourceCacheId("prompt.wav");
             String context = bargeIn ? "playBargeInContext" : "playContext";
             CallMedia mediaService = getCallMedia(callConnectionId);
     
@@ -1426,7 +1426,7 @@ public class ProgramSample {
                     recordingId = client.getCallRecording().start(options).getRecordingId();
                 }
                 log.info("Recording started. RecordingId: {}", recordingId);
-                return ResponseEntity.ok("Recording started successfully.");
+                return ResponseEntity.ok("Recording started successfully. RecordingId: " + recordingId);
             }
         } catch (Exception e) {
             log.error("Error starting recording for {}: {}", recordingId, e.getMessage());
@@ -1447,6 +1447,47 @@ public class ProgramSample {
         } catch (Exception e) {
             log.error("Error occurred when initializing Call Automation Client: {} {}", e.getMessage(), e.getCause());
             return null;
+        }
+    }
+
+    // Test endpoint to generate log messages for WebSocket demonstration
+    @Tag(name = "00. Test Live Logs", description = "Test endpoint to generate logs for live console")
+    @PostMapping("/api/test-logs")
+    public ResponseEntity<String> generateTestLogs(@RequestParam(defaultValue = "5") int count,
+                                                   @RequestParam(defaultValue = "info") String level) {
+        try {
+            log.info("Starting log generation test - Count: {}, Level: {}", count, level);
+            
+            for (int i = 1; i <= count; i++) {
+                Thread.sleep(500); // Small delay between logs
+                
+                switch (level.toLowerCase()) {
+                    case "error":
+                        log.error("Test ERROR log message #{} - This is a sample error for WebSocket demonstration", i);
+                        break;
+                    case "warn":
+                        log.warn("Test WARN log message #{} - This is a sample warning for WebSocket demonstration", i);
+                        break;
+                    case "debug":
+                        log.debug("Test DEBUG log message #{} - This is a sample debug for WebSocket demonstration", i);
+                        break;
+                    case "info":
+                    default:
+                        log.info("Test INFO log message #{} - This is a sample info for WebSocket demonstration", i);
+                        break;
+                }
+            }
+            
+            log.info("Log generation test completed successfully. Generated {} {} level messages", count, level);
+            return ResponseEntity.ok("Successfully generated " + count + " " + level + " level log messages");
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Log generation test was interrupted: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Log generation was interrupted");
+        } catch (Exception e) {
+            log.error("Error during log generation test: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate log messages");
         }
     }
 }

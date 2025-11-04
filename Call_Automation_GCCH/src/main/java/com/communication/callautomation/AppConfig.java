@@ -37,4 +37,28 @@ public class AppConfig {
     public String getCallBackUriForRecordingApis() {
         return callbackUriHost + "/api/recordingcallback";
     }
+
+    public String getCallbackUriHost() {
+        return this.callbackUriHost;
+    }
+
+    public String getAcsPhoneNumber() {
+        return this.acsPhoneNumber;
+    }
+
+    public String getTargetPhoneNumber() {
+        return this.targetPhoneNumber;
+    }
+
+    public String getCognitiveServiceEndpoint() {
+        return this.cognitiveServiceEndpoint;
+    }
+
+    public String getConnectionString() {
+        return this.connectionString;
+    }
+
+    public String getTargetTeamsUserId() {
+        return this.targetTeamsUserId;
+    }
 }

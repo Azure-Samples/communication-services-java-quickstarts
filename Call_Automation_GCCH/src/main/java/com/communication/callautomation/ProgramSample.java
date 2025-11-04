@@ -1,6 +1,5 @@
 package com.communication.callautomation;
 
-// import com.azure.communication.callautomation.CallAutomationAsyncClient;
 import com.azure.communication.callautomation.CallAutomationClient;
 import com.azure.communication.callautomation.CallAutomationClientBuilder;
 import com.azure.communication.callautomation.CallAutomationEventParser;

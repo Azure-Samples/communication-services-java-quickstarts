@@ -6,9 +6,9 @@ server:
   port: 8080
 
 acs:
-  connectionstring: endpoint=https://dacsrecordingtest.unitedstates.communication.azure.com/;accesskey=9lMdkVL4KcqJ3YXGgWS9Fxa1CjPwXs63rEMczJ7DsC9mbWR3hlbtJQQJ99BEACULyCpAArohAAAAAZCS58G3
-  callbackUriHost: https://rtqh72c0.inc1.devtunnels.ms:8080
-  acsPhoneNumber: "+18772119545"
-  targetphonenumber: "+918712321814"
-  cognitiveServiceEndpoint: https://cognitive-service-waferwire.cognitiveservices.azure.com/
+  connectionstring: ""
+  callbackUriHost: ""
+  acsPhoneNumber: ""
+  targetphonenumber: ""
+  cognitiveServiceEndpoint: ""
   targetTeamsUserId: <(OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870">

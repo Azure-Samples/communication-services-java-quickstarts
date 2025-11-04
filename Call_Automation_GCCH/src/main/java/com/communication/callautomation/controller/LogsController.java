@@ -127,35 +127,72 @@ public class LogsController {
                         const maxLogEntries = 1000;
                         
                         function connectWebSocket() {
+                            // Enhanced WebSocket connection with fallback support
                             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                             const host = window.location.host;
                             const wsUrl = `${protocol}//${host}/ws/logs`;
                             
-                            socket = new WebSocket(wsUrl);
+                            addLogEntry(`Attempting WebSocket connection to: ${wsUrl}`, 'info');
                             
-                            socket.onopen = function(event) {
-                                updateConnectionStatus(true);
-                                addLogEntry('WebSocket connected successfully', 'info');
-                            };
-                            
-                            socket.onmessage = function(event) {
-                                if (!isPaused) {
-                                    processLogMessage(event.data);
-                                } else {
-                                    logQueue.push(event.data);
-                                }
-                            };
-                            
-                            socket.onclose = function(event) {
-                                updateConnectionStatus(false);
-                                addLogEntry('WebSocket connection closed', 'warn');
-                                setTimeout(connectWebSocket, 3000);
-                            };
-                            
-                            socket.onerror = function(error) {
-                                updateConnectionStatus(false);
-                                addLogEntry('WebSocket error: ' + error, 'error');
-                            };
+                            try {
+                                socket = new WebSocket(wsUrl);
+                                
+                                // Set a connection timeout
+                                const connectionTimeout = setTimeout(() => {
+                                    if (socket.readyState === WebSocket.CONNECTING) {
+                                        socket.close();
+                                        addLogEntry('WebSocket connection timeout - trying fallback', 'warn');
+                                        connectWithFallback();
+                                    }
+                                }, 10000); // 10 second timeout
+                                
+                                socket.onopen = function(event) {
+                                    clearTimeout(connectionTimeout);
+                                    updateConnectionStatus(true);
+                                    addLogEntry('WebSocket connected successfully', 'info');
+                                };
+                                
+                                socket.onmessage = function(event) {
+                                    if (!isPaused) {
+                                        processLogMessage(event.data);
+                                    } else {
+                                        logQueue.push(event.data);
+                                    }
+                                };
+                                
+                                socket.onclose = function(event) {
+                                    clearTimeout(connectionTimeout);
+                                    updateConnectionStatus(false);
+                                    addLogEntry(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`, 'warn');
+                                    
+                                    // Retry connection after delay
+                                    if (event.code !== 1000) { // Not a normal closure
+                                        setTimeout(() => {
+                                            addLogEntry('Attempting to reconnect...', 'info');
+                                            connectWebSocket();
+                                        }, 5000);
+                                    }
+                                };
+                                
+                                socket.onerror = function(error) {
+                                    clearTimeout(connectionTimeout);
+                                    updateConnectionStatus(false);
+                                    addLogEntry('WebSocket error occurred - check browser console for details', 'error');
+                                    console.error('WebSocket error:', error);
+                                };
+                                
+                            } catch (error) {
+                                addLogEntry('Failed to create WebSocket connection: ' + error.message, 'error');
+                                connectWithFallback();
+                            }
+                        }
+                        
+                        // Fallback connection method for environments with WebSocket issues
+                        function connectWithFallback() {
+                            addLogEntry('Attempting fallback connection method...', 'info');
+                            // For now, just show a message. In production, you might use Server-Sent Events
+                            addLogEntry('WebSocket unavailable. Please check Azure VM configuration.', 'error');
+                            addLogEntry('Ensure port 8080 is open and WebSocket proxy is configured.', 'warn');
                         }
                         
                         function updateConnectionStatus(connected) {

@@ -332,6 +332,7 @@ public class ProgramSample {
 
         try {
             String callbackUri = callbackUriHost + "/api/callbacks";
+            log.info("Creating async call with callbackUri: {}", callbackUri);
             if (isPSTN) {
                 PhoneNumberIdentifier targetParticipant = new PhoneNumberIdentifier(target);
                 PhoneNumberIdentifier caller = new PhoneNumberIdentifier(acsPhoneNumber);

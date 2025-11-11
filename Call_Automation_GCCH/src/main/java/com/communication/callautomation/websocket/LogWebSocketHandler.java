@@ -18,13 +18,22 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        System.out.println("WebSocket connection established: " + session.getId());
+        System.out.println("WebSocket connection established: " + session.getId() + 
+                          " from " + session.getRemoteAddress());
+        
+        // Send a welcome message to confirm connection
+        try {
+            session.sendMessage(new TextMessage("WebSocket connection established successfully"));
+        } catch (IOException e) {
+            System.err.println("Error sending welcome message: " + e.getMessage());
+        }
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
-        System.out.println("WebSocket connection closed: " + session.getId());
+        System.out.println("WebSocket connection closed: " + session.getId() + 
+                          ", Status: " + status.getCode() + " - " + status.getReason());
     }
 
     @Override
@@ -47,7 +56,8 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        System.err.println("WebSocket transport error: " + exception.getMessage());
+        System.err.println("WebSocket transport error for session " + session.getId() + ": " + exception.getMessage());
+        exception.printStackTrace();
         sessions.remove(session);
     }
 }

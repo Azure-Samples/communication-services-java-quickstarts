@@ -18,25 +18,13 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        System.out.println("WebSocket connection established: " + session.getId() + 
-                          " from " + session.getRemoteAddress());
-        System.out.println("Session URI: " + session.getUri());
-        System.out.println("Session protocol: " + session.getAcceptedProtocol());
-        System.out.println("Total active sessions: " + sessions.size());
-        
-        // Send a welcome message to confirm connection
-        try {
-            session.sendMessage(new TextMessage("WebSocket connection established successfully"));
-        } catch (IOException e) {
-            System.err.println("Error sending welcome message: " + e.getMessage());
-        }
+        System.out.println("WebSocket connection established: " + session.getId());
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
-        System.out.println("WebSocket connection closed: " + session.getId() + 
-                          ", Status: " + status.getCode() + " - " + status.getReason());
+        System.out.println("WebSocket connection closed: " + session.getId());
     }
 
     @Override
@@ -59,10 +47,7 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        System.err.println("WebSocket transport error for session " + session.getId() + ": " + exception.getMessage());
-        System.err.println("Session state: " + (session.isOpen() ? "OPEN" : "CLOSED"));
-        System.err.println("Remote address: " + session.getRemoteAddress());
-        exception.printStackTrace();
+        System.err.println("WebSocket transport error: " + exception.getMessage());
         sessions.remove(session);
     }
 }

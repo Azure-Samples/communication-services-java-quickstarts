@@ -17,12 +17,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(logWebSocketHandler, "/ws/logs")
-                .setAllowedOriginPatterns("*") // Allow all origins for testing (compatible with credentials)
-                .setAllowedOrigins("*"); // Also add this for broader compatibility
-        
-        // Also register without SockJS for direct WebSocket connections
-        registry.addHandler(logWebSocketHandler, "/websocket/logs")
-                .setAllowedOriginPatterns("*")
-                .setAllowedOrigins("*");
+                .setAllowedOrigins("*"); // Allow all origins for testing
     }
 }

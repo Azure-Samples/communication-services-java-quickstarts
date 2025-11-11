@@ -20,6 +20,9 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
         sessions.add(session);
         System.out.println("WebSocket connection established: " + session.getId() + 
                           " from " + session.getRemoteAddress());
+        System.out.println("Session URI: " + session.getUri());
+        System.out.println("Session protocol: " + session.getAcceptedProtocol());
+        System.out.println("Total active sessions: " + sessions.size());
         
         // Send a welcome message to confirm connection
         try {
@@ -57,6 +60,8 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         System.err.println("WebSocket transport error for session " + session.getId() + ": " + exception.getMessage());
+        System.err.println("Session state: " + (session.isOpen() ? "OPEN" : "CLOSED"));
+        System.err.println("Remote address: " + session.getRemoteAddress());
         exception.printStackTrace();
         sessions.remove(session);
     }

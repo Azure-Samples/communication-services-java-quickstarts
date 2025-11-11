@@ -130,7 +130,9 @@ public class LogsController {
                             // Enhanced WebSocket connection with fallback support
                             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                             const host = window.location.host;
-                            const wsUrl = `${protocol}//${host}/ws/logs`;
+                            
+                            // Try direct WebSocket connection first
+                            const wsUrl = `${protocol}//${host}/websocket/logs`;
                             
                             addLogEntry(`Attempting WebSocket connection to: ${wsUrl}`, 'info');
                             
@@ -190,9 +192,47 @@ public class LogsController {
                         // Fallback connection method for environments with WebSocket issues
                         function connectWithFallback() {
                             addLogEntry('Attempting fallback connection method...', 'info');
-                            // For now, just show a message. In production, you might use Server-Sent Events
-                            addLogEntry('WebSocket unavailable. Please check Azure VM configuration.', 'error');
-                            addLogEntry('Ensure port 8080 is open and WebSocket proxy is configured.', 'warn');
+                            
+                            // Try SockJS endpoint as fallback
+                            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                            const host = window.location.host;
+                            const fallbackUrl = `${protocol}//${host}/ws/logs`;
+                            
+                            addLogEntry(`Trying SockJS fallback: ${fallbackUrl}`, 'info');
+                            
+                            try {
+                                socket = new WebSocket(fallbackUrl);
+                                
+                                socket.onopen = function(event) {
+                                    updateConnectionStatus(true);
+                                    addLogEntry('WebSocket connected via SockJS fallback', 'info');
+                                };
+                                
+                                socket.onmessage = function(event) {
+                                    if (!isPaused) {
+                                        processLogMessage(event.data);
+                                    } else {
+                                        logQueue.push(event.data);
+                                    }
+                                };
+                                
+                                socket.onclose = function(event) {
+                                    updateConnectionStatus(false);
+                                    addLogEntry(`Fallback WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`, 'warn');
+                                };
+                                
+                                socket.onerror = function(error) {
+                                    updateConnectionStatus(false);
+                                    addLogEntry('Fallback WebSocket error occurred', 'error');
+                                    addLogEntry('WebSocket unavailable. Please check dev tunnel configuration.', 'error');
+                                    addLogEntry('For dev tunnels, WebSocket connections may require additional configuration.', 'warn');
+                                };
+                                
+                            } catch (error) {
+                                addLogEntry('Failed to create fallback WebSocket connection: ' + error.message, 'error');
+                                addLogEntry('WebSocket unavailable. Please check Azure VM configuration.', 'error');
+                                addLogEntry('Ensure port 8080 is open and WebSocket proxy is configured.', 'warn');
+                            }
                         }
                         
                         function updateConnectionStatus(connected) {

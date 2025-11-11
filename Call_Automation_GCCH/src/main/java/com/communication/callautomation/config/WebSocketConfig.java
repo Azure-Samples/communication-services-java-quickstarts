@@ -18,6 +18,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(logWebSocketHandler, "/ws/logs")
                 .setAllowedOriginPatterns("*") // Allow all origins for testing (compatible with credentials)
-                .withSockJS(); // Enable SockJS fallback for better compatibility
+                .setAllowedOrigins("*"); // Also add this for broader compatibility
+        
+        // Also register without SockJS for direct WebSocket connections
+        registry.addHandler(logWebSocketHandler, "/websocket/logs")
+                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins("*");
     }
 }

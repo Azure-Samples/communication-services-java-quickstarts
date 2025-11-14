@@ -14,6 +14,17 @@ server:
     enabled: true
   http2:
     enabled: true
+  # Enhanced Tomcat configuration for WebSocket stability
+  tomcat:
+    connection-timeout: 300000  # 5 minutes
+    keep-alive-timeout: 300000  # 5 minutes
+    max-keep-alive-requests: 1000
+    threads:
+      max: 200
+      min-spare: 10
+    # WebSocket specific configurations
+    websocket:
+      max-idle-timeout: 300000  # 5 minutes
 
 acs:
   connectionstring: ""

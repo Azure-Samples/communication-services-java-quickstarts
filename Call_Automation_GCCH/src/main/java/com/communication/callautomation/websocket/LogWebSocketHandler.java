@@ -108,11 +108,37 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        System.err.println("WebSocket transport error for session " + session.getId() + ": " + exception.getMessage());
+        String errorMessage = exception.getMessage();
+        String sessionId = session.getId();
+        
+        System.err.println("=== WebSocket Transport Error ===");
+        System.err.println("Session ID: " + sessionId);
+        System.err.println("Error: " + errorMessage);
         System.err.println("Session state: " + (session.isOpen() ? "OPEN" : "CLOSED"));
         System.err.println("Remote address: " + session.getRemoteAddress());
-        exception.printStackTrace();
+        System.err.println("Session attributes: " + session.getAttributes());
+        
+        // Handle specific error types
+        if (errorMessage != null && errorMessage.contains("connection was aborted by the software")) {
+            System.err.println("DIAGNOSIS: Network-level connection abort detected");
+            System.err.println("CAUSE: Usually caused by:");
+            System.err.println("  - Client browser closing/refreshing page");
+            System.err.println("  - Network interruption or proxy timeout");
+            System.err.println("  - Firewall or antivirus interference");
+            System.err.println("  - Load balancer timeout in Azure");
+            System.err.println("SOLUTION: Client should automatically reconnect");
+        } else if (errorMessage != null && errorMessage.contains("Connection reset")) {
+            System.err.println("DIAGNOSIS: Connection reset by peer");
+            System.err.println("CAUSE: Likely network infrastructure issue");
+        } else {
+            System.err.println("DIAGNOSIS: Unknown transport error");
+            exception.printStackTrace();
+        }
+        
+        // Clean up the session
         sessions.remove(session);
+        System.err.println("Session removed. Active sessions: " + sessions.size());
+        System.err.println("=== End Transport Error ===");
     }
     
     public void shutdown() {

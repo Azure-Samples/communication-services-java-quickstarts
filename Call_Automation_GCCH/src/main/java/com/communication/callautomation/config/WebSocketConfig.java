@@ -17,17 +17,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // Primary WebSocket endpoint with SockJS fallback
-        registry.addHandler(logWebSocketHandler, "/ws/logs")
-                .setAllowedOrigins("*")
-                .setAllowedOriginPatterns("*")
-                .withSockJS()
-                .setSessionCookieNeeded(false)
-                .setHeartbeatTime(25000); // 25 second heartbeat
-        
-        // Direct WebSocket endpoint without SockJS
+        // Direct WebSocket endpoint - primary endpoint to avoid CORS issues
         registry.addHandler(logWebSocketHandler, "/websocket/logs")
-                .setAllowedOrigins("*")
                 .setAllowedOriginPatterns("*");
+        
+        // Simple WebSocket endpoint without any CORS configuration for basic compatibility
+        registry.addHandler(logWebSocketHandler, "/ws/logs");
     }
 }

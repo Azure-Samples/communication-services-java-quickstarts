@@ -4,6 +4,16 @@ spring:
 
 server:
   port: 8080
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        same-site: none
+        secure: false
+  compression:
+    enabled: true
+  http2:
+    enabled: true
 
 acs:
   connectionstring: ""

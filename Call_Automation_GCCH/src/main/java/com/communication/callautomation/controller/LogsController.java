@@ -126,65 +126,189 @@ public class LogsController {
                         let logQueue = [];
                         const maxLogEntries = 1000;
                         
+                        let reconnectAttempts = 0;
+                        let maxReconnectAttempts = 10;
+                        let reconnectInterval = 3000; // Start with 3 seconds
+                        let heartbeatInterval = null;
+                        
                         function connectWebSocket() {
-                            // Enhanced WebSocket connection with fallback support
+                            // Try SockJS-enabled endpoint first for better compatibility
                             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                             const host = window.location.host;
                             const wsUrl = `${protocol}//${host}/ws/logs`;
                             
-                            addLogEntry(`Attempting WebSocket connection to: ${wsUrl}`, 'info');
+                            addLogEntry(`Attempting WebSocket connection to: ${wsUrl} (attempt ${reconnectAttempts + 1})`, 'info');
                             
                             try {
                                 socket = new WebSocket(wsUrl);
                                 
                                 // Set a connection timeout
                                 const connectionTimeout = setTimeout(() => {
-                                    if (socket.readyState === WebSocket.CONNECTING) {
+                                    if (socket && socket.readyState === WebSocket.CONNECTING) {
                                         socket.close();
-                                        addLogEntry('WebSocket connection timeout - trying fallback', 'warn');
-                                        connectWithFallback();
+                                        addLogEntry('WebSocket connection timeout - trying direct endpoint', 'warn');
+                                        connectDirectWebSocket();
                                     }
-                                }, 10000); // 10 second timeout
+                                }, 8000); // 8 second timeout
                                 
                                 socket.onopen = function(event) {
                                     clearTimeout(connectionTimeout);
+                                    reconnectAttempts = 0; // Reset on successful connection
+                                    reconnectInterval = 3000; // Reset interval
                                     updateConnectionStatus(true);
-                                    addLogEntry('WebSocket connected successfully', 'info');
+                                    addLogEntry('✅ WebSocket connected successfully via SockJS', 'info');
+                                    
+                                    // Start heartbeat
+                                    startHeartbeat();
                                 };
                                 
                                 socket.onmessage = function(event) {
+                                    const message = event.data;
+                                    if (message === 'PONG') {
+                                        addLogEntry('Heartbeat: PONG received', 'debug');
+                                        return;
+                                    }
+                                    
                                     if (!isPaused) {
-                                        processLogMessage(event.data);
+                                        processLogMessage(message);
                                     } else {
-                                        logQueue.push(event.data);
+                                        logQueue.push(message);
                                     }
                                 };
                                 
                                 socket.onclose = function(event) {
                                     clearTimeout(connectionTimeout);
+                                    stopHeartbeat();
                                     updateConnectionStatus(false);
-                                    addLogEntry(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`, 'warn');
                                     
-                                    // Retry connection after delay
-                                    if (event.code !== 1000) { // Not a normal closure
+                                    let closeReason = getCloseReason(event.code);
+                                    addLogEntry(`WebSocket connection closed. Code: ${event.code} (${closeReason})`, 'warn');
+                                    
+                                    // Handle different close codes
+                                    if (event.code === 1006) {
+                                        addLogEntry('Error 1006: Abnormal closure detected - likely network/proxy issue', 'error');
+                                    }
+                                    
+                                    // Retry connection with exponential backoff
+                                    if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+                                        reconnectAttempts++;
+                                        const delay = Math.min(reconnectInterval * Math.pow(1.5, reconnectAttempts - 1), 30000);
+                                        
                                         setTimeout(() => {
-                                            addLogEntry('Attempting to reconnect...', 'info');
+                                            addLogEntry(`Attempting to reconnect in ${delay/1000}s...`, 'info');
                                             connectWebSocket();
-                                        }, 5000);
+                                        }, delay);
+                                    } else if (reconnectAttempts >= maxReconnectAttempts) {
+                                        addLogEntry('Max reconnection attempts reached. Switching to Server-Sent Events...', 'warn');
+                                        connectWithFallback();
                                     }
                                 };
                                 
                                 socket.onerror = function(error) {
                                     clearTimeout(connectionTimeout);
                                     updateConnectionStatus(false);
-                                    addLogEntry('WebSocket error occurred - check browser console for details', 'error');
+                                    addLogEntry('WebSocket error occurred - attempting direct connection', 'error');
                                     console.error('WebSocket error:', error);
+                                    
+                                    // Try direct WebSocket endpoint
+                                    setTimeout(() => connectDirectWebSocket(), 1000);
                                 };
                                 
                             } catch (error) {
                                 addLogEntry('Failed to create WebSocket connection: ' + error.message, 'error');
+                                setTimeout(() => connectDirectWebSocket(), 1000);
+                            }
+                        }
+                        
+                        function connectDirectWebSocket() {
+                            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                            const host = window.location.host;
+                            const wsUrl = `${protocol}//${host}/websocket/logs`;
+                            
+                            addLogEntry(`Trying direct WebSocket connection to: ${wsUrl}`, 'info');
+                            
+                            try {
+                                socket = new WebSocket(wsUrl);
+                                
+                                socket.onopen = function(event) {
+                                    reconnectAttempts = 0;
+                                    updateConnectionStatus(true);
+                                    addLogEntry('✅ Direct WebSocket connected successfully', 'info');
+                                    startHeartbeat();
+                                };
+                                
+                                socket.onmessage = function(event) {
+                                    const message = event.data;
+                                    if (message === 'PONG') {
+                                        return; // Ignore pong messages
+                                    }
+                                    
+                                    if (!isPaused) {
+                                        processLogMessage(message);
+                                    } else {
+                                        logQueue.push(message);
+                                    }
+                                };
+                                
+                                socket.onclose = function(event) {
+                                    stopHeartbeat();
+                                    updateConnectionStatus(false);
+                                    addLogEntry(`Direct WebSocket closed. Code: ${event.code}`, 'warn');
+                                    
+                                    if (event.code !== 1000) {
+                                        addLogEntry('Direct WebSocket failed. Switching to Server-Sent Events...', 'warn');
+                                        connectWithFallback();
+                                    }
+                                };
+                                
+                                socket.onerror = function(error) {
+                                    updateConnectionStatus(false);
+                                    addLogEntry('Direct WebSocket error - switching to fallback', 'error');
+                                    connectWithFallback();
+                                };
+                                
+                            } catch (error) {
+                                addLogEntry('Failed to create direct WebSocket: ' + error.message, 'error');
                                 connectWithFallback();
                             }
+                        }
+                        
+                        function startHeartbeat() {
+                            if (heartbeatInterval) {
+                                clearInterval(heartbeatInterval);
+                            }
+                            
+                            heartbeatInterval = setInterval(() => {
+                                if (socket && socket.readyState === WebSocket.OPEN) {
+                                    socket.send('PING');
+                                    addLogEntry('Heartbeat: PING sent', 'debug');
+                                }
+                            }, 30000); // Send ping every 30 seconds
+                        }
+                        
+                        function stopHeartbeat() {
+                            if (heartbeatInterval) {
+                                clearInterval(heartbeatInterval);
+                                heartbeatInterval = null;
+                            }
+                        }
+                        
+                        function getCloseReason(code) {
+                            const reasons = {
+                                1000: 'Normal Closure',
+                                1001: 'Going Away',
+                                1002: 'Protocol Error',
+                                1003: 'Unsupported Data',
+                                1005: 'No Status Received',
+                                1006: 'Abnormal Closure',
+                                1007: 'Invalid frame payload data',
+                                1008: 'Policy Violation',
+                                1009: 'Message too big',
+                                1010: 'Mandatory extension',
+                                1011: 'Internal Server Error',
+                                1015: 'TLS handshake'
+                            };
+                            return reasons[code] || 'Unknown';
                         }
                         
                         // Fallback connection method for environments with WebSocket issues

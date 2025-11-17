@@ -86,8 +86,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         // Primary WebSocket endpoint with enhanced CORS and interceptor
         registry.addHandler(logWebSocketHandler, "/websocket/logs")
-                .setAllowedOrigins("*") // Allow all origins for deployed environment
-                .setAllowedOriginPatterns("*") // Backup pattern matching
+                .setAllowedOriginPatterns("*") // Use only origin patterns to avoid conflicts
                 .addInterceptors(customHandshakeInterceptor())
                 .withSockJS() // Enable SockJS fallback for better compatibility
                     .setHeartbeatTime(25000) // Heartbeat every 25 seconds
@@ -97,13 +96,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
         
         // Direct WebSocket endpoint without SockJS (for native WebSocket clients)
         registry.addHandler(logWebSocketHandler, "/ws/logs")
-                .setAllowedOrigins("*")
                 .setAllowedOriginPatterns("*")
                 .addInterceptors(customHandshakeInterceptor());
                 
         // Additional troubleshooting endpoint
         registry.addHandler(logWebSocketHandler, "/logs/ws")
-                .setAllowedOrigins("*")
                 .setAllowedOriginPatterns("*")
                 .addInterceptors(customHandshakeInterceptor());
                 

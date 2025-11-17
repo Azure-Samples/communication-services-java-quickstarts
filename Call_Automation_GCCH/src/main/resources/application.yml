@@ -1,6 +1,12 @@
 spring:
   application:
-    name: CallAutomation_OutboundCalling
+    name: CallAutomation_GCCHTestApp
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
 
 server:
   port: 8080
@@ -14,17 +20,24 @@ server:
     enabled: true
   http2:
     enabled: true
-  # Enhanced Tomcat configuration for WebSocket stability
+  # Enhanced Tomcat configuration for WebSocket stability in deployed environments
   tomcat:
-    connection-timeout: 300000  # 5 minutes
-    keep-alive-timeout: 300000  # 5 minutes
+    connection-timeout: 600000  # 10 minutes
+    keep-alive-timeout: 600000  # 10 minutes
     max-keep-alive-requests: 1000
     threads:
       max: 200
       min-spare: 10
     # WebSocket specific configurations
     websocket:
-      max-idle-timeout: 300000  # 5 minutes
+      max-idle-timeout: 600000  # 10 minutes
+    # Additional connection properties for deployed environments
+    max-connections: 8192
+    accept-count: 100
+    processor-cache: 200
+  # Forward headers for proper handling behind load balancers/proxies
+  forward-headers-strategy: native
+  use-forward-headers: true
 
 acs:
   connectionstring: ""

@@ -120,6 +120,7 @@ public class LogsController {
                         <div class="log-entry log-info">Initializing WebSocket connection...</div>
                     </div>
 
+                    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
                     <script>
                         let socket = null;
                         let isPaused = false;
@@ -135,11 +136,12 @@ public class LogsController {
                             // Try SockJS-enabled endpoint first for better compatibility
                             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                             const host = window.location.host;
-                            const wsUrl = `${protocol}//${host}/ws/logs`;
+                            const wsUrl = `${protocol}//${host}/websocket/logs/websocket`;
                             
-                            addLogEntry(`Attempting WebSocket connection to: ${wsUrl} (attempt ${reconnectAttempts + 1})`, 'info');
+                            addLogEntry(`Attempting SockJS WebSocket connection to: ${wsUrl} (attempt ${reconnectAttempts + 1})`, 'info');
                             
                             try {
+                                // Use native WebSocket with fallback for deployed environments
                                 socket = new WebSocket(wsUrl);
                                 
                                 // Set a connection timeout

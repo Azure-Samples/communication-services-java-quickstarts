@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.PingMessage;
+
 import org.springframework.web.socket.PongMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -58,7 +58,7 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
         System.out.println("Received message from " + session.getId() + ": " + payload);
         
         // Handle ping/pong for heartbeat
-        if ("PING".equals(payload)) {
+        if ("PING".equals(payload) || "HEARTBEAT".equals(payload)) {
             try {
                 session.sendMessage(new TextMessage("PONG"));
             } catch (IOException e) {
@@ -96,8 +96,9 @@ public class LogWebSocketHandler extends TextWebSocketHandler {
         heartbeatExecutor.scheduleAtFixedRate(() -> {
             if (session.isOpen()) {
                 try {
-                    session.sendMessage(new PingMessage());
-                    System.out.println("Sent ping to session: " + session.getId());
+                    // Use text message ping for better load balancer compatibility
+                    session.sendMessage(new TextMessage("HEARTBEAT"));
+                    System.out.println("Sent heartbeat to session: " + session.getId());
                 } catch (IOException e) {
                     System.err.println("Error sending ping to session " + session.getId() + ": " + e.getMessage());
                     sessions.remove(session);

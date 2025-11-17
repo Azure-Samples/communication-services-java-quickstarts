@@ -43,12 +43,30 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 attributes.put("connectionTime", System.currentTimeMillis());
                 attributes.put("remoteAddress", request.getRemoteAddress());
                 attributes.put("userAgent", request.getHeaders().getFirst("User-Agent"));
+                attributes.put("origin", request.getHeaders().getFirst("Origin"));
+                attributes.put("host", request.getHeaders().getFirst("Host"));
                 
-                // Set keepalive headers to prevent connection drops
+                // Enhanced headers for deployed environments
                 response.getHeaders().add("Connection", "keep-alive");
-                response.getHeaders().add("Keep-Alive", "timeout=300, max=1000");
+                response.getHeaders().add("Keep-Alive", "timeout=600, max=1000");
                 
-                System.out.println("WebSocket handshake from: " + request.getRemoteAddress());
+                // CORS headers for WebSocket handshake
+                String origin = request.getHeaders().getFirst("Origin");
+                if (origin != null) {
+                    response.getHeaders().add("Access-Control-Allow-Origin", origin);
+                } else {
+                    response.getHeaders().add("Access-Control-Allow-Origin", "*");
+                }
+                response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+                response.getHeaders().add("Access-Control-Allow-Headers", "*");
+                response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                
+                // Add headers to help with load balancer compatibility
+                response.getHeaders().add("X-Content-Type-Options", "nosniff");
+                response.getHeaders().add("Cache-Control", "no-cache, no-store, must-revalidate");
+                
+                System.out.println("WebSocket handshake from: " + request.getRemoteAddress() + 
+                                 ", Origin: " + origin + ", Host: " + request.getHeaders().getFirst("Host"));
                 return true;
             }
 
@@ -66,22 +84,34 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // Enhanced WebSocket endpoint with custom interceptor
+        // Primary WebSocket endpoint with enhanced CORS and interceptor
         registry.addHandler(logWebSocketHandler, "/websocket/logs")
+                .setAllowedOrigins("*") // Allow all origins for deployed environment
+                .setAllowedOriginPatterns("*") // Backup pattern matching
+                .addInterceptors(customHandshakeInterceptor())
+                .withSockJS() // Enable SockJS fallback for better compatibility
+                    .setHeartbeatTime(25000) // Heartbeat every 25 seconds
+                    .setDisconnectDelay(30000) // Wait 30 seconds before disconnect
+                    .setHttpMessageCacheSize(1000)
+                    .setStreamBytesLimit(128 * 1024); // 128KB stream limit
+        
+        // Direct WebSocket endpoint without SockJS (for native WebSocket clients)
+        registry.addHandler(logWebSocketHandler, "/ws/logs")
+                .setAllowedOrigins("*")
                 .setAllowedOriginPatterns("*")
                 .addInterceptors(customHandshakeInterceptor());
-        
-        // Fallback endpoint with minimal configuration
-        registry.addHandler(logWebSocketHandler, "/ws/logs")
+                
+        // Additional troubleshooting endpoint
+        registry.addHandler(logWebSocketHandler, "/logs/ws")
+                .setAllowedOrigins("*")
+                .setAllowedOriginPatterns("*")
                 .addInterceptors(customHandshakeInterceptor());
                 
-        // Additional endpoint for troubleshooting
-        registry.addHandler(logWebSocketHandler, "/logs/ws")
-                .setAllowedOriginPatterns("*");
+        logger.info("Registered WebSocket handlers with enhanced CORS and SockJS support");
     }
 
     /**
-     * Configure Tomcat connector for enhanced WebSocket stability
+     * Configure Tomcat connector for enhanced WebSocket stability in deployed environments
      */
     @Bean
     public ServletWebServerFactory servletContainer() {
@@ -89,8 +119,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
         
         // Add connector customizations for WebSocket stability
         tomcat.addConnectorCustomizers(connector -> {
-            connector.setProperty("connectionTimeout", "300000"); // 5 minutes
-            connector.setProperty("keepAliveTimeout", "300000");  // 5 minutes
+            // Connection timeouts - increased for deployed environments
+            connector.setProperty("connectionTimeout", "600000"); // 10 minutes
+            connector.setProperty("keepAliveTimeout", "600000");  // 10 minutes
             connector.setProperty("maxKeepAliveRequests", "1000");
             connector.setProperty("tcpNoDelay", "true");
             
@@ -100,8 +131,18 @@ public class WebSocketConfig implements WebSocketConfigurer {
             connector.setProperty("compressionMinSize", "1024");
             connector.setProperty("noCompressionUserAgents", "gozilla, traviata");
             
-            logger.info("Configured Tomcat connector with WebSocket optimizations - " +
-                       "connectionTimeout: 300s, keepAliveTimeout: 300s, tcpNoDelay: true");
+            // Additional properties for load balancer compatibility
+            connector.setProperty("socket.soReuseAddress", "true");
+            connector.setProperty("socket.soKeepAlive", "true");
+            connector.setProperty("socket.soTimeout", "600000"); // 10 minutes socket timeout
+            
+            // Protocol specific settings
+            connector.setProperty("maxThreads", "200");
+            connector.setProperty("minSpareThreads", "10");
+            connector.setProperty("acceptCount", "100");
+            
+            logger.info("Configured Tomcat connector with enhanced WebSocket optimizations - " +
+                       "connectionTimeout: 600s, keepAliveTimeout: 600s, tcpNoDelay: true, soKeepAlive: true");
         });
         
         return tomcat;

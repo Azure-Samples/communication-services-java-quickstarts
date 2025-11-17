@@ -50,14 +50,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 response.getHeaders().add("Connection", "keep-alive");
                 response.getHeaders().add("Keep-Alive", "timeout=600, max=1000");
                 
-                // CORS headers for WebSocket handshake
+                // CORS headers for WebSocket handshake (no credentials to avoid conflicts)
                 String origin = request.getHeaders().getFirst("Origin");
                 if (origin != null) {
                     response.getHeaders().add("Access-Control-Allow-Origin", origin);
                 } else {
                     response.getHeaders().add("Access-Control-Allow-Origin", "*");
                 }
-                response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+                response.getHeaders().add("Access-Control-Allow-Credentials", "false");
                 response.getHeaders().add("Access-Control-Allow-Headers", "*");
                 response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
                 

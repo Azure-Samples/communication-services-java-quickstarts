@@ -16,9 +16,8 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow all origins for deployed environment
+        // Use allowedOriginPatterns instead of allowedOrigins when using wildcards
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        configuration.setAllowedOrigins(Arrays.asList("*"));
         
         // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -26,8 +25,8 @@ public class CorsConfig {
         // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
         
-        // Allow credentials
-        configuration.setAllowCredentials(false); // Set to false when using wildcard origins
+        // Set credentials to false to avoid conflicts with wildcard origins
+        configuration.setAllowCredentials(false);
         
         // Expose headers that the client can access
         configuration.setExposedHeaders(Arrays.asList(

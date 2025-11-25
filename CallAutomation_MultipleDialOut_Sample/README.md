@@ -34,16 +34,16 @@ Before running the application, configure your ACS settings in `src/main/resourc
 
 ```yaml
 acs:
-  acsConnectionString: "endpoint=https://your-acs-resource.communication.azure.com/;accesskey=your-access-key"
-  acsInboundPhoneNumber: "+1234567890"
-  acsOutboundPhoneNumber: "+0987654321"
-  userPhoneNumber: "+1122334455"
-  acsTestIdentity2: "8:acs:your-acs-resource-id:user-identity-2"
-  acsTestIdentity3: "8:acs:your-acs-resource-id:user-identity-3"
-  callbackUriHost: "https://your-devtunnel-url.devtunnels.ms"
+  acsConnectionString: "<acsConnectionString>"
+  acsInboundPhoneNumber: "<acsInboundPhoneNumber>"
+  acsOutboundPhoneNumber: "<acsOutboundPhoneNumber>"
+  userPhoneNumber: "<userPhoneNumber>"
+  acsTestIdentity2: "<acsTestIdentity2>"
+  acsTestIdentity3: "<acsTestIdentity3>"
+  callbackUriHost: "<callbackUriHost>"
 ```
 
-**Note:** The application now automatically loads configuration from the `application.yml` file on startup. The previous `/api/setConfiguration` endpoint has been removed.
+**Note:** The application automatically loads configuration from the `application.yml` file on startup. No manual configuration endpoint is needed.
 
 ## Running the Application
 
@@ -62,21 +62,20 @@ acs:
    mvn exec:java
    ```
 6. Access Swagger UI at [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-7. Use the `/api/getConfiguration` endpoint to verify your configuration is loaded correctly.
-8. Use the other GET endpoints to interact with the call automation features.
+7. The configuration is automatically loaded from `application.yml` on startup.
+8. Use the GET endpoints to interact with the call automation features.
 
 ## Main Endpoints
 
-| Endpoint                    | Method | Description                                            |
-| --------------------------- | ------ | ------------------------------------------------------ |
-| `/api/getConfiguration`     | GET    | View current configuration loaded from application.yml |
-| `/userCallToCallAutomation` | GET    | Create a call from user phone to ACS inbound number    |
-| `/createCall2`              | GET    | Create a call for ACS Test Identity 2                  |
-| `/createCall3`              | GET    | Create a call for ACS Test Identity 3                  |
-| `/moveParticipant2`         | GET    | Move participant to ACS Test Identity 2                |
-| `/moveParticipant3`         | GET    | Move participant to ACS Test Identity 3                |
-| `/getStatus`                | GET    | View current call status (HTML table)                  |
-| `/terminateCalls`           | GET    | Terminate all active calls                             |
+| Endpoint                    | Method | Description                                         |
+| --------------------------- | ------ | --------------------------------------------------- |
+| `/userCallToCallAutomation` | GET    | Create a call from user phone to ACS inbound number |
+| `/createCall2`              | GET    | Create a call for ACS Test Identity 2               |
+| `/createCall3`              | GET    | Create a call for ACS Test Identity 3               |
+| `/moveParticipant2`         | GET    | Move participant to ACS Test Identity 2             |
+| `/moveParticipant3`         | GET    | Move participant to ACS Test Identity 3             |
+| `/getStatus`                | GET    | View current call status (HTML table)               |
+| `/terminateCalls`           | GET    | Terminate all active calls                          |
 
 ## Event Grid Integration
 
@@ -109,12 +108,13 @@ The `/moveParticipant2` and `/moveParticipant3` endpoints demonstrate the **Move
 ## Workflow Overview
 
 1. **Setup Event Grid subscription** in Azure Portal pointing to your dev tunnel URL.
-2. **Configure** the application with required ACS settings.
-3. **Create the main call** from user phone to ACS inbound number.
-4. **Create additional calls** for ACS Test Identities 2 and 3.
-5. **Move participants** from the additional calls to the main call.
-6. **Monitor status** to see all active connections and participant info.
-7. **Terminate** all calls when done.
+2. **Configure** the application settings in `application.yml` with your ACS details.
+3. **Start the application** - configuration is loaded automatically.
+4. **Create the main call** from user phone to ACS inbound number.
+5. **Create additional calls** for ACS Test Identities 2 and 3.
+6. **Move participants** from the additional calls to the main call.
+7. **Monitor status** to see all active connections and participant info.
+8. **Terminate** all calls when done.
 
 ## Error Handling
 

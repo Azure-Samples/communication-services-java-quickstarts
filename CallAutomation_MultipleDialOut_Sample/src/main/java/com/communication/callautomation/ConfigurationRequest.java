@@ -3,7 +3,6 @@ package com.communication.callautomation;
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-
 @ConfigurationProperties(prefix = "acs")
 @Getter
 public class ConfigurationRequest {
@@ -14,7 +13,6 @@ public class ConfigurationRequest {
     private String acsTestIdentity2;
     private String acsTestIdentity3;
     private String callbackUriHost;
-    private String pmaEndpoint;
 
     // Getters and Setters
     public void setAcsConnectionString(String acsConnectionString) {
@@ -43,9 +41,5 @@ public class ConfigurationRequest {
 
     public void setCallbackUriHost(String callbackUriHost) {
         this.callbackUriHost = callbackUriHost;
-    }
-
-    public void setPmaEndpoint(String pmaEndpoint) {
-        this.pmaEndpoint = pmaEndpoint;
     }
 }

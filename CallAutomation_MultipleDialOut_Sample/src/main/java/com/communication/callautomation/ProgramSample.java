@@ -10,7 +10,6 @@ import com.azure.communication.callautomation.models.events.*;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.SystemEventNames;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationEventData;
-import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
 import com.azure.communication.common.CommunicationIdentifier;
 import com.azure.communication.common.CommunicationUserIdentifier;
 import com.azure.communication.common.PhoneNumberIdentifier;
@@ -72,16 +71,38 @@ public class ProgramSample {
     @Tag(name = "STEP 00. Call Automation Events", description = "Configure Event Grid webhook to point to /api/moveParticipantEvent endpoint")
     @PostMapping("/api/moveParticipantEvent")
     public ResponseEntity<String> moveParticipantEvent(@RequestBody final String reqBody) {
-        log.info("EVENT RECEIVED: {}", reqBody);
-        List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
-        for (EventGridEvent eventGridEvent : events) {
-            if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
-                return handleSubscriptionValidation(eventGridEvent.getData());
-            } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
-                handleIncomingCall(eventGridEvent.getData());
+        try {
+            log.info("Received webhook request body: {}", reqBody);
+            
+            // Check if request body is empty or not JSON
+            if (reqBody == null || reqBody.trim().isEmpty()) {
+                log.warn("Received empty request body");
+                return ResponseEntity.badRequest().body("Request body is empty");
             }
+            
+            // Check if it's a simple test string
+            if (!reqBody.trim().startsWith("[") && !reqBody.trim().startsWith("{")) {
+                log.info("Received test string: {}", reqBody);
+                return ResponseEntity.ok("Test webhook received: " + reqBody);
+            }
+            
+            List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
+            for (EventGridEvent eventGridEvent : events) {
+                log.info("Processing event type: {}", eventGridEvent.getEventType());
+                
+                if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
+                    return handleSubscriptionValidation(eventGridEvent.getData());
+                } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
+                    handleIncomingCall(eventGridEvent.getData());
+                }
+            }
+            return ResponseEntity.ok().body(null);
+        } catch (Exception e) {
+            log.error("Error processing Event Grid webhook: {}", e.getMessage());
+            log.error("Request body was: {}", reqBody);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing webhook: " + e.getMessage());
         }
-        return ResponseEntity.ok().body(null);
     }
 
     private ResponseEntity<String> handleSubscriptionValidation(final BinaryData eventData) {
@@ -89,13 +110,16 @@ public class ProgramSample {
             log.info("Received Subscription Validation Event from Incoming Call API endpoint");
             SubscriptionValidationEventData subscriptioneventData = eventData
                     .toObject(SubscriptionValidationEventData.class);
-            SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();
-            responseData.setValidationResponse(subscriptioneventData.getValidationCode());
-
-            // Return the validation code as required by Azure Event Grid
+            
             String validationCode = subscriptioneventData.getValidationCode();
             log.info("Returning validation code: {}", validationCode);
-            return ResponseEntity.ok().body(validationCode);
+            
+            // Event Grid expects a JSON response with validationResponse field
+            String responseBody = "{\"validationResponse\":\"" + validationCode + "\"}";
+            
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body(responseBody);
         } catch (Exception e) {
             log.error("Error at subscription validation event {} {}",
                     e.getMessage(),
@@ -455,11 +479,11 @@ public class ProgramSample {
                     .append("</body>\n")
                     .append("</html>");
 
-            return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html.toString());
+            return ResponseEntity.ok().contentType(org.springframework.http.MediaType.TEXT_HTML).body(html.toString());
         } catch (Exception e) {
             log.error("Error getting status: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.TEXT_HTML)
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body("<html><body><h1>Error</h1><p>Failed to get call status: " + e.getMessage()
                             + "</p></body></html>");
         }

@@ -15,9 +15,9 @@ springdoc:
   show-actuator: false
 
 server:
-  port: 8443  # Primary port - accepts both HTTP and HTTPS
+  port: 8443 # Primary port - accepts both HTTP and HTTPS
   ssl:
-    enabled: false  # Disable SSL to allow HTTP requests from dev tunnels
+    enabled: false # Disable SSL to allow HTTP requests from dev tunnels
   # Forward headers for reverse proxy support (dev tunnels)
   forward-headers-strategy: framework
   # Tomcat configuration for reverse proxy and dev tunnels
@@ -30,15 +30,13 @@ server:
 # Dev tunnel configuration
 devtunnel:
   url: # Set via environment variable or leave empty for local only
-  enabled: true  # Set to true when using dev tunnels
+  enabled: true # Set to true when using dev tunnels
 
 applicationinsights:
   connection-string: ""
 
 acs:
   acsConnectionString: ""
-  cognitiveServiceEndpoint: ""
+  cognitiveServiceEndpoint: "h"
   callbackUriHost: ""
-  pmaEndpoint: ""
   acsGeneratedId: ""
-  webSocketToken: ""

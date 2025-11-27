@@ -32,37 +32,65 @@ import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.annotation.PostConstruct;
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Comparator;
 
+/**
+ * REST controller for handling Call Automation operations for the Lobby Call
+ * Sample.
+ * This controller manages incoming calls, lobby calls, target calls, and
+ * participant transfers.
+ */
 @RestController
 public class ProgramSample {
 
-    private CallAutomationClient acsClient;
     private static final Logger log = LoggerFactory.getLogger(ProgramSample.class);
-    
+
+    private static final String LOBBY_USER_MESSAGE = "You are currently in a lobby call, we will notify the admin that you are waiting.";
+
+    private final AcsConfiguration acsConfiguration;
+    private final LobbyWebSocketHandler lobbyWebSocketHandler;
+    private CallAutomationClient acsClient;
+
+    // Call state variables
+    private String lobbyCallConnectionId = "";
+    private String targetCallConnectionId = "";
+    private String lobbyCallerId = "";
+
+    /**
+     * Constructor with dependency injection.
+     * 
+     * @param acsConfiguration      Configuration properties from application.yml
+     * @param lobbyWebSocketHandler WebSocket handler for lobby interactions
+     */
     @Autowired
-    private LobbyWebSocketHandler lobbyWebSocketHandler;
-    
-    // Configuration state variables
-    private ConfigurationRequest configuration = new ConfigurationRequest();
-    private String acsConnectionString = "";
-    private String cognitiveServiceEndpoint = "";
-    private String callbackUriHost = "";
-    private String acsGeneratedIdForTargetCallSender = "";
-    private String acsGeneratedIdForTargetCallReceiver = "";
-    private String acsGeneratedIdForLobbyCallReceiver = "";
+    public ProgramSample(AcsConfiguration acsConfiguration, LobbyWebSocketHandler lobbyWebSocketHandler) {
+        this.acsConfiguration = acsConfiguration;
+        this.lobbyWebSocketHandler = lobbyWebSocketHandler;
+    }
 
-    private String textToPlayToLobbyUser = "You are currently in a lobby call, we will notify the admin that you are waiting.";
-    private String confirmMessageToTargetCall = "A user is waiting in lobby, do you want to add the lobby user to your call?";
-
-    private String  lobbyCallConnectionId = "";
-    private String  targetCallConnectionId = "";
-    private String  lobbyCallerId = "";
-
+    /**
+     * Initializes the application after dependency injection.
+     * Validates configuration and initializes the Call Automation client.
+     */
     @PostConstruct
     public void init() {
+        // Validate configuration
+        try {
+            acsConfiguration.validate();
+            log.info("Configuration validated successfully");
+        } catch (IllegalArgumentException e) {
+            log.error("Configuration validation failed: {}", e.getMessage());
+            throw e;
+        }
+
+        // Initialize Call Automation client
+        this.acsClient = initClient(acsConfiguration.getAcsConnectionString());
+        if (this.acsClient == null) {
+            throw new IllegalStateException("Failed to initialize Call Automation client");
+        }
+        log.info("Call Automation client initialized successfully");
+
         // Set up the connection between ProgramSample and LobbyWebSocketHandler
         if (lobbyWebSocketHandler != null) {
             lobbyWebSocketHandler.setProgramSample(this);
@@ -79,14 +107,14 @@ public class ProgramSample {
             try {
                 log.info(
                         "\n~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~\n" +
-                        "Move Participant operation started..\n" +
-                        "Source Caller Id:     " + lobbyCallerId + "\n" +
-                        "Source Connection Id: " + lobbyCallConnectionId + "\n" +
-                        "Target Connection Id: " + targetCallConnectionId + "\n"
-                );
+                                "Move Participant operation started..\n" +
+                                "Source Caller Id:     " + lobbyCallerId + "\n" +
+                                "Source Connection Id: " + lobbyCallConnectionId + "\n" +
+                                "Target Connection Id: " + targetCallConnectionId + "\n");
 
                 CallConnection targetConnection = acsClient.getCallConnection(targetCallConnectionId);
-                // CallConnection sourceConnection = client.getCallConnection(lobbyConnectionId.get());
+                // CallConnection sourceConnection =
+                // client.getCallConnection(lobbyConnectionId.get());
 
                 CommunicationIdentifier participantToMove;
                 if (lobbyCallerId.startsWith("+")) {
@@ -98,7 +126,8 @@ public class ProgramSample {
                     return;
                 }
 
-                targetConnection.moveParticipants(java.util.Collections.singletonList(participantToMove), lobbyCallConnectionId);
+                targetConnection.moveParticipants(java.util.Collections.singletonList(participantToMove),
+                        lobbyCallConnectionId);
                 // If no exception is thrown, the operation is considered successful
                 log.info("Move Participants operation completed successfully.");
             } catch (Exception ex) {
@@ -110,7 +139,7 @@ public class ProgramSample {
     private ResponseEntity<Object> handleSubscriptionValidation(final BinaryData eventData) {
         try {
             log.info("Received Subscription Validation Event from Incoming Call API endpoint");
-            
+
             // Try to parse as JSON first to handle direct validation code
             try {
                 JSONObject jsonData = new JSONObject(eventData.toString());
@@ -123,13 +152,13 @@ public class ProgramSample {
             } catch (Exception jsonEx) {
                 log.debug("Not a direct JSON validation, trying Event Grid format");
             }
-            
+
             // Fall back to Event Grid format
             SubscriptionValidationEventData subscriptioneventData = eventData
                     .toObject(SubscriptionValidationEventData.class);
             SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();
             responseData.setValidationResponse(subscriptioneventData.getValidationCode());
-            
+
             return ResponseEntity.ok().body(responseData);
         } catch (Exception e) {
             log.error("Error at subscription validation event {} {}",
@@ -143,7 +172,7 @@ public class ProgramSample {
     private ResponseEntity<Object> handleIncomingCall(final BinaryData eventData) {
         log.info("Incoming call received");
         JSONObject data = new JSONObject(eventData.toString());
-        String callbackUri = URI.create(callbackUriHost + "/api/callbacks").toString();
+        String callbackUri = URI.create(acsConfiguration.getCallbackUriHost() + "/api/callbacks").toString();
 
         String fromCallerId = data.getJSONObject("from").getString("rawId");
         String toCallerId = data.getJSONObject("to").getString("rawId");
@@ -152,13 +181,13 @@ public class ProgramSample {
         log.info("Incoming Call Context: " + incomingCallContext);
 
         // Lobby Call: Answer
-        if (toCallerId.contains(acsGeneratedIdForTargetCallSender)) {
+        if (toCallerId.contains(acsConfiguration.getAcsGeneratedId())) {
             StringBuilder msgLog = new StringBuilder();
             try {
                 AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
                 options.setOperationContext("LobbyCall");
                 CallIntelligenceOptions intelligenceOptions = new CallIntelligenceOptions();
-                intelligenceOptions.setCognitiveServicesEndpoint(cognitiveServiceEndpoint);
+                intelligenceOptions.setCognitiveServicesEndpoint(acsConfiguration.getCognitiveServiceEndpoint());
                 options.setCallIntelligenceOptions(intelligenceOptions);
 
                 AnswerCallResult answerCallResult = acsClient.answerCallWithResponse(options, Context.NONE).getValue();
@@ -168,7 +197,9 @@ public class ProgramSample {
                         .append("From Caller Raw Id: ").append(fromCallerId).append("\n")
                         .append("To Caller Raw Id:   ").append(toCallerId).append("\n")
                         .append("Lobby Call Connection Id: ").append(lobbyCallConnectionId).append("\n")
-                        .append("Correlation Id:           ").append(answerCallResult.getCallConnection().getCallProperties().getCorrelationId()).append("\n")
+                        .append("Correlation Id:           ")
+                        .append(answerCallResult.getCallConnection().getCallProperties().getCorrelationId())
+                        .append("\n")
                         .append("Lobby Call answered successfully.\n");
                 log.info(msgLog.toString());
 
@@ -242,7 +273,7 @@ public class ProgramSample {
 
                         // Play lobby waiting message
                         CallMedia callMedia = lobbyCallConnection.getCallMedia();
-                        TextSource textSource = new TextSource().setText("You are currently in a lobby call, we will notify the admin that you are waiting.");
+                        TextSource textSource = new TextSource().setText(LOBBY_USER_MESSAGE);
                         textSource.setVoiceName("en-US-NancyNeural");
                         CommunicationUserIdentifier playTo = new CommunicationUserIdentifier(lobbyCallerId);
                         callMedia.play(textSource, List.of(playTo));
@@ -255,17 +286,17 @@ public class ProgramSample {
                     // In Java/Spring, you would use a WebSocket messaging template or similar
                     // For now, just log the message
                     String confirmMessageToTargetCall = "Target Call user has been notified that the lobby call is connected.";
-                    msgLog.append("Target Call notified with message: ").append(confirmMessageToTargetCall).append("\n");
+                    msgLog.append("Target Call notified with message: ").append(confirmMessageToTargetCall)
+                            .append("\n");
                     log.info("Target Call notified with message: " + confirmMessageToTargetCall);
                     return ResponseEntity.ok("Target Call notified with message: " + confirmMessageToTargetCall);
-                // } else if (event instanceof MoveParticipantsSucceeded) {
-                //     String correlationId = event.getCorrelationId();
-                //     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
-                //             .append("Received event: ").append(event.getClass()).append("\n")
-                //             .append("Call Connection Id: ").append(callConnectionId).append("\n")
-                //             .append("Correlation Id:      ").append(correlationId).append("\n");
-                }
-                 else if (event instanceof CallDisconnected) {
+                    // } else if (event instanceof MoveParticipantsSucceeded) {
+                    // String correlationId = event.getCorrelationId();
+                    // msgLog.append("~~~~~~~~~~~~ /api/callbacks ~~~~~~~~~~~~ \n")
+                    // .append("Received event: ").append(event.getClass()).append("\n")
+                    // .append("Call Connection Id: ").append(callConnectionId).append("\n")
+                    // .append("Correlation Id: ").append(correlationId).append("\n");
+                } else if (event instanceof CallDisconnected) {
                     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
                             .append("Received event: ").append(event.getClass()).append("\n")
                             .append("Call Connection Id: ").append(callConnectionId).append("\n");
@@ -278,83 +309,31 @@ public class ProgramSample {
         return ResponseEntity.ok(msgLog.toString());
     }
 
-    @Tag(name = "STEP 01. Set Configuration", description = "Assign the global variables for the Call Automation sample")
-    @PostMapping("/api/setConfiguration")
-    public ResponseEntity<String> setConfiguration(@RequestBody ConfigurationRequest configurationRequest) {
-        try {
-            // Reset variables
-            acsConnectionString = "";
-            cognitiveServiceEndpoint = "";
-            callbackUriHost = "";
-            acsGeneratedIdForTargetCallSender = "";
-
-            lobbyCallConnectionId = "";
-            lobbyCallerId = "";
-
-            if (configurationRequest != null) {
-                configuration.setAcsConnectionString(
-                    Optional.ofNullable(configurationRequest.getAcsConnectionString())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("AcsConnectionString is required"))
-                );
-                configuration.setCognitiveServiceEndpoint(
-                    Optional.ofNullable(configurationRequest.getCognitiveServiceEndpoint())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("CognitiveServiceEndpoint is required"))
-                );
-                configuration.setCallbackUriHost(
-                    Optional.ofNullable(configurationRequest.getCallbackUriHost())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("CallbackUriHost is required"))
-                );
-                configuration.setAcsGeneratedIdForTargetCallSender(
-                    Optional.ofNullable(configurationRequest.getAcsGeneratedIdForTargetCallSender())
-                        .filter(s -> !s.isEmpty())
-                        .orElseThrow(() -> new IllegalArgumentException("AcsGeneratedId is required"))
-                );
-            }
-
-            // Assign to global variables
-            acsConnectionString = configuration.getAcsConnectionString();
-            cognitiveServiceEndpoint = configuration.getCognitiveServiceEndpoint();
-            callbackUriHost = configuration.getCallbackUriHost();
-            acsGeneratedIdForTargetCallSender = configuration.getAcsGeneratedIdForTargetCallSender();
-
-            acsClient = initClient(acsConnectionString);
-
-            log.info("Initialized call automation client.");
-            return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.");
-        } catch (Exception e) {
-            log.error("Error configuring: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to configure call automation client.");
-        }
-    }
-
-    @Tag(name = "STEP 02. Target Call To ACSUser", description = "Make a call to ACS User by using this endpoint")
+    @Tag(name = "STEP 01. Target Call To ACSUser", description = "Make a call to ACS User by using this endpoint")
     @PostMapping("/targetCallToAcsUser")
     public ResponseEntity<String> createTargetCall(@RequestParam String acsTarget) {
         StringBuilder msgLog = new StringBuilder();
         msgLog.append("\n~~~~~~~~~~~~ /TargetCall(Create)  ~~~~~~~~~~~~\n");
 
         try {
-            URI callbackUri = new URI(callbackUriHost + "/api/callbacks");
+            URI callbackUri = new URI(acsConfiguration.getCallbackUriHost() + "/api/callbacks");
             CommunicationUserIdentifier targetUser = new CommunicationUserIdentifier(acsTarget);
             CallInvite callInvite = new CallInvite(targetUser);
             CreateCallOptions createCallOptions = new CreateCallOptions(callInvite, callbackUri.toString());
             CallIntelligenceOptions intelligenceOptions = new CallIntelligenceOptions();
-            intelligenceOptions.setCognitiveServicesEndpoint(cognitiveServiceEndpoint);
+            intelligenceOptions.setCognitiveServicesEndpoint(acsConfiguration.getCognitiveServiceEndpoint());
             createCallOptions.setCallIntelligenceOptions(intelligenceOptions);
 
             CreateCallResult createCallResult = acsClient.createCall(callInvite, callbackUri.toString());
             targetCallConnectionId = createCallResult.getCallConnectionProperties().getCallConnectionId();
 
             msgLog.append("TargetCall:\n")
-                .append("-----------\n")
-                .append("From: Call Automation\n")
-                .append("To:   ").append(acsTarget).append("\n")
-                .append("Target Call Connection Id: ").append(targetCallConnectionId).append("\n")
-                .append("Correlation Id:            ")
-                .append(createCallResult.getCallConnectionProperties().getCorrelationId()).append("\n");
+                    .append("-----------\n")
+                    .append("From: Call Automation\n")
+                    .append("To:   ").append(acsTarget).append("\n")
+                    .append("Target Call Connection Id: ").append(targetCallConnectionId).append("\n")
+                    .append("Correlation Id:            ")
+                    .append(createCallResult.getCallConnectionProperties().getCorrelationId()).append("\n");
 
             log.info(msgLog.toString());
             return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(msgLog.toString());
@@ -378,29 +357,34 @@ public class ProgramSample {
 
             // Map and sort participants: phone numbers first, then ACS users
             List<String> participantInfo = participants.stream()
-                .map(p -> {
-                    CommunicationIdentifier id = p.getIdentifier();
-                    String type = id.getClass().getSimpleName();
-                    String rawId = id.getRawId();
-                    String phoneNumber = (id instanceof PhoneNumberIdentifier) ? ((PhoneNumberIdentifier) id).getPhoneNumber() : null;
-                    String acsUserId = (id instanceof CommunicationUserIdentifier) ? ((CommunicationUserIdentifier) id).getId() : null;
+                    .map(p -> {
+                        CommunicationIdentifier id = p.getIdentifier();
+                        String type = id.getClass().getSimpleName();
+                        String rawId = id.getRawId();
+                        String phoneNumber = (id instanceof PhoneNumberIdentifier)
+                                ? ((PhoneNumberIdentifier) id).getPhoneNumber()
+                                : null;
+                        String acsUserId = (id instanceof CommunicationUserIdentifier)
+                                ? ((CommunicationUserIdentifier) id).getId()
+                                : null;
 
-                    if (acsUserId == null || acsUserId.isBlank()) {
-                        return String.format("%s       - RawId: %s, Phone: %s", type, rawId, phoneNumber);
-                    } else {
-                        return String.format("%s - RawId: %s", type, acsUserId);
-                    }
-                })
-                .sorted(Comparator.comparing(info -> info.contains("Phone:") ? "" : "z")) // phone numbers first
-                .collect(Collectors.toList());
+                        if (acsUserId == null || acsUserId.isBlank()) {
+                            return String.format("%s       - RawId: %s, Phone: %s", type, rawId, phoneNumber);
+                        } else {
+                            return String.format("%s - RawId: %s", type, acsUserId);
+                        }
+                    })
+                    .sorted(Comparator.comparing(info -> info.contains("Phone:") ? "" : "z")) // phone numbers first
+                    .collect(Collectors.toList());
 
             if (participantInfo.isEmpty()) {
                 return ResponseEntity.status(404).body(
-                    String.format("{\"Message\":\"No participants found for the specified call connection.\",\"CallConnectionId\":\"%s\"}", lobbyCallConnectionId)
-                );
+                        String.format(
+                                "{\"Message\":\"No participants found for the specified call connection.\",\"CallConnectionId\":\"%s\"}",
+                                lobbyCallConnectionId));
             } else {
                 msgLog.append("\nNo of Participants: ").append(participantInfo.size())
-                      .append("\nParticipants: \n-------------\n");
+                        .append("\nParticipants: \n-------------\n");
                 for (int i = 0; i < participantInfo.size(); i++) {
                     msgLog.append(i + 1).append(". ").append(participantInfo.get(i)).append("\n");
                 }
@@ -410,8 +394,8 @@ public class ProgramSample {
         } catch (Exception ex) {
             log.error("Error getting participants for call " + targetCallConnectionId + ": " + ex.getMessage());
             return ResponseEntity.badRequest().body(
-                String.format("{\"Error\":\"%s\",\"CallConnectionId\":\"%s\"}", ex.getMessage(), targetCallConnectionId)
-            );
+                    String.format("{\"Error\":\"%s\",\"CallConnectionId\":\"%s\"}", ex.getMessage(),
+                            targetCallConnectionId));
         }
     }
 
@@ -443,7 +427,7 @@ public class ProgramSample {
         }
         return client.getCallConnection(callConnectionId);
     }
-    
+
     private CallAutomationClient initClient(String connectionString) {
         try {
             if (connectionString == null || connectionString.trim().isEmpty()) {
@@ -451,8 +435,9 @@ public class ProgramSample {
                 return null;
             }
 
-            log.info("Initializing Call Automation Client with connection string length: {}", connectionString.length());
-            
+            log.info("Initializing Call Automation Client with connection string length: {}",
+                    connectionString.length());
+
             var client = new CallAutomationClientBuilder()
                     .connectionString(connectionString)
                     .buildClient();

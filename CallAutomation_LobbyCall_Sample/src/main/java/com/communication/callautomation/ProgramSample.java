@@ -110,6 +110,21 @@ public class ProgramSample {
     private ResponseEntity<Object> handleSubscriptionValidation(final BinaryData eventData) {
         try {
             log.info("Received Subscription Validation Event from Incoming Call API endpoint");
+            
+            // Try to parse as JSON first to handle direct validation code
+            try {
+                JSONObject jsonData = new JSONObject(eventData.toString());
+                if (jsonData.has("validationCode")) {
+                    String validationCode = jsonData.getString("validationCode");
+                    JSONObject response = new JSONObject();
+                    response.put("validationResponse", validationCode);
+                    return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response.toString());
+                }
+            } catch (Exception jsonEx) {
+                log.debug("Not a direct JSON validation, trying Event Grid format");
+            }
+            
+            // Fall back to Event Grid format
             SubscriptionValidationEventData subscriptioneventData = eventData
                     .toObject(SubscriptionValidationEventData.class);
             SubscriptionValidationResponse responseData = new SubscriptionValidationResponse();

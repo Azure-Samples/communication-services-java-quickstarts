@@ -57,9 +57,6 @@ public class ProgramSample {
     @Value("${acs.callbackUriHost}")
     private String callbackUriHost;
 
-    @Value("${acs.pmaEndpoint}")
-    private String acsPmaEndpoint;
-
     private String callConnectionId1 = "";
     private String callConnectionId2 = "";
     private String callConnectionId3 = "";
@@ -75,24 +72,24 @@ public class ProgramSample {
     @PostMapping("/api/moveParticipantEvent")
     public ResponseEntity<String> moveParticipantEvent(@RequestBody final String reqBody) {
         try {
-            log.info("Received webhook request body: {}", reqBody);
-            
+            // log.info("Received webhook request body: {}", reqBody);
+
             // Check if request body is empty or not JSON
             if (reqBody == null || reqBody.trim().isEmpty()) {
                 log.warn("Received empty request body");
                 return ResponseEntity.badRequest().body("Request body is empty");
             }
-            
+
             // Check if it's a simple test string
             if (!reqBody.trim().startsWith("[") && !reqBody.trim().startsWith("{")) {
                 log.info("Received test string: {}", reqBody);
                 return ResponseEntity.ok("Test webhook received: " + reqBody);
             }
-            
+
             List<EventGridEvent> events = EventGridEvent.fromString(reqBody);
             for (EventGridEvent eventGridEvent : events) {
                 log.info("Processing event type: {}", eventGridEvent.getEventType());
-                
+
                 if (eventGridEvent.getEventType().equals(SystemEventNames.EVENT_GRID_SUBSCRIPTION_VALIDATION)) {
                     return handleSubscriptionValidation(eventGridEvent.getData());
                 } else if (eventGridEvent.getEventType().equals(SystemEventNames.COMMUNICATION_INCOMING_CALL)) {
@@ -113,13 +110,13 @@ public class ProgramSample {
             log.info("Received Subscription Validation Event from Incoming Call API endpoint");
             SubscriptionValidationEventData subscriptioneventData = eventData
                     .toObject(SubscriptionValidationEventData.class);
-            
+
             String validationCode = subscriptioneventData.getValidationCode();
             log.info("Returning validation code: {}", validationCode);
-            
+
             // Event Grid expects a JSON response with validationResponse field
             String responseBody = "{\"validationResponse\":\"" + validationCode + "\"}";
-            
+
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(responseBody);
@@ -134,14 +131,14 @@ public class ProgramSample {
     private void handleIncomingCall(final BinaryData eventData) {
         JSONObject data = new JSONObject(eventData.toString());
         String callbackUri = URI.create(callbackUriHost + "/api/callbacks").toString();
-        log.info("Method - handleIncomingCall: {}", data.toString());
+        // log.info("Method - handleIncomingCall: {}", data.toString());
 
         try {
             String fromCallerId = data.getJSONObject("from").getString("rawId");
             String toCallerId = data.getJSONObject("to").getString("rawId");
             log.info("Incoming call from: {}, to: {}", fromCallerId, toCallerId);
             String incomingCallContext = data.getString("incomingCallContext");
-            log.info("Incoming Call Context: " + incomingCallContext);
+            // log.info("Incoming Call Context: " + incomingCallContext);
 
             // Scenario 1: User calls from their phone number to ACS inbound number
             if (fromCallerId != null && fromCallerId.contains(userPhoneNumber)) {
@@ -238,7 +235,7 @@ public class ProgramSample {
     public void initializeClient() {
         try {
             log.info("Initializing Call Automation Client from configuration...");
-            acsClient = initClient(acsConnectionString, acsPmaEndpoint);
+            acsClient = initClient(acsConnectionString);
             log.info("Call Automation Client initialized successfully from application.yml configuration.");
         } catch (Exception e) {
             log.error("Error initializing Call Automation Client: {}", e.getMessage());
@@ -534,7 +531,7 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId);
     }
 
-    private CallAutomationClient initClient(String connectionString, String endpoint) {
+    private CallAutomationClient initClient(String connectionString) {
         try {
             if (connectionString == null || connectionString.trim().isEmpty()) {
                 log.error("ACS Connection String is null or empty");
@@ -545,9 +542,9 @@ public class ProgramSample {
                     connectionString.length());
 
             var client = new CallAutomationClientBuilder()
-                    .endpoint(endpoint)
                     .connectionString(connectionString)
                     .buildClient();
+
             log.info("Call Automation Client initialized successfully.");
             return client;
         } catch (NullPointerException e) {

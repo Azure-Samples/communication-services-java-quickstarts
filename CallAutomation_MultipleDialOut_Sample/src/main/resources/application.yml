@@ -20,5 +20,3 @@ acs:
   acsTestIdentity2: ""
   acsTestIdentity3: ""
   callbackUriHost: ""
-  pmaEndpoint: ""
-

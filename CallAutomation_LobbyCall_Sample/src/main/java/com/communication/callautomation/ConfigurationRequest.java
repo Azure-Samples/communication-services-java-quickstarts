@@ -11,6 +11,7 @@ public class ConfigurationRequest {
     private String cognitiveServiceEndpoint;
     private String callbackUriHost;
     private String acsGeneratedIdForTargetCallSender;
+    private String acsPMAEndpoint;
 
     // Getters and Setters
     public void setAcsConnectionString(String acsConnectionString) {
@@ -27,5 +28,9 @@ public class ConfigurationRequest {
 
     public void setAcsGeneratedIdForTargetCallSender(String acsGeneratedIdForTargetCallSender) {
         this.acsGeneratedIdForTargetCallSender = acsGeneratedIdForTargetCallSender;
+    }
+
+    public void setAcsPMAEndpoint(String acsPMAEndpoint) {
+        this.acsPMAEndpoint = acsPMAEndpoint;
     }
 }

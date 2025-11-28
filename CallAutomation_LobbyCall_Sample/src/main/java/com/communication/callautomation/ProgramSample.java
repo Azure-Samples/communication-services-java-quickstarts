@@ -51,6 +51,7 @@ public class ProgramSample {
     private String cognitiveServiceEndpoint = "";
     private String callbackUriHost = "";
     private String acsGeneratedIdForTargetCallSender = "";
+    private String acsPMAEndpoint = "";
     private String acsGeneratedIdForTargetCallReceiver = "";
     private String acsGeneratedIdForLobbyCallReceiver = "";
 
@@ -287,6 +288,7 @@ public class ProgramSample {
             cognitiveServiceEndpoint = "";
             callbackUriHost = "";
             acsGeneratedIdForTargetCallSender = "";
+            acsPMAEndpoint = "";
 
             lobbyCallConnectionId = "";
             lobbyCallerId = "";
@@ -312,6 +314,11 @@ public class ProgramSample {
                         .filter(s -> !s.isEmpty())
                         .orElseThrow(() -> new IllegalArgumentException("AcsGeneratedId is required"))
                 );
+                configuration.setAcsPMAEndpoint(
+                    Optional.ofNullable(configurationRequest.getAcsPMAEndpoint())
+                        .filter(s -> !s.isEmpty())
+                        .orElseThrow(() -> new IllegalArgumentException("AcsPMAEndpoint is required"))
+                );
             }
 
             // Assign to global variables
@@ -319,8 +326,9 @@ public class ProgramSample {
             cognitiveServiceEndpoint = configuration.getCognitiveServiceEndpoint();
             callbackUriHost = configuration.getCallbackUriHost();
             acsGeneratedIdForTargetCallSender = configuration.getAcsGeneratedIdForTargetCallSender();
+            acsPMAEndpoint = configuration.getAcsPMAEndpoint();
 
-            acsClient = initClient(acsConnectionString);
+            acsClient = initClient(acsConnectionString, acsPMAEndpoint);
 
             log.info("Initialized call automation client.");
             return ResponseEntity.ok("Configuration set successfully. Initialized call automation client.");
@@ -444,7 +452,7 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId);
     }
     
-    private CallAutomationClient initClient(String connectionString) {
+    private CallAutomationClient initClient(String connectionString, String endpoint) {
         try {
             if (connectionString == null || connectionString.trim().isEmpty()) {
                 log.error("ACS Connection String is null or empty");
@@ -454,6 +462,7 @@ public class ProgramSample {
             log.info("Initializing Call Automation Client with connection string length: {}", connectionString.length());
             
             var client = new CallAutomationClientBuilder()
+                    .endpoint(endpoint)
                     .connectionString(connectionString)
                     .buildClient();
 

@@ -57,6 +57,9 @@ public class ProgramSample {
     @Value("${acs.callbackUriHost}")
     private String callbackUriHost;
 
+    @Value("${acs.pmaEndpoint}")
+    private String acsPmaEndpoint;
+
     private String callConnectionId1 = "";
     private String callConnectionId2 = "";
     private String callConnectionId3 = "";
@@ -235,7 +238,7 @@ public class ProgramSample {
     public void initializeClient() {
         try {
             log.info("Initializing Call Automation Client from configuration...");
-            acsClient = initClient(acsConnectionString);
+            acsClient = initClient(acsConnectionString, acsPmaEndpoint);
             log.info("Call Automation Client initialized successfully from application.yml configuration.");
         } catch (Exception e) {
             log.error("Error initializing Call Automation Client: {}", e.getMessage());
@@ -531,7 +534,7 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId);
     }
 
-    private CallAutomationClient initClient(String connectionString) {
+    private CallAutomationClient initClient(String connectionString, String endpoint) {
         try {
             if (connectionString == null || connectionString.trim().isEmpty()) {
                 log.error("ACS Connection String is null or empty");
@@ -542,7 +545,7 @@ public class ProgramSample {
                     connectionString.length());
 
             var client = new CallAutomationClientBuilder()
-                    // .endpoint(endpoint)
+                    .endpoint(endpoint)
                     .connectionString(connectionString)
                     .buildClient();
             log.info("Call Automation Client initialized successfully.");

@@ -27,6 +27,7 @@ import org.springframework.http.*;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.annotation.PostConstruct;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -72,8 +73,6 @@ public class ProgramSample {
     @PostMapping("/api/moveParticipantEvent")
     public ResponseEntity<String> moveParticipantEvent(@RequestBody final String reqBody) {
         try {
-            // log.info("Received webhook request body: {}", reqBody);
-
             // Check if request body is empty or not JSON
             if (reqBody == null || reqBody.trim().isEmpty()) {
                 log.warn("Received empty request body");
@@ -82,7 +81,6 @@ public class ProgramSample {
 
             // Check if it's a simple test string
             if (!reqBody.trim().startsWith("[") && !reqBody.trim().startsWith("{")) {
-                log.info("Received test string: {}", reqBody);
                 return ResponseEntity.ok("Test webhook received: " + reqBody);
             }
 
@@ -99,7 +97,6 @@ public class ProgramSample {
             return ResponseEntity.ok().body(null);
         } catch (Exception e) {
             log.error("Error processing Event Grid webhook: {}", e.getMessage());
-            log.error("Request body was: {}", reqBody);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error processing webhook: " + e.getMessage());
         }
@@ -107,23 +104,17 @@ public class ProgramSample {
 
     private ResponseEntity<String> handleSubscriptionValidation(final BinaryData eventData) {
         try {
-            log.info("Received Subscription Validation Event from Incoming Call API endpoint");
             SubscriptionValidationEventData subscriptioneventData = eventData
                     .toObject(SubscriptionValidationEventData.class);
 
             String validationCode = subscriptioneventData.getValidationCode();
-            log.info("Returning validation code: {}", validationCode);
-
-            // Event Grid expects a JSON response with validationResponse field
             String responseBody = "{\"validationResponse\":\"" + validationCode + "\"}";
 
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(responseBody);
         } catch (Exception e) {
-            log.error("Error at subscription validation event {} {}",
-                    e.getMessage(),
-                    e.getCause());
+            log.error("Subscription validation failed: {}", e.getMessage());
             return ResponseEntity.internalServerError().body("Validation failed");
         }
     }
@@ -131,41 +122,24 @@ public class ProgramSample {
     private void handleIncomingCall(final BinaryData eventData) {
         JSONObject data = new JSONObject(eventData.toString());
         String callbackUri = URI.create(callbackUriHost + "/api/callbacks").toString();
-        // log.info("Method - handleIncomingCall: {}", data.toString());
 
         try {
             String fromCallerId = data.getJSONObject("from").getString("rawId");
-            String toCallerId = data.getJSONObject("to").getString("rawId");
-            log.info("Incoming call from: {}, to: {}", fromCallerId, toCallerId);
             String incomingCallContext = data.getString("incomingCallContext");
-            // log.info("Incoming Call Context: " + incomingCallContext);
 
             // Scenario 1: User calls from their phone number to ACS inbound number
             if (fromCallerId != null && fromCallerId.contains(userPhoneNumber)) {
-                log.info("=== SCENARIO 1: USER INCOMING CALL ===");
                 AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
                 options.setOperationContext("IncomingCallFromUser");
+                log.info("Operation Context set to: {}", options.getOperationContext());
                 AnswerCallResult answerCallResult = acsClient.answerCallWithResponse(options, Context.NONE).getValue();
+                log.info("Answered incoming call from user: {}", fromCallerId);
                 callConnectionId1 = answerCallResult.getCallConnection().getCallProperties().getCallConnectionId();
-
-                log.info("User Call Answered - CallConnectionId1: " + callConnectionId1);
-                log.info("Correlation Id: " + data.getString("correlationId"));
-                log.info("Operation Context: IncomingCallFromUser");
-                log.info("=== END SCENARIO 1 ===");
+                log.info("User call answered - ID: {}", callConnectionId1);
             }
             // Scenario 2: ACS inbound number calls ACS outbound number (workflow triggered)
             else if (fromCallerId != null && fromCallerId.contains(acsInboundPhoneNumber)) {
-                log.info("=== SCENARIO 2: WORKFLOW CALL TO BE REDIRECTED ===");
-                log.info("Last Workflow Call Type: " + lastWorkflowCallType);
-
-                String redirectTarget = acsTestIdentity2;
-                if ("CallTwo".equals(lastWorkflowCallType)) {
-                    redirectTarget = acsTestIdentity2;
-                    log.info("Processing Call Two - Redirecting to ACS User Identity 2");
-                } else if ("CallThree".equals(lastWorkflowCallType)) {
-                    redirectTarget = acsTestIdentity3;
-                    log.info("Processing Call Three - Redirecting to ACS User Identity 3");
-                }
+                String redirectTarget = "CallTwo".equals(lastWorkflowCallType) ? acsTestIdentity2 : acsTestIdentity3;
 
                 // Use ACS Java SDK to redirect the call
                 CallInvite callInvite = new CallInvite(new CommunicationUserIdentifier(redirectTarget));
@@ -177,7 +151,6 @@ public class ProgramSample {
                     Thread.sleep(2000); // 2 seconds delay
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    log.warn("Sleep interrupted: {}", e.getMessage());
                 }
 
                 if ("CallTwo".equals(lastWorkflowCallType)) {
@@ -186,15 +159,10 @@ public class ProgramSample {
                     calleeId3 = acsTestIdentity3;
                 }
 
-                log.info("Call Redirected to ACS User Identity: " + redirectTarget);
-                log.info("Correlation Id: " + data.getString("correlationId"));
-                log.info("Operation Context: " + ("CallThree".equals(lastWorkflowCallType) ? "CallThree" : "CallTwo"));
-                log.info("=== END SCENARIO 2 ===");
+                log.info("Call redirected to: {}", redirectTarget);
             }
         } catch (Exception e) {
-            log.error("Error getting info {} {}",
-                    e.getMessage(),
-                    e.getCause());
+            log.error("Error handling incoming call: {}", e.getMessage());
         }
     }
 
@@ -216,12 +184,9 @@ public class ProgramSample {
                         event instanceof ConnectFailed ||
                         event instanceof PlayFailed ||
                         event instanceof RecognizeFailed) {
-                    // handle Failed
-                    log.error(reqBody);
+                    log.error("Call event failed: {}", event.getClass().getSimpleName());
                 } else if (event instanceof CallConnected) {
                     log.info("Call connected successfully");
-                } else {
-                    // handle Success
                 }
             }
             return ResponseEntity.ok().body("");
@@ -234,9 +199,8 @@ public class ProgramSample {
     @PostConstruct
     public void initializeClient() {
         try {
-            log.info("Initializing Call Automation Client from configuration...");
             acsClient = initClient(acsConnectionString);
-            log.info("Call Automation Client initialized successfully from application.yml configuration.");
+            log.info("Call Automation Client initialized");
         } catch (Exception e) {
             log.error("Error initializing Call Automation Client: {}", e.getMessage());
         }
@@ -257,10 +221,11 @@ public class ProgramSample {
             lastWorkflowCallType = "CallOne";
             callerId1 = userPhoneNumber;
             calleeId1 = acsInboundPhoneNumber;
-            log.info("Created user call with connection id: " + callConnectionId1);
+
+            log.info("User call created: {}", callConnectionId1);
             return ResponseEntity.ok("Created user call with connection id: " + callConnectionId1);
         } catch (Exception e) {
-            log.error("Error creating user call : {}", e.getMessage());
+            log.error("Error creating user call: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create user call.");
         }
     }
@@ -281,10 +246,10 @@ public class ProgramSample {
             callerId2 = acsInboundPhoneNumber;
             calleeId2 = acsOutboundPhoneNumber;
 
-            log.info("Created call 2 with connection id: " + callConnectionId2);
+            log.info("Call 2 created: {}", callConnectionId2);
             return ResponseEntity.ok("Created call 2 with connection id: " + callConnectionId2);
         } catch (Exception e) {
-            log.error("Error creating call 2 : {}", e.getMessage());
+            log.error("Error creating call 2: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call 2.");
         }
     }
@@ -305,10 +270,10 @@ public class ProgramSample {
             callerId3 = acsInboundPhoneNumber;
             calleeId3 = acsOutboundPhoneNumber;
 
-            log.info("Created call 3 with connection id: " + callConnectionId3);
+            log.info("Call 3 created: {}", callConnectionId3);
             return ResponseEntity.ok("Created call 3 with connection id: " + callConnectionId3);
         } catch (Exception e) {
-            log.error("Error creating call 3 : {}", e.getMessage());
+            log.error("Error creating call 3: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call 3.");
         }
     }
@@ -317,34 +282,22 @@ public class ProgramSample {
     @GetMapping("/moveParticipant2")
     public ResponseEntity<String> moveParticipant2() {
         try {
-            log.info("=== MANUAL MOVE PARTICIPANTS REQUESTED ===");
-            log.info("Source Connection ID: " + callConnectionId2);
-            log.info("Target Connection ID: " + callConnectionId1);
-            log.info("Participant to Move: " + acsOutboundPhoneNumber);
-
-            // Get the target connection (where we want to move participants to)
             CallConnection targetConnection = acsClient.getCallConnection(callConnectionId1);
 
-            // Create participant identifier based on the input
             Object participantToMove;
             if (acsOutboundPhoneNumber.startsWith("+")) {
-                // Phone number
                 participantToMove = new PhoneNumberIdentifier(acsOutboundPhoneNumber);
-                log.info("Moving phone number participant: " + acsOutboundPhoneNumber);
             } else if (acsOutboundPhoneNumber.startsWith("8:acs:")) {
-                // ACS Communication User
                 participantToMove = new CommunicationUserIdentifier(acsOutboundPhoneNumber);
-                log.info("Moving ACS user participant: " + acsOutboundPhoneNumber);
             } else {
                 return ResponseEntity.badRequest().body(
                         "Invalid participant format. Use phone number (+1234567890) or ACS user ID (8:acs:...)");
             }
-            // Prepare move participants request
+
             MoveParticipantsOptions request = new MoveParticipantsOptions(
                     List.of((CommunicationIdentifier) participantToMove),
                     callConnectionId2);
 
-            // Call the ACS SDK to move participants
             targetConnection.moveParticipants(request);
             lastWorkflowCallType = "";
             calleeId1 = acsTestIdentity2;
@@ -352,18 +305,10 @@ public class ProgramSample {
             callerId2 = "";
             calleeId2 = "";
 
-            // For demonstration, assume success
-            log.info("Move Participants operation completed successfully");
-            log.info("Moved " + acsTestIdentity2 + " from " +
-                    callConnectionId2 + " to " + callConnectionId1);
-            log.info("=== MOVE PARTICIPANTS OPERATION COMPLETE ===");
-
-            return ResponseEntity.ok(
-                    "Successfully moved participant " + acsTestIdentity2 +
-                            " from " + callConnectionId2 +
-                            " to " + callConnectionId1);
+            log.info("Participant moved to call 1");
+            return ResponseEntity.ok("Successfully moved participant " + acsTestIdentity2 + " to main call");
         } catch (Exception e) {
-            log.error("Error moving participant : {}", e.getMessage());
+            log.error("Error moving participant: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to move participant.");
         }
     }
@@ -372,34 +317,22 @@ public class ProgramSample {
     @GetMapping("/moveParticipant3")
     public ResponseEntity<String> moveParticipant3() {
         try {
-            log.info("=== MANUAL MOVE PARTICIPANTS REQUESTED ===");
-            log.info("Source Connection ID: " + callConnectionId3);
-            log.info("Target Connection ID: " + callConnectionId1);
-            log.info("Participant to Move: " + acsOutboundPhoneNumber);
-
-            // Get the target connection (where we want to move participants to)
             CallConnection targetConnection = acsClient.getCallConnection(callConnectionId1);
 
-            // Create participant identifier based on the input
             Object participantToMove;
             if (acsOutboundPhoneNumber.startsWith("+")) {
-                // Phone number
                 participantToMove = new PhoneNumberIdentifier(acsOutboundPhoneNumber);
-                log.info("Moving phone number participant: " + acsOutboundPhoneNumber);
             } else if (acsOutboundPhoneNumber.startsWith("8:acs:")) {
-                // ACS Communication User
                 participantToMove = new CommunicationUserIdentifier(acsOutboundPhoneNumber);
-                log.info("Moving ACS user participant: " + acsOutboundPhoneNumber);
             } else {
                 return ResponseEntity.badRequest().body(
                         "Invalid participant format. Use phone number (+1234567890) or ACS user ID (8:acs:...)");
             }
-            // Prepare move participants request
+
             MoveParticipantsOptions request = new MoveParticipantsOptions(
                     List.of((CommunicationIdentifier) participantToMove),
                     callConnectionId3);
 
-            // Call the ACS SDK to move participants
             targetConnection.moveParticipants(request);
             lastWorkflowCallType = "";
             calleeId1 = acsTestIdentity3;
@@ -407,18 +340,10 @@ public class ProgramSample {
             callerId3 = "";
             calleeId3 = "";
 
-            // For demonstration, assume success
-            log.info("Move Participants operation completed successfully");
-            log.info("Moved " + acsTestIdentity3 + " from " +
-                    callConnectionId3 + " to " + callConnectionId1);
-            log.info("=== MOVE PARTICIPANTS OPERATION COMPLETE ===");
-
-            return ResponseEntity.ok(
-                    "Successfully moved participant " + acsTestIdentity3 +
-                            " from " + callConnectionId3 +
-                            " to " + callConnectionId1);
+            log.info("Participant moved to call 1");
+            return ResponseEntity.ok("Successfully moved participant " + acsTestIdentity3 + " to main call");
         } catch (Exception e) {
-            log.error("Error moving participant : {}", e.getMessage());
+            log.error("Error moving participant: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to move participant.");
         }
     }
@@ -489,7 +414,7 @@ public class ProgramSample {
         }
     }
 
-    @Tag(name = "STEP 05. Terminate Calls", description = "Terminate all Calls created so far by using this endpoint")
+    @Tag(name = "STEP 06. Terminate Calls", description = "Terminate all Calls created so far by using this endpoint")
     @GetMapping("/terminateCalls")
     public ResponseEntity<String> terminateCalls() {
         try {
@@ -523,6 +448,75 @@ public class ProgramSample {
         return ResponseEntity.ok("Terminated all calls");
     }
 
+    @Tag(name = "STEP 05. Get Target Call Participants", description = "Get participants in the specified call connection after Move operation")
+    @GetMapping("/GetParticipants")
+    public ResponseEntity<String> getParticipants() {
+
+        try {
+            CallConnection callConnection = acsClient.getCallConnection(callConnectionId1);
+            var participantsResponse = callConnection.listParticipants();
+
+            // Build participant info list
+            List<String> participantInfoList = new ArrayList<>();
+            int index = 1;
+
+            for (CallParticipant participant : participantsResponse) {
+                CommunicationIdentifier identifier = participant.getIdentifier();
+                String participantInfo;
+
+                if (identifier instanceof PhoneNumberIdentifier) {
+                    PhoneNumberIdentifier phone = (PhoneNumberIdentifier) identifier;
+                    participantInfo = String.format("%d. %s - RawId: %s, Phone: %s",
+                            index,
+                            identifier.getClass().getSimpleName(),
+                            identifier.getRawId(),
+                            phone.getPhoneNumber());
+                } else if (identifier instanceof CommunicationUserIdentifier) {
+                    CommunicationUserIdentifier user = (CommunicationUserIdentifier) identifier;
+                    participantInfo = String.format("%d. %s - RawId: %s",
+                            index,
+                            identifier.getClass().getSimpleName(),
+                            user.getId());
+                } else {
+                    participantInfo = String.format("%d. %s - RawId: %s",
+                            index,
+                            identifier.getClass().getSimpleName(),
+                            identifier.getRawId());
+                }
+
+                participantInfoList.add(participantInfo);
+                index++;
+            }
+
+            if (participantInfoList.isEmpty()) {
+                String notFoundMessage = String.format(
+                        "{\n  \"Message\": \"No participants found for the specified call connection.\",\n  \"CallConnectionId\": \"%s\"\n}",
+                        callConnectionId1);
+
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(notFoundMessage);
+            }
+
+            String infoText = String.format(
+                    "No of Participants: %d\nParticipants:\n-------------\n%s",
+                    participantInfoList.size(),
+                    String.join("\n", participantInfoList));
+
+            log.info(infoText);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(infoText);
+
+        } catch (Exception ex) {
+            log.error("Error getting participants for call {}: {}", callConnectionId1, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("Error getting participants: " + ex.getMessage());
+        }
+    }
+
     // 🔄 Shared Methods
     private CallConnection getCallConnection(CallAutomationClient client, String callConnectionId) {
         if (callConnectionId == null || callConnectionId.isEmpty()) {
@@ -538,20 +532,16 @@ public class ProgramSample {
                 return null;
             }
 
-            log.info("Initializing Call Automation Client with connection string length: {}",
-                    connectionString.length());
-
             var client = new CallAutomationClientBuilder()
                     .connectionString(connectionString)
                     .buildClient();
 
-            log.info("Call Automation Client initialized successfully.");
             return client;
         } catch (NullPointerException e) {
-            log.error("Please verify if Application config is properly set up");
+            log.error("Application config not properly set up");
             return null;
         } catch (Exception e) {
-            log.error("Error occurred when initializing Call Automation Client: {} {}", e.getMessage(), e.getCause());
+            log.error("Error initializing Call Automation Client: {}", e.getMessage());
             return null;
         }
     }

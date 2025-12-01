@@ -39,4 +39,6 @@ acs:
   acsConnectionString: ""
   cognitiveServiceEndpoint: "h"
   callbackUriHost: ""
-  acsGeneratedId: ""
+  acsTargetCallReceiver: ""
+  acsLobbyCallReceiver: ""
+  pmaEndpoint: ""

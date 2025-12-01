@@ -85,7 +85,7 @@ public class ProgramSample {
         }
 
         // Initialize Call Automation client
-        this.acsClient = initClient(acsConfiguration.getAcsConnectionString());
+        this.acsClient = initClient(acsConfiguration.getAcsConnectionString(), acsConfiguration.getPmaEndpoint());
         if (this.acsClient == null) {
             throw new IllegalStateException("Failed to initialize Call Automation client");
         }
@@ -181,7 +181,8 @@ public class ProgramSample {
         log.info("Incoming Call Context: " + incomingCallContext);
 
         // Lobby Call: Answer
-        if (toCallerId.contains(acsConfiguration.getAcsGeneratedId())) {
+        if (toCallerId.contains(acsConfiguration.getAcsTargetCallReceiver())
+        || toCallerId.contains(acsConfiguration.getAcsLobbyCallReceiver())) {
             StringBuilder msgLog = new StringBuilder();
             try {
                 AnswerCallOptions options = new AnswerCallOptions(incomingCallContext, callbackUri);
@@ -428,7 +429,7 @@ public class ProgramSample {
         return client.getCallConnection(callConnectionId);
     }
 
-    private CallAutomationClient initClient(String connectionString) {
+    private CallAutomationClient initClient(String connectionString, String endpoint) {
         try {
             if (connectionString == null || connectionString.trim().isEmpty()) {
                 log.error("ACS Connection String is null or empty");

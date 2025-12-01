@@ -98,7 +98,7 @@ Before running the application, configure your ACS settings in `src/main/resourc
 | `acsConnectionString`      | The connection string for your Azure Communication Services resource. Find this in the Azure Portal under your resource Keys section.                | `"endpoint=https://<RESOURCE>.communication.azure.com/;accesskey=<KEY>"` |
 | `cognitiveServiceEndpoint` | Azure Cognitive Services endpoint for text-to-speech functionality. Required for playing waiting messages to lobby participants.                     | `"https://<COGNITIVE-SERVICE>.cognitiveservices.azure.com/"`             |
 | `callbackUriHost`          | The base URL where your app will listen for incoming events from Azure Communication Services. For local development, use your Azure Dev Tunnel URL. | `"https://<your-dev-tunnel>.devtunnels.ms/api/lobbyCallEventHandler"`    |
-| `acsGeneratedId`           | Communication user ID for receiving lobby calls. Generate using ACS Identity SDK or Azure portal.                                                    | `"8:acs:<GUID>"`                                                         |
+| `acsTargetCallReceiver`           | Communication user ID for receiving lobby calls. Generate using ACS Identity SDK or Azure portal.                                                    | `"8:acs:<GUID>"`                                                         |
 
 ### How to Obtain These Values
 
@@ -120,7 +120,7 @@ Before running the application, configure your ACS settings in `src/main/resourc
   1. Set up an Azure Dev Tunnel as described in the prerequisites.
   2. Use the public URL provided by the Dev Tunnel with the full webhook path: `https://<your-dev-tunnel>.devtunnels.ms/api/lobbyCallEventHandler`
 
-- **acsGeneratedId:**
+- **acsTargetCallReceiver:**
   1. Use the ACS web client or SDK to generate user identities.
   2. Store the generated identity string here.
 
@@ -131,7 +131,7 @@ acs:
   acsConnectionString: "<acsConnectionString>"
   cognitiveServiceEndpoint: "<cognitiveServiceEndpoint>"
   callbackUriHost: "<callbackUriHost>"
-  acsGeneratedId: "<acsGeneratedId>"
+  acsTargetCallReceiver: "<acsTargetCallReceiver>"
 ```
 
 **Note:** The application automatically loads configuration from the `application.yml` file on startup. All settings must be configured before starting the application.
@@ -287,7 +287,7 @@ If you encounter issues while setting up or running the Call Automation sample, 
 - **Error:** "Invalid ACS identity"  
   **Solution:**
 
-  - Ensure `acsGeneratedId` is a valid ACS user identity generated via the ACS SDK or portal.
+  - Ensure `acsTargetCallReceiver` is a valid ACS user identity generated via the ACS SDK or portal.
   - Regenerate identities if needed and update `application.yml`, then restart the application.
 
 - **Error:** "Configuration validation failed" or missing configuration  

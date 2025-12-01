@@ -17,7 +17,9 @@ public class AcsConfiguration {
     private String acsConnectionString;
     private String cognitiveServiceEndpoint;
     private String callbackUriHost;
-    private String acsGeneratedId;
+    private String acsLobbyCallReceiver;
+    private String acsTargetCallReceiver;
+    private String pmaEndpoint;
     
     /**
      * Validates that all required configuration properties are set
@@ -33,8 +35,11 @@ public class AcsConfiguration {
         if (isEmpty(callbackUriHost)) {
             throw new IllegalArgumentException("Callback URI Host is required");
         }
-        if (isEmpty(acsGeneratedId)) {
-            throw new IllegalArgumentException("ACS Generated ID is required");
+        if (isEmpty(acsTargetCallReceiver)) {
+            throw new IllegalArgumentException("ACS Target Call Receiver is required");
+        }
+        if (isEmpty(acsLobbyCallReceiver)) {
+            throw new IllegalArgumentException("ACS Lobby Call Receiver is required");
         }
     }
     

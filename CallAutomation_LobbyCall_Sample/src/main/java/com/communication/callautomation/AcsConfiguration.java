@@ -19,10 +19,10 @@ public class AcsConfiguration {
     private String callbackUriHost;
     private String acsLobbyCallReceiver;
     private String acsTargetCallReceiver;
-    private String pmaEndpoint;
-    
+
     /**
      * Validates that all required configuration properties are set
+     * 
      * @throws IllegalArgumentException if any required property is missing
      */
     public void validate() {
@@ -42,7 +42,7 @@ public class AcsConfiguration {
             throw new IllegalArgumentException("ACS Lobby Call Receiver is required");
         }
     }
-    
+
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
     }

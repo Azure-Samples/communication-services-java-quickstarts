@@ -15,7 +15,7 @@ springdoc:
   show-actuator: false
 
 server:
-  port: 8443 # Primary port - accepts both HTTP and HTTPS
+  port: 8080 # Primary port - accepts both HTTP and HTTPS
   ssl:
     enabled: false # Disable SSL to allow HTTP requests from dev tunnels
   # Forward headers for reverse proxy support (dev tunnels)
@@ -36,9 +36,8 @@ applicationinsights:
   connection-string: ""
 
 acs:
-  acsConnectionString: ""
-  cognitiveServiceEndpoint: "h"
-  callbackUriHost: ""
-  acsTargetCallReceiver: ""
-  acsLobbyCallReceiver: ""
-  pmaEndpoint: ""
+ acsConnectionString: ""
+cognitiveServiceEndpoint: ""
+callbackUriHost: ""
+acsTargetCallReceiver: ""
+acsLobbyCallReceiver: ""

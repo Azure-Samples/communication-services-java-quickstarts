@@ -81,11 +81,11 @@ This project provides a sample implementation for managing lobby calls using Azu
 
 ```bash
 devtunnel create --allow-anonymous
-devtunnel port create -p 8443
+devtunnel port create -p 8080
 devtunnel host
 ```
 
-Copy the HTTPS URL provided by dev tunnel (e.g., `https://abc123-8443.inc1.devtunnels.ms`) for use in configuration.
+Copy the HTTPS URL provided by dev tunnel (e.g., `https://abc123-8080.inc1.devtunnels.ms`) for use in configuration.
 
 ---
 
@@ -98,7 +98,7 @@ Before running the application, configure your ACS settings in `src/main/resourc
 | `acsConnectionString`      | The connection string for your Azure Communication Services resource. Find this in the Azure Portal under your resource Keys section.                | `"endpoint=https://<RESOURCE>.communication.azure.com/;accesskey=<KEY>"` |
 | `cognitiveServiceEndpoint` | Azure Cognitive Services endpoint for text-to-speech functionality. Required for playing waiting messages to lobby participants.                     | `"https://<COGNITIVE-SERVICE>.cognitiveservices.azure.com/"`             |
 | `callbackUriHost`          | The base URL where your app will listen for incoming events from Azure Communication Services. For local development, use your Azure Dev Tunnel URL. | `"https://<your-dev-tunnel>.devtunnels.ms/api/lobbyCallEventHandler"`    |
-| `acsTargetCallReceiver`           | Communication user ID for receiving lobby calls. Generate using ACS Identity SDK or Azure portal.                                                    | `"8:acs:<GUID>"`                                                         |
+| `acsTargetCallReceiver`    | Communication user ID for receiving lobby calls. Generate using ACS Identity SDK or Azure portal.                                                    | `"8:acs:<GUID>"`                                                         |
 
 ### How to Obtain These Values
 
@@ -165,7 +165,7 @@ acs:
      mvn exec:java
      ```
    - Access Swagger UI at:
-     - **Local**: http://localhost:8443/swagger-ui/index.html
+     - **Local**: http://localhost:8080/swagger-ui/index.html
      - **Dev Tunnel**: https://your-tunnel-url/swagger-ui/index.html
 
 3. **Set up Event Grid Webhook:**
@@ -209,7 +209,7 @@ The application includes WebSocket support for real-time communication and call 
 - **Purpose:** Real-time updates for client applications
 - **Usage:** Client applications can connect to receive live updates about call states and participant movements
 - **Integration:** Works with the JavaScript client application for lobby participant approval
-- **Connection URL:** `ws://localhost:8443/ws` (local) or `wss://your-tunnel-url/ws` (dev tunnel)
+- **Connection URL:** `ws://localhost:8080/ws` (local) or `wss://your-tunnel-url/ws` (dev tunnel)
 
 ## Usage Flow
 
@@ -272,7 +272,7 @@ If you encounter issues while setting up or running the Call Automation sample, 
   **Solution:**
   - Ensure your Azure Dev Tunnel is running and the URL in `callbackUriHost` matches the tunnel's public URL.
   - Confirm your firewall or network settings allow inbound connections to your local machine.
-  - Make sure the application is running and listening on the correct port (8443).
+  - Make sure the application is running and listening on the correct port (8080).
 
 ### 3. Cognitive Services Issues
 

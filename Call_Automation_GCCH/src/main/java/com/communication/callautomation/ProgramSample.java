@@ -13,6 +13,9 @@ import com.azure.communication.common.PhoneNumberIdentifier;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.Context;
+import com.communication.CallResponse;
+import com.communication.ParticipantResponse;
+import com.communication.ParticipantListResponse;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -26,6 +29,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -327,7 +332,7 @@ public class ProgramSample {
     // POST: /outboundCallAsync
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
     @PostMapping("/outboundCallAsync")
-    public ResponseEntity<String> outboundCallAsync(@RequestParam String target,
+    public ResponseEntity<CallResponse> outboundCallAsync(@RequestParam String target,
             @RequestParam boolean isPSTN) {
 
         try {
@@ -348,11 +353,15 @@ public class ProgramSample {
 
                 if (response != null && response.getValue() != null) {
                     callConnectionId = response.getValue().getCallConnectionProperties().getCallConnectionId();
+                    String correlationId = response.getValue().getCallConnectionProperties().getCorrelationId();
                     log.info("Created async pstn call with connection id: " + callConnectionId);
+                    CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Created async PSTN call successfully");
+                    return ResponseEntity.ok(callResponse);
                 } else {
                     log.error("Failed to create call. Response or value was null.");
+                    CallResponse errorResponse = new CallResponse(null, null, "Failed to create call. Response or value was null.");
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
                 }
-                return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
             } else {
                 CommunicationUserIdentifier targetParticipant = new CommunicationUserIdentifier(target);
                 CallInvite callInvite = new CallInvite(targetParticipant);
@@ -363,18 +372,21 @@ public class ProgramSample {
 
                 Response<CreateCallResult> result = client.createCallWithResponse(createCallOptions, Context.NONE);
                 callConnectionId = result.getValue().getCallConnectionProperties().getCallConnectionId();
+                String correlationId = result.getValue().getCallConnectionProperties().getCorrelationId();
                 log.info("Created async call with connection id: " + callConnectionId);
-                return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+                CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Created async call successfully");
+                return ResponseEntity.ok(callResponse);
             }
         } catch (Exception e) {
             log.error("Error creating call : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+            CallResponse errorResponse = new CallResponse(null, null, "Failed to create call: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "03. Outbound Call APIs", description = "Outbound Call APIs")
     @PostMapping("/outboundCall")
-    public ResponseEntity<String> outboundCallToPstn(@RequestParam String target,
+    public ResponseEntity<CallResponse> outboundCallToPstn(@RequestParam String target,
             @RequestParam boolean isPSTN) {
         try {
             if (isPSTN) {
@@ -387,8 +399,10 @@ public class ProgramSample {
                 // ✅ Convert URI to String
                 CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
                 callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
+                String correlationId = result.getCallConnectionProperties().getCorrelationId();
                 log.info("Created call with connection id: " + callConnectionId);
-                return ResponseEntity.ok("Created async call with connection id: " + callConnectionId);
+                CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Created PSTN call successfully");
+                return ResponseEntity.ok(callResponse);
             } else {
                 CommunicationUserIdentifier targetParticipant = new CommunicationUserIdentifier(target);
                 CallInvite callInvite = new CallInvite(targetParticipant);
@@ -396,44 +410,55 @@ public class ProgramSample {
 
                 CreateCallResult result = client.createCall(callInvite, callbackUri.toString());
                 callConnectionId = result.getCallConnectionProperties().getCallConnectionId();
+                String correlationId = result.getCallConnectionProperties().getCorrelationId();
                 log.info("Created call with connection id: " + callConnectionId);
-                return ResponseEntity.ok("Created call with connection id: " + callConnectionId);
+                CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Created call successfully");
+                return ResponseEntity.ok(callResponse);
             }
         } catch (Exception e) {
             log.error("Error creating call : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create call.");
+            CallResponse errorResponse = new CallResponse(null, null, "Failed to create call: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "04. Disconnect Call APIs", description = "Disconnect call APIs")
     @PostMapping("/hangupAsync")
-    public ResponseEntity<String> hangupAsync(@RequestParam String callConnectionId, @RequestParam boolean isForEveryOne) {
+    public ResponseEntity<CallResponse> hangupAsync(@RequestParam String callConnectionId, @RequestParam boolean isForEveryOne) {
         try {
             CallConnection callConnection = getConnection(callConnectionId);
+            CallConnectionProperties properties = callConnection.getCallProperties();
+            String correlationId = properties.getCorrelationId();
 
             callConnection.hangUpWithResponse(isForEveryOne, Context.NONE);
             log.info("Call hangup requested (async) forEveryone={}", isForEveryOne);
 
-            return ResponseEntity.ok("Call hangup requested (async).");
+            CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Call hangup requested (async)");
+            return ResponseEntity.ok(callResponse);
         } catch (Exception e) {
             log.error("Error hanging up call: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to hang up call.");
+            CallResponse errorResponse = new CallResponse(callConnectionId, null, "Failed to hang up call: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "04. Disconnect Call APIs", description = "Disconnect call APIs")
     @PostMapping("/hangup")
-    public ResponseEntity<String> hangup(@RequestParam String callConnectionId, @RequestParam boolean isForEveryOne) {
+    public ResponseEntity<CallResponse> hangup(@RequestParam String callConnectionId, @RequestParam boolean isForEveryOne) {
         try {
             CallConnection callConnection = getConnection(callConnectionId);
+            CallConnectionProperties properties = callConnection.getCallProperties();
+            String correlationId = properties.getCorrelationId();
 
             callConnection.hangUp(isForEveryOne);
             log.info("Call hangup requested (sync) forEveryone={}", isForEveryOne);
 
-            return ResponseEntity.ok("Call hangup requested.");
+            CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Call hangup requested");
+            return ResponseEntity.ok(callResponse);
         } catch (Exception e) {
             log.error("Error hanging up call: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to hang up call.");
+            CallResponse errorResponse = new CallResponse(callConnectionId, null, "Failed to hang up call: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -546,10 +571,12 @@ public class ProgramSample {
 
     @Tag(name = "06. Get Participant APIs", description = "Get Participant APIs")
     @PostMapping("/getParticipantAsync")
-    public ResponseEntity<String> getParticipantAsync(@RequestParam String callConnectionId, @RequestParam String targetParticipant,
+    public ResponseEntity<ParticipantResponse> getParticipantAsync(@RequestParam String callConnectionId, @RequestParam String targetParticipant,
             @RequestParam boolean isPSTN) {
         try {
             CallConnection callConnection = getConnection(callConnectionId);
+            CallConnectionProperties properties = callConnection.getCallProperties();
+            String correlationId = properties.getCorrelationId();
 
             CommunicationIdentifier target;
             if (isPSTN) {
@@ -565,24 +592,46 @@ public class ProgramSample {
             CallParticipant participant = response.getValue();
 
             if (participant != null) {
-                log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-                log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                String participantId = participant.getIdentifier().getRawId();
+                boolean isOnHold = participant.isOnHold();
+                boolean isMuted = participant.isMuted();
+                
+                log.info("Participant: --> {}", participantId);
+                log.info("Is Participant on hold: --> {}", isOnHold);
+                log.info("Is Participant muted: --> {}", isMuted);
+                
+                ParticipantResponse participantResponse = new ParticipantResponse(
+                    callConnectionId, correlationId, "Participant found successfully", 
+                    participantId, isOnHold, isMuted
+                );
+                return ResponseEntity.ok(participantResponse);
             } else {
                 log.warn("No participant found for identifier: {}", targetParticipant);
+                ParticipantResponse errorResponse = new ParticipantResponse(
+                    callConnectionId, correlationId, "No participant found for identifier: " + targetParticipant,
+                    targetParticipant, false, false
+                );
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
-            return ResponseEntity.ok("Participant found");
         } catch (Exception e) {
             log.error("Error getting participant asynchronously: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get participant asynchronously.");
+            ParticipantResponse errorResponse = new ParticipantResponse(
+                callConnectionId, null, "Failed to get participant asynchronously: " + e.getMessage(),
+                targetParticipant, false, false
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "06. Get Participant APIs", description = "Get Participant APIs")
     @PostMapping("/getParticipant")
-    public ResponseEntity<String> getParticipant(@RequestParam String callConnectionId, @RequestParam String targetParticipant,
+    public ResponseEntity<ParticipantResponse> getParticipant(@RequestParam String callConnectionId, @RequestParam String targetParticipant,
             @RequestParam boolean isPSTN) {
         try {
             CallConnection callConnection = getConnection(callConnectionId);
+            CallConnectionProperties properties = callConnection.getCallProperties();
+            String correlationId = properties.getCorrelationId();
+            
             CommunicationIdentifier target;
             if (isPSTN) {
                 target = new PhoneNumberIdentifier(targetParticipant);
@@ -592,65 +641,128 @@ public class ProgramSample {
             CallParticipant participant = callConnection.getParticipant(target);
 
             if (participant != null) {
-                log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-                log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                String participantId = participant.getIdentifier().getRawId();
+                boolean isOnHold = participant.isOnHold();
+                boolean isMuted = participant.isMuted();
+                
+                log.info("Participant: --> {}", participantId);
+                log.info("Is Participant on hold: --> {}", isOnHold);
+                log.info("Is Participant muted: --> {}", isMuted);
+                
+                ParticipantResponse participantResponse = new ParticipantResponse(
+                    callConnectionId, correlationId, "Participant found successfully", 
+                    participantId, isOnHold, isMuted
+                );
+                return ResponseEntity.ok(participantResponse);
+            } else {
+                log.warn("No participant found for identifier: {}", targetParticipant);
+                ParticipantResponse errorResponse = new ParticipantResponse(
+                    callConnectionId, correlationId, "No participant found for identifier: " + targetParticipant,
+                    targetParticipant, false, false
+                );
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
-            return ResponseEntity.ok("Participant found");
         } catch (Exception e) {
             log.error("Error getting participant: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get participant.");
+            ParticipantResponse errorResponse = new ParticipantResponse(
+                callConnectionId, null, "Failed to get participant: " + e.getMessage(),
+                targetParticipant, false, false
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "06. Get Participant APIs", description = "Get Participant APIs")
     @PostMapping("/getParticipantListAsync")
-    public ResponseEntity<String> getParticipantListAsync(@RequestParam String callConnectionId) {
+    public ResponseEntity<ParticipantListResponse> getParticipantListAsync(@RequestParam String callConnectionId) {
         try {
             CallConnection callConnection = getConnection(callConnectionId);
+            CallConnectionProperties properties = callConnection.getCallProperties();
+            String correlationId = properties.getCorrelationId();
 
             PagedIterable<CallParticipant> participants = callConnection.listParticipants(Context.NONE);
 
             if (participants != null) {
+                List<ParticipantListResponse.ParticipantInfo> participantList = new ArrayList<>();
+                
                 for (CallParticipant participant : participants) {
+                    String participantId = participant.getIdentifier().getRawId();
+                    boolean isOnHold = participant.isOnHold();
+                    boolean isMuted = participant.isMuted();
+                    
                     log.info("----------------------------------------------------------------------");
-                    log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-                    log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                    log.info("Participant: --> {}", participantId);
+                    log.info("Is Participant on hold: --> {}", isOnHold);
+                    log.info("Is Participant muted: --> {}", isMuted);
                     log.info("----------------------------------------------------------------------");
+                    
+                    participantList.add(new ParticipantListResponse.ParticipantInfo(participantId, isOnHold, isMuted));
                 }
-                return ResponseEntity.ok("Participant list retrieved");
+                
+                ParticipantListResponse response = new ParticipantListResponse(
+                    callConnectionId, correlationId, "Participant list retrieved successfully", participantList
+                );
+                return ResponseEntity.ok(response);
             } else {
                 log.warn("No participants returned in the response.");
-                return ResponseEntity.ok("No participants found");
+                ParticipantListResponse emptyResponse = new ParticipantListResponse(
+                    callConnectionId, correlationId, "No participants found", new ArrayList<>()
+                );
+                return ResponseEntity.ok(emptyResponse);
             }
         } catch (Exception e) {
             log.error("Error getting participant list: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            ParticipantListResponse errorResponse = new ParticipantListResponse(
+                callConnectionId, null, "Failed to get participant list: " + e.getMessage(), new ArrayList<>()
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "06. Get Participant APIs", description = "Get Participant APIs")
     @PostMapping("/getParticipantList")
-    public ResponseEntity<String> getParticipantList(@RequestParam String callConnectionId) {
+    public ResponseEntity<ParticipantListResponse> getParticipantList(@RequestParam String callConnectionId) {
         try {
             CallConnection callConnection = getConnection(callConnectionId);
+            CallConnectionProperties properties = callConnection.getCallProperties();
+            String correlationId = properties.getCorrelationId();
 
             PagedIterable<CallParticipant> participants = callConnection.listParticipants();
 
             if (participants != null) {
+                List<ParticipantListResponse.ParticipantInfo> participantList = new ArrayList<>();
+                
                 for (CallParticipant participant : participants) {
+                    String participantId = participant.getIdentifier().getRawId();
+                    boolean isOnHold = participant.isOnHold();
+                    boolean isMuted = participant.isMuted();
+                    
                     log.info("----------------------------------------------------------------------");
-                    log.info("Participant: --> {}", participant.getIdentifier().getRawId());
-                    log.info("Is Participant on hold: --> {}", participant.isOnHold());
+                    log.info("Participant: --> {}", participantId);
+                    log.info("Is Participant on hold: --> {}", isOnHold);
+                    log.info("Is Participant muted: --> {}", isMuted);
                     log.info("----------------------------------------------------------------------");
+                    
+                    participantList.add(new ParticipantListResponse.ParticipantInfo(participantId, isOnHold, isMuted));
                 }
-                return ResponseEntity.ok("Participant list retrieved");
+                
+                ParticipantListResponse response = new ParticipantListResponse(
+                    callConnectionId, correlationId, "Participant list retrieved successfully", participantList
+                );
+                return ResponseEntity.ok(response);
             } else {
                 log.warn("No participants returned in the response.");
-                return ResponseEntity.ok("No participants found");
+                ParticipantListResponse emptyResponse = new ParticipantListResponse(
+                    callConnectionId, correlationId, "No participants found", new ArrayList<>()
+                );
+                return ResponseEntity.ok(emptyResponse);
             }
         } catch (Exception e) {
             log.error("Error getting participant list: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            ParticipantListResponse errorResponse = new ParticipantListResponse(
+                callConnectionId, null, "Failed to get participant list: " + e.getMessage(), new ArrayList<>()
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -1014,7 +1126,7 @@ public class ProgramSample {
 
     @Tag(name = "13. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecordingAsync")
-    public ResponseEntity<String> startRecordingAsync(@RequestParam String callConnectionId, @RequestParam boolean isAudioVideo,
+    public ResponseEntity<CallResponse> startRecordingAsync(@RequestParam String callConnectionId, @RequestParam boolean isAudioVideo,
                                                       @RequestParam String recordingFormat, @RequestParam boolean isMixed,
                                                       @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         return startRecording(callConnectionId, isAudioVideo, recordingFormat, isMixed, isRecordingWithCallConnectionId, isPauseOnStart, true);
@@ -1022,7 +1134,7 @@ public class ProgramSample {
 
     @Tag(name = "13. Recording APIs", description = "Recording APIs")
     @PostMapping("/startRecording")
-    public ResponseEntity<String> startRecording(@RequestParam String callConnectionId, @RequestParam boolean isAudioVideo,
+    public ResponseEntity<CallResponse> startRecording(@RequestParam String callConnectionId, @RequestParam boolean isAudioVideo,
                                                       @RequestParam String recordingFormat, @RequestParam boolean isMixed,
                                                       @RequestParam boolean isRecordingWithCallConnectionId, @RequestParam boolean isPauseOnStart) {
         return startRecording(callConnectionId, isAudioVideo, recordingFormat, isMixed, isRecordingWithCallConnectionId, isPauseOnStart, false);
@@ -1030,53 +1142,61 @@ public class ProgramSample {
 
     @Tag(name = "13. Recording APIs", description = "Recording APIs")
     @PostMapping("/pauseRecordingAsync")
-    public ResponseEntity<String> pauseRecordingAsync(@RequestParam String recordingId) {
+    public ResponseEntity<CallResponse> pauseRecordingAsync(@RequestParam String recordingId) {
         try {
             client.getCallRecording().pauseWithResponse(recordingId, null);
             log.info("Paused recording for {}", recordingId);
-            return ResponseEntity.ok("Recording paused successfully.");
+            CallResponse response = new CallResponse(null, null, "Recording paused successfully", recordingId);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error pausing recording for {}: {}", recordingId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pausing recording");
+            CallResponse errorResponse = new CallResponse(null, null, "Error pausing recording: " + e.getMessage(), recordingId);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "13. Recording APIs", description = "Recording APIs")
     @PostMapping("/pauseRecording")
-    public ResponseEntity<String> pauseRecording(@RequestParam String recordingId   ) {
+    public ResponseEntity<CallResponse> pauseRecording(@RequestParam String recordingId   ) {
         try {
             client.getCallRecording().pause(recordingId);
             log.info("Paused recording for {}", recordingId);
-            return ResponseEntity.ok("Recording paused successfully.");
+            CallResponse response = new CallResponse(null, null, "Recording paused successfully", recordingId);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error pausing recording for {}: {}", recordingId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error pausing recording");
+            CallResponse errorResponse = new CallResponse(null, null, "Error pausing recording: " + e.getMessage(), recordingId);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "13. Recording APIs", description = "Recording APIs")
     @PostMapping("/resumeRecordingAsync")
-    public ResponseEntity<String> resumeRecordingAsync(@RequestParam String recordingId) {
+    public ResponseEntity<CallResponse> resumeRecordingAsync(@RequestParam String recordingId) {
         try {
             client.getCallRecording().resumeWithResponse(recordingId, null);
             log.info("Resumed recording for {}", recordingId);
-            return ResponseEntity.ok("Recording resumed successfully.");
+            CallResponse response = new CallResponse(null, null, "Recording resumed successfully", recordingId);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error resuming recording for {}: {}", recordingId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error resuming recording");
+            CallResponse errorResponse = new CallResponse(null, null, "Error resuming recording: " + e.getMessage(), recordingId);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @Tag(name = "13. Recording APIs", description = "Recording APIs")
     @PostMapping("/resumeRecording")
-    public ResponseEntity<String> resumeRecording(@RequestParam String recordingId) {
+    public ResponseEntity<CallResponse> resumeRecording(@RequestParam String recordingId) {
         try {
             client.getCallRecording().resume(recordingId);
             log.info("Resumed recording for {}", recordingId);
-            return ResponseEntity.ok("Recording resumed successfully.");
+            CallResponse response = new CallResponse(null, null, "Recording resumed successfully", recordingId);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error resuming recording for {}: {}", recordingId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error resuming recording");
+            CallResponse errorResponse = new CallResponse(null, null, "Error resuming recording: " + e.getMessage(), recordingId);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -1362,12 +1482,13 @@ public class ProgramSample {
         }
     }
     
-    private ResponseEntity<String> startRecording(String callConnectionId, boolean isAudioVideo,
+    private ResponseEntity<CallResponse> startRecording(String callConnectionId, boolean isAudioVideo,
                                                       String recordingFormat, boolean isMixed,
                                                       boolean isRecordingWithCallConnectionId, boolean isPauseOnStart, boolean async) {
         try {
                 CallConnectionProperties properties = getCallConnectionProperties(callConnectionId);
                 CallLocator locator = new ServerCallLocator(properties.getServerCallId());
+                String correlationId = properties.getCorrelationId();
                 String eventCallbackUri = callbackUriHost + "/api/callbacks";
                 if(isRecordingWithCallConnectionId){
                 StartRecordingOptions options = new StartRecordingOptions(callConnectionId);
@@ -1397,7 +1518,8 @@ public class ProgramSample {
                     recordingId = client.getCallRecording().start(options).getRecordingId();
                 }
                 log.info("Recording started. RecordingId: {}", recordingId);
-                return ResponseEntity.ok("Recording started successfully.");
+                CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Recording started successfully", recordingId);
+                return ResponseEntity.ok(callResponse);
             } else {
                 StartRecordingOptions options = new StartRecordingOptions(locator);
 
@@ -1426,11 +1548,13 @@ public class ProgramSample {
                     recordingId = client.getCallRecording().start(options).getRecordingId();
                 }
                 log.info("Recording started. RecordingId: {}", recordingId);
-                return ResponseEntity.ok("Recording started successfully. RecordingId: " + recordingId);
+                CallResponse callResponse = new CallResponse(callConnectionId, correlationId, "Recording started successfully", recordingId);
+                return ResponseEntity.ok(callResponse);
             }
         } catch (Exception e) {
             log.error("Error starting recording for {}: {}", recordingId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error starting recording");
+            CallResponse errorResponse = new CallResponse(callConnectionId, null, "Error starting recording: " + e.getMessage(), recordingId);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
     

@@ -121,8 +121,6 @@ public class ProgramSample {
 
                 CallConnection targetConnection = acsClient.getCallConnection(targetCallConnectionId);
 
-                // Determine participant type based on identifier format (similar to C#
-                // implementation)
                 CommunicationIdentifier participantToMove;
                 if (lobbyCallerId.startsWith("+")) {
                     participantToMove = new PhoneNumberIdentifier(lobbyCallerId);
@@ -130,8 +128,6 @@ public class ProgramSample {
                     participantToMove = new CommunicationUserIdentifier(lobbyCallerId);
                 }
 
-                // Move participant using MoveParticipantsOptions (similar to C#
-                // MoveParticipantsAsync)
                 MoveParticipantsOptions moveOptions = new MoveParticipantsOptions(
                         java.util.Collections.singletonList(participantToMove),
                         lobbyCallConnectionId);
@@ -316,7 +312,7 @@ public class ProgramSample {
                     msgLog.append("~~~~~~~~~~~~  /api/callbacks ~~~~~~~~~~~~ \n")
                             .append("Received event: ").append(event.getClass()).append("\n");
 
-                    // Notify Target Call user via WebSocket (similar to C# implementation)
+                    // Notify Target Call user via WebSocket
                     String confirmationMessage = CONFIRMATION_MESSAGE;
 
                     if (!lobbyWebSocketHandler.hasActiveConnections()) {
@@ -344,7 +340,7 @@ public class ProgramSample {
 
                     log.info("MoveParticipantSucceeded: {}", callConnectionId);
 
-                    // Get and log participants in the target call (similar to C# implementation)
+                    // Get and log participants in the target call
                     try {
                         CallConnection targetConnection = acsClient.getCallConnection(callConnectionId);
                         PagedIterable<CallParticipant> participantsResult = targetConnection.listParticipants();
@@ -511,7 +507,7 @@ public class ProgramSample {
     }
 
     /**
-     * Helper method to log participants information (similar to C# LogParticipants)
+     * Helper method to log participants information 
      * 
      * @param participants List of call participants
      */

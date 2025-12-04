@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: CallAutomation_GCCHTestApp
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        same-site: none
+        secure: false
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+  # Enhanced Tomcat configuration for WebSocket stability in deployed environments
+  tomcat:
+    connection-timeout: 600000  # 10 minutes
+    keep-alive-timeout: 600000  # 10 minutes
+    max-keep-alive-requests: 1000
+    threads:
+      max: 200
+      min-spare: 10
+    # WebSocket specific configurations
+    websocket:
+      max-idle-timeout: 600000  # 10 minutes
+    # Additional connection properties for deployed environments
+    max-connections: 8192
+    accept-count: 100
+    processor-cache: 200
+  # Forward headers for proper handling behind load balancers/proxies
+  forward-headers-strategy: native
+  use-forward-headers: true
+
+acs:
+  connectionstring: ""
+  callbackUriHost: ""
+  acsPhoneNumber: ""
+  targetphonenumber: ""
+  cognitiveServiceEndpoint: ""
+  targetTeamsUserId: <(OPTIONAL) YOUR TARGET TEAMS USER ID ex. "ab01bc12-d457-4995-a27b-c405ecfe4870">

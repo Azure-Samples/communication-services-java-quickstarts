@@ -25,10 +25,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.Duration;
@@ -36,8 +38,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.FileSystemResource;
 import org.json.JSONObject;
 import com.azure.messaging.eventgrid.EventGridEvent;
 import com.azure.messaging.eventgrid.systemevents.SubscriptionValidationResponse;
@@ -70,6 +73,10 @@ public class ProgramSample {
 
     private String confirmLabel = "Confirm";
     private String cancelLabel = "Cancel";
+    
+    // Event logging configuration
+    private static final String EVENTS_LOG_FILE = "call_automation_events.txt";
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public ProgramSample(final AppConfig appConfig) {
         this.appConfig = appConfig;
@@ -87,6 +94,37 @@ public class ProgramSample {
         
         client = initClient();
     }
+
+    /**
+     * Writes event information to a text file
+     */
+    private void writeEventToFile(CallAutomationEventBase event, String additionalInfo) {
+        try {
+            Path filePath = Paths.get(EVENTS_LOG_FILE);
+            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
+            
+            StringBuilder eventInfo = new StringBuilder();
+            eventInfo.append("==========================================\n");
+            eventInfo.append("Timestamp: ").append(timestamp).append("\n");
+            eventInfo.append("Event Type: ").append(event.getClass().getSimpleName()).append("\n");
+            eventInfo.append("Call Connection ID: ").append(event.getCallConnectionId()).append("\n");
+            eventInfo.append("Server Call ID: ").append(event.getServerCallId()).append("\n");
+            eventInfo.append("Correlation ID: ").append(event.getCorrelationId()).append("\n");
+            
+            if (additionalInfo != null && !additionalInfo.isEmpty()) {
+                eventInfo.append("Additional Info: ").append(additionalInfo).append("\n");
+            }
+            
+            eventInfo.append("==========================================\n\n");
+            
+            // Write to file (append mode)
+            Files.write(filePath, eventInfo.toString().getBytes(), 
+                       StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                       
+        } catch (IOException e) {
+            log.error("Failed to write event to file: {}", e.getMessage());
+        }
+    }
     @Tag(name = "02. Call Automation Events", description = "CallAutomation Events")
     @PostMapping(path = "/api/callbacks")
     public ResponseEntity<String> callbackEvents(@RequestBody final String reqBody) {
@@ -100,6 +138,10 @@ public class ProgramSample {
                         event.getServerCallId(),
                         event.getCorrelationId(),
                         event.getClass().getSimpleName());
+                        
+                // Write basic event info to file for all events
+                String basicEventInfo = String.format("Event: %s", event.getClass().getSimpleName());
+                writeEventToFile(event, basicEventInfo);
 
                 if (event instanceof CallConnected) {
                     log.info("****************************************");
@@ -113,17 +155,35 @@ public class ProgramSample {
                             .getTranscriptionSubscription();
                     log.info("MediaStreaming State: {}", mediaStreamingSubscription.getState());
                     log.info("Transcription State: {}", transcriptionSubscription.getState());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("MediaStreaming State: %s, Transcription State: %s", 
+                                                         mediaStreamingSubscription.getState(), 
+                                                         transcriptionSubscription.getState());
+                    writeEventToFile(event, additionalInfo);
                 } else if (event instanceof MediaStreamingStarted) {
                     MediaStreamingStarted acsEvent = (MediaStreamingStarted) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
                     log.info("MediaSteaming Status: {}",
                             acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, MediaStreaming Status: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof MediaStreamingStopped) {
                     MediaStreamingStopped acsEvent = (MediaStreamingStopped) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
                     log.info("MediaSteaming Status: {}",
                             acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, MediaStreaming Status: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof MediaStreamingFailed) {
                     MediaStreamingFailed acsEvent = (MediaStreamingFailed) event;
@@ -132,23 +192,48 @@ public class ProgramSample {
                             acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus());
                     log.error("Received failed event: {}", acsEvent
                             .getResultInformation().getMessage());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, MediaStreaming Status: %s, Error: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getMediaStreamingUpdateResult().getMediaStreamingStatus(),
+                                                         acsEvent.getResultInformation().getMessage());
+                    writeEventToFile(event, additionalInfo);
                 } else if (event instanceof TranscriptionStarted) {
                     TranscriptionStarted acsEvent = (TranscriptionStarted) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
                     log.info("Transcription Status: {}",
                             acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, Transcription Status: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof TranscriptionUpdated) {
                     TranscriptionUpdated acsEvent = (TranscriptionUpdated) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
                     log.info("Transcription Status: {}",
                             acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, Transcription Status: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof TranscriptionStopped) {
                     TranscriptionStopped acsEvent = (TranscriptionStopped) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
                     log.info("Transcription Status: {}",
                             acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, Transcription Status: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof TranscriptionFailed) {
                     TranscriptionFailed acsEvent = (TranscriptionFailed) event;
@@ -157,29 +242,50 @@ public class ProgramSample {
                             acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus());
                     log.error("Received failed event: {}", acsEvent
                             .getResultInformation().getMessage());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, Transcription Status: %s, Error: %s", 
+                                                         acsEvent.getOperationContext(), 
+                                                         acsEvent.getTranscriptionUpdateResult().getTranscriptionStatus(),
+                                                         acsEvent.getResultInformation().getMessage());
+                    writeEventToFile(event, additionalInfo);
                 } else {
                     log.debug("Received unhandled event: {}", event.getClass().getSimpleName());
-                } if (event instanceof RecognizeCompleted) {
+                    // Write unhandled events to file too
+                    writeEventToFile(event, "Unhandled event type");
+                }
+                
+                if (event instanceof RecognizeCompleted) {
                     RecognizeCompleted acsEvent = (RecognizeCompleted) event;
                     RecognizeResult recognizeResult = acsEvent.getRecognizeResult().get();
+                    String recognitionInfo;
                     if (recognizeResult instanceof DtmfResult) {
                         // Take action on collect tones
                         DtmfResult dtmfResult = (DtmfResult) recognizeResult;
                         List<DtmfTone> tones = dtmfResult.getTones();
                         log.info("Recognition completed, tones=" + tones + ", context="
                                 + acsEvent.getOperationContext());
+                        recognitionInfo = "DTMF Tones: " + tones;
                     } else if (recognizeResult instanceof ChoiceResult) {
                         ChoiceResult collectChoiceResult = (ChoiceResult) recognizeResult;
                         String labelDetected = collectChoiceResult.getLabel();
                         String phraseDetected = collectChoiceResult.getRecognizedPhrase();
+                        recognitionInfo = String.format("Choice - Label: %s, Phrase: %s", labelDetected, phraseDetected);
                     } else if (recognizeResult instanceof SpeechResult) {
                         SpeechResult speechResult = (SpeechResult) recognizeResult;
                         String text = speechResult.getSpeech();
                         log.info("Recognition completed, text=" + text + ", context=" + acsEvent.getOperationContext());
+                        recognitionInfo = "Speech: " + text;
                     } else {
                         log.info("Recognition completed, result=" + recognizeResult + ", context="
                                 + acsEvent.getOperationContext());
+                        recognitionInfo = "Result: " + recognizeResult;
                     }
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, Recognition Info: %s", 
+                                                         acsEvent.getOperationContext(), recognitionInfo);
+                    writeEventToFile(event, additionalInfo);
                 } else if (event instanceof RecognizeFailed) {
 
                     RecognizeFailed acsEvent = (RecognizeFailed) event;
@@ -188,10 +294,21 @@ public class ProgramSample {
                             acsEvent.getFailedPlaySourceIndex());
                     log.error("Received failed event: {}", acsEvent
                             .getResultInformation().getMessage());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, FailedPlaySourceIndex: %s, Error: %s", 
+                                                         acsEvent.getOperationContext(),
+                                                         acsEvent.getFailedPlaySourceIndex(),
+                                                         acsEvent.getResultInformation().getMessage());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof PlayCompleted) {
                     PlayCompleted acsEvent = (PlayCompleted) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s", acsEvent.getOperationContext());
+                    writeEventToFile(event, additionalInfo);
                 } else if (event instanceof PlayFailed) {
 
                     PlayFailed acsEvent = (PlayFailed) event;
@@ -200,21 +317,42 @@ public class ProgramSample {
                             acsEvent.getFailedPlaySourceIndex());
                     log.error("Received failed event: {}", acsEvent
                             .getResultInformation().getMessage());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, FailedPlaySourceIndex: %s, Error: %s", 
+                                                         acsEvent.getOperationContext(),
+                                                         acsEvent.getFailedPlaySourceIndex(),
+                                                         acsEvent.getResultInformation().getMessage());
+                    writeEventToFile(event, additionalInfo);
 
                 } else if (event instanceof RecordingStateChanged) {
                     RecordingStateChanged acsEvent = (RecordingStateChanged) event;
                     log.info("Recording State Changed event received: {}",
                             event.getCallConnectionId());
                     log.info("Recording State: {}", acsEvent.getRecordingState());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Recording State: %s", acsEvent.getRecordingState());
+                    writeEventToFile(event, additionalInfo);
                 } else if (event instanceof CallTransferAccepted) {
                     CallTransferAccepted acsEvent = (CallTransferAccepted) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s", acsEvent.getOperationContext());
+                    writeEventToFile(event, additionalInfo);
                 } else if (event instanceof CallTransferFailed) {
 
                     CallTransferFailed acsEvent = (CallTransferFailed) event;
                     log.info("Operation Context: {}", acsEvent.getOperationContext());
                     log.error("Received failed event: {}", acsEvent
                             .getResultInformation().getMessage());
+                    
+                    // Write to file
+                    String additionalInfo = String.format("Operation Context: %s, Error: %s", 
+                                                         acsEvent.getOperationContext(),
+                                                         acsEvent.getResultInformation().getMessage());
+                    writeEventToFile(event, additionalInfo);
                 }
             }
             return ResponseEntity.ok().body("");
@@ -1558,6 +1696,91 @@ public class ProgramSample {
         }
     }
     
+    /**
+     * API to download the events log file
+     */
+    @Tag(name = "13. Event Log APIs", description = "APIs for managing event logs")
+    @GetMapping("/api/download-events-log")
+    public ResponseEntity<Resource> downloadEventsLog() {
+        try {
+            Path filePath = Paths.get(EVENTS_LOG_FILE);
+            
+            if (!Files.exists(filePath)) {
+                log.warn("Events log file does not exist: {}", EVENTS_LOG_FILE);
+                return ResponseEntity.notFound().build();
+            }
+            
+            Resource resource = new FileSystemResource(filePath.toFile());
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, 
+                           "attachment; filename=\"" + EVENTS_LOG_FILE + "\"")
+                    .header(HttpHeaders.CONTENT_TYPE, "text/plain")
+                    .body(resource);
+                    
+        } catch (Exception e) {
+            log.error("Error downloading events log file: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * API to get the current size and info about the events log file
+     */
+    @Tag(name = "13. Event Log APIs", description = "APIs for managing event logs")
+    @GetMapping("/api/events-log-info")
+    public ResponseEntity<String> getEventsLogInfo() {
+        try {
+            Path filePath = Paths.get(EVENTS_LOG_FILE);
+            
+            if (!Files.exists(filePath)) {
+                return ResponseEntity.ok("Events log file does not exist yet. It will be created when the first event is received.");
+            }
+            
+            long fileSize = Files.size(filePath);
+            long lineCount = Files.lines(filePath).count();
+            String lastModified = Files.getLastModifiedTime(filePath).toString();
+            
+            String info = String.format("Events Log File Info:\n" +
+                                      "File: %s\n" +
+                                      "Size: %d bytes\n" +
+                                      "Lines: %d\n" +
+                                      "Last Modified: %s", 
+                                      EVENTS_LOG_FILE, fileSize, lineCount, lastModified);
+            
+            return ResponseEntity.ok(info);
+            
+        } catch (Exception e) {
+            log.error("Error getting events log file info: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error getting file info: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * API to clear the events log file
+     */
+    @Tag(name = "13. Event Log APIs", description = "APIs for managing event logs")
+    @DeleteMapping("/api/clear-events-log")
+    public ResponseEntity<String> clearEventsLog() {
+        try {
+            Path filePath = Paths.get(EVENTS_LOG_FILE);
+            
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("Events log file cleared successfully");
+                return ResponseEntity.ok("Events log file cleared successfully");
+            } else {
+                return ResponseEntity.ok("Events log file does not exist");
+            }
+            
+        } catch (Exception e) {
+            log.error("Error clearing events log file: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error clearing file: " + e.getMessage());
+        }
+    }
+    
     private CallAutomationClient initClient() {
         try {
             var client = new CallAutomationClientBuilder()
@@ -1571,47 +1794,6 @@ public class ProgramSample {
         } catch (Exception e) {
             log.error("Error occurred when initializing Call Automation Client: {} {}", e.getMessage(), e.getCause());
             return null;
-        }
-    }
-
-    // Test endpoint to generate log messages for WebSocket demonstration
-    @Tag(name = "00. Test Live Logs", description = "Test endpoint to generate logs for live console")
-    @PostMapping("/api/test-logs")
-    public ResponseEntity<String> generateTestLogs(@RequestParam(defaultValue = "5") int count,
-                                                   @RequestParam(defaultValue = "info") String level) {
-        try {
-            log.info("Starting log generation test - Count: {}, Level: {}", count, level);
-            
-            for (int i = 1; i <= count; i++) {
-                Thread.sleep(500); // Small delay between logs
-                
-                switch (level.toLowerCase()) {
-                    case "error":
-                        log.error("Test ERROR log message #{} - This is a sample error for WebSocket demonstration", i);
-                        break;
-                    case "warn":
-                        log.warn("Test WARN log message #{} - This is a sample warning for WebSocket demonstration", i);
-                        break;
-                    case "debug":
-                        log.debug("Test DEBUG log message #{} - This is a sample debug for WebSocket demonstration", i);
-                        break;
-                    case "info":
-                    default:
-                        log.info("Test INFO log message #{} - This is a sample info for WebSocket demonstration", i);
-                        break;
-                }
-            }
-            
-            log.info("Log generation test completed successfully. Generated {} {} level messages", count, level);
-            return ResponseEntity.ok("Successfully generated " + count + " " + level + " level log messages");
-            
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Log generation test was interrupted: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Log generation was interrupted");
-        } catch (Exception e) {
-            log.error("Error during log generation test: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate log messages");
         }
     }
 }

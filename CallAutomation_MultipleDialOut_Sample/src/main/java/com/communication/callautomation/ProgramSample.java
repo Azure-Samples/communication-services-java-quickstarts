@@ -172,19 +172,16 @@ public class ProgramSample {
         try {
             List<CallAutomationEventBase> events = CallAutomationEventParser.parseEvents(reqBody);
             for (CallAutomationEventBase event : events) {
-                String callConnectionId = event.getCallConnectionId();
-                log.info(
-                        "Received call event callConnectionID: {}, serverCallId: {}, CorrelationId: {}, eventType: {}",
-                        callConnectionId,
-                        event.getServerCallId(),
-                        event.getCorrelationId(),
-                        event.getClass().getSimpleName());
+                String eventName = event.getClass().getSimpleName();
+
+                log.info("Callback Event: {} | CallConnectionId: {} | CorrelationId: {}",
+                        eventName, event.getCallConnectionId(), event.getCorrelationId());
 
                 if (event instanceof CreateCallFailed ||
                         event instanceof ConnectFailed ||
                         event instanceof PlayFailed ||
                         event instanceof RecognizeFailed) {
-                    log.error("Call event failed: {}", event.getClass().getSimpleName());
+                    log.error("Event FAILED: {}", eventName);
                 } else if (event instanceof CallConnected) {
                     log.info("Call connected successfully");
                 }
@@ -281,71 +278,13 @@ public class ProgramSample {
     @Tag(name = "STEP 03a. Move Participant 2", description = "Move Participant to ACS Test Identity 2 in the main Call by using this endpoint")
     @GetMapping("/moveParticipant2")
     public ResponseEntity<String> moveParticipant2() {
-        try {
-            CallConnection targetConnection = acsClient.getCallConnection(callConnectionId1);
-
-            Object participantToMove;
-            if (acsOutboundPhoneNumber.startsWith("+")) {
-                participantToMove = new PhoneNumberIdentifier(acsOutboundPhoneNumber);
-            } else if (acsOutboundPhoneNumber.startsWith("8:acs:")) {
-                participantToMove = new CommunicationUserIdentifier(acsOutboundPhoneNumber);
-            } else {
-                return ResponseEntity.badRequest().body(
-                        "Invalid participant format. Use phone number (+1234567890) or ACS user ID (8:acs:...)");
-            }
-
-            MoveParticipantsOptions request = new MoveParticipantsOptions(
-                    List.of((CommunicationIdentifier) participantToMove),
-                    callConnectionId2);
-
-            targetConnection.moveParticipants(request);
-            lastWorkflowCallType = "";
-            calleeId1 = acsTestIdentity2;
-            callConnectionId2 = "";
-            callerId2 = "";
-            calleeId2 = "";
-
-            log.info("Participant moved to call 1");
-            return ResponseEntity.ok("Successfully moved participant " + acsTestIdentity2 + " to main call");
-        } catch (Exception e) {
-            log.error("Error moving participant: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to move participant.");
-        }
+        return moveParticipant(callConnectionId2, acsTestIdentity2, 2);
     }
 
     @Tag(name = "STEP 03b. Move Participant 3", description = "Move Participant to ACS Test Identity 3 in the main Call by using this endpoint")
     @GetMapping("/moveParticipant3")
     public ResponseEntity<String> moveParticipant3() {
-        try {
-            CallConnection targetConnection = acsClient.getCallConnection(callConnectionId1);
-
-            Object participantToMove;
-            if (acsOutboundPhoneNumber.startsWith("+")) {
-                participantToMove = new PhoneNumberIdentifier(acsOutboundPhoneNumber);
-            } else if (acsOutboundPhoneNumber.startsWith("8:acs:")) {
-                participantToMove = new CommunicationUserIdentifier(acsOutboundPhoneNumber);
-            } else {
-                return ResponseEntity.badRequest().body(
-                        "Invalid participant format. Use phone number (+1234567890) or ACS user ID (8:acs:...)");
-            }
-
-            MoveParticipantsOptions request = new MoveParticipantsOptions(
-                    List.of((CommunicationIdentifier) participantToMove),
-                    callConnectionId3);
-
-            targetConnection.moveParticipants(request);
-            lastWorkflowCallType = "";
-            calleeId1 = acsTestIdentity3;
-            callConnectionId3 = "";
-            callerId3 = "";
-            calleeId3 = "";
-
-            log.info("Participant moved to call 1");
-            return ResponseEntity.ok("Successfully moved participant " + acsTestIdentity3 + " to main call");
-        } catch (Exception e) {
-            log.error("Error moving participant: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to move participant.");
-        }
+        return moveParticipant(callConnectionId3, acsTestIdentity3, 3);
     }
 
     @Tag(name = "STEP 04. Get Status", description = "Get the current status of the calls by using this endpoint")
@@ -518,6 +457,67 @@ public class ProgramSample {
     }
 
     // 🔄 Shared Methods
+    private ResponseEntity<String> moveParticipant(String sourceConnectionId, String targetIdentity, int callNumber) {
+        try {
+            log.info("=== MANUAL MOVE PARTICIPANTS REQUESTED ===");
+            log.info("Source Connection ID: " + sourceConnectionId);
+            log.info("Target Connection ID: " + callConnectionId1);
+            log.info("Participant to Move: " + acsOutboundPhoneNumber);
+
+            // Get the target connection (where we want to move participants to)
+            CallConnection targetConnection = acsClient.getCallConnection(callConnectionId1);
+
+            // Create participant identifier based on the input
+            Object participantToMove;
+            if (acsOutboundPhoneNumber.startsWith("+")) {
+                // Phone number
+                participantToMove = new PhoneNumberIdentifier(acsOutboundPhoneNumber);
+                log.info("Moving phone number participant: " + acsOutboundPhoneNumber);
+            } else if (acsOutboundPhoneNumber.startsWith("8:acs:")) {
+                // ACS Communication User
+                participantToMove = new CommunicationUserIdentifier(acsOutboundPhoneNumber);
+                log.info("Moving ACS user participant: " + acsOutboundPhoneNumber);
+            } else {
+                return ResponseEntity.badRequest().body(
+                        "Invalid participant format. Use phone number (+1234567890) or ACS user ID (8:acs:...)");
+            }
+
+            // Prepare move participants request
+            MoveParticipantsOptions request = new MoveParticipantsOptions(
+                    List.of((CommunicationIdentifier) participantToMove),
+                    sourceConnectionId);
+
+            // Call the ACS SDK to move participants
+            targetConnection.moveParticipants(request);
+            lastWorkflowCallType = "";
+            calleeId1 = targetIdentity;
+
+            // Clear the source connection data
+            if (callNumber == 2) {
+                callConnectionId2 = "";
+                callerId2 = "";
+                calleeId2 = "";
+            } else if (callNumber == 3) {
+                callConnectionId3 = "";
+                callerId3 = "";
+                calleeId3 = "";
+            }
+
+            // For demonstration, assume success
+            log.info("Move Participants operation completed successfully");
+            log.info("Moved " + targetIdentity + " from " + sourceConnectionId + " to " + callConnectionId1);
+            log.info("=== MOVE PARTICIPANTS OPERATION COMPLETE ===");
+
+            return ResponseEntity.ok(
+                    "Successfully moved participant " + targetIdentity +
+                            " from " + sourceConnectionId +
+                            " to " + callConnectionId1);
+        } catch (Exception e) {
+            log.error("Error moving participant: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to move participant.");
+        }
+    }
+
     private CallConnection getCallConnection(CallAutomationClient client, String callConnectionId) {
         if (callConnectionId == null || callConnectionId.isEmpty()) {
             throw new IllegalArgumentException("Call connection id is empty");

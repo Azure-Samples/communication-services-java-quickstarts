@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: CallAutomation_MultipleDialOut
+
+springdoc:
+  swagger-ui:
+    tagsSorter: alpha
+
+server:
+  port: 8080
+
+applicationinsights:
+  connection-string: ""
+
+acs:
+  acsConnectionString: ""
+  acsInboundPhoneNumber: ""
+  acsOutboundPhoneNumber: ""
+  userPhoneNumber: ""
+  acsTestIdentity2: ""
+  acsTestIdentity3: ""
+  callbackUriHost: ""

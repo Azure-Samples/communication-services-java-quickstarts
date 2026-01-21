@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: CallAutomation_OutboundCalling
+
+server:
+  port: 8080
+
+acs:
+  connectionstring: <ENTER YOUR ACS CONNECTION STRING>
+  basecallbackuri: <ENTER YOUR DEV TUNNEL BASE URL>
+  cognitiveServicesUrl: <ENTER YOUR COGNITIVE SERVICE URL>
+  azureOpenAiServiceKey: <ENTER YOUR COGNITIVE SERVICE VAULT KEY>
+  azureOpenAiServiceEndpoint: <ENTER YOUR OPENAI SERVICE URL>
+  openAiModelName: <ENTER YOUR OPENAI MODEL NAME>
+  agentPhoneNumber: <ENTER AGENT PHONE NUMBER>
